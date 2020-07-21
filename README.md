@@ -1,4 +1,5 @@
 [![Circle CI](https://circleci.com/gh/segmentio/topicctl.svg?style=svg&circle-token=1f82ab114a8b160f3e12291ab0fa959132c4c97c)](https://circleci.com/gh/segmentio/topicctl)
+
 # topicctl
 
 A tool for easy, declarative management of Kafka topics. Includes the ability to "apply" topic
