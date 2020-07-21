@@ -35,25 +35,31 @@ You can also build and install the binary by running `make install` in the root 
 docker-compose up -d
 ```
 
-2. Apply the topic configs in [`examples/local-cluster/topics`](/examples/local-cluster/topics):
+2. Run the net alias script to make the broker addresses available on localhost:
+
+```
+./scripts/set_up_net_alias.sh
+```
+
+3. Apply the topic configs in [`examples/local-cluster/topics`](/examples/local-cluster/topics):
 
 ```
 topicctl apply --skip-confirm examples/local-cluster/topics/*yaml
 ```
 
-3. Send some test messages to the `topic-default` topic:
+4. Send some test messages to the `topic-default` topic:
 
 ```
 topicctl tester --zk-addr=localhost:2181 --topic=topic-default
 ```
 
-4. Open up the repl (while keeping the tester running in a separate terminal):
+5. Open up the repl (while keeping the tester running in a separate terminal):
 
 ```
 topicctl repl --cluster-config=examples/local-cluster/cluster.yaml
 ```
 
-5. Run some test commands:
+6. Run some test commands:
 
 ```
 get brokers
@@ -63,7 +69,7 @@ get offsets topic-default
 tail topic-default
 ```
 
-6. Increase the number of partitions in the `topic-default` topic by changing the `partitions: ...`
+7. Increase the number of partitions in the `topic-default` topic by changing the `partitions: ...`
 line in [topic-default.yaml](/examples/local-cluster/topics/topic-default.yaml) and
 re-applying:
 

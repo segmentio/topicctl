@@ -1,9 +1,7 @@
 #!/bin/sh
 
-# Copied from https://github.com/segmentio/kingmaker/blob/master/setup_net_alias.sh.
-
 ADDR=169.254.123.123
-echo "aliasing $ADDR to localhost..."
+echo "Aliasing $ADDR to localhost..."
 
 UNAME=$(uname -a)
 case "$UNAME" in
@@ -14,6 +12,6 @@ esac
 
 if [[ $? != 0 ]]
 then
-    >&2 echo "unable to create alias"
+    >&2 echo "Unable to create alias"
     exit 1
 fi
