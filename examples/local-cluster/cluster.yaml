@@ -1,0 +1,14 @@
+meta:
+  name: local-cluster
+  environment: local-env
+  region: local-region
+  description: |
+    Test cluster
+
+spec:
+  versionMajor: v2
+  bootstrapAddrs:
+    - localhost:9092
+  zkAddrs:
+    - localhost:2181
+  zkLockPath: /topicctl/locks

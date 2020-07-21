@@ -1,0 +1,14 @@
+meta:
+  name: topic-in-rack
+  cluster: local-cluster
+  environment: local-env
+  region: local-region
+  description: |
+    Topic that uses in-rack strategy for assigning brokers.
+
+spec:
+  partitions: 9
+  replicationFactor: 2
+  retentionMinutes: 100
+  placement:
+    strategy: in-rack

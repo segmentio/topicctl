@@ -1,0 +1,11 @@
+meta:
+  name: topic-test-invalid
+  cluster: test-cluster
+  description: |
+    Test topic
+
+spec:
+  partitions: 9
+  retentionMinutes: 100
+  placement:
+    strategy: non-matching

@@ -1,0 +1,14 @@
+meta:
+  name: topic-test
+  cluster: test-cluster
+  environment: test-env
+  region: test-region
+  description: |
+    Test topic
+
+spec:
+  partitions: 9
+  replicationFactor: 2
+  retentionMinutes: 100
+  placement:
+    strategy: in-rack

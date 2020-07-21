@@ -1,0 +1,10 @@
+meta:
+  name: test-cluster
+  environment: test-env
+  region: test-region
+  description: |
+    Test cluster
+  clusterId: test-cluster-id
+
+spec:
+  versionMajor: v0.40
