@@ -35,7 +35,7 @@ services:
       - zookeeper
       - kafka1
 
-  # Zone 2 replicas
+  # Zone 2 brokers
   kafka3:
     image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
     ports:
