@@ -85,6 +85,10 @@ jobs:
       - checkout
       - setup_remote_docker:
           reusable: true
+          docker_layer_caching: true
+      - restore_cache:
+          keys:
+            - go-modules-{{ checksum "go.sum" }}
       - run:
           name: Run tests
           command: make test
@@ -93,6 +97,10 @@ jobs:
           environment:
             SNYK_LEVEL: 'FLHI'
           command: curl -sL https://raw.githubusercontent.com/segmentio/snyk_helpers/master/initialization/snyk.sh | sh
+      - save_cache:
+          key: go-modules-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
 
   publish:
     working_directory: /go/src/github.com/segmentio/topicctl
@@ -103,6 +111,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           reusable: true
+          docker_layer_caching: true
       - run:
           name: ECR Login
           command: |
