@@ -85,6 +85,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           reusable: true
+          docker_layer_caching: true
       - restore_cache:
           keys:
             - go-modules-{{ checksum "go.sum" }}
@@ -110,6 +111,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           reusable: true
+          docker_layer_caching: true
       - run:
           name: ECR Login
           command: |
