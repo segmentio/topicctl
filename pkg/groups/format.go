@@ -3,6 +3,7 @@ package groups
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -170,6 +171,54 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 				memberLag.NewestTime.Format(time.RFC3339),
 				fmt.Sprintf("%d", memberLag.OffsetLag()),
 				timeLagStr,
+			},
+		)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+func FormatPartitionOffsets(partitionOffsets map[int]int64) string {
+	buf := &bytes.Buffer{}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(
+		[]string{
+			"Partition",
+			"New Offset",
+		},
+	)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	partitionIDs := []int{}
+	for partitionID := range partitionOffsets {
+		partitionIDs = append(partitionIDs, partitionID)
+	}
+
+	sort.Slice(partitionIDs, func(a, b int) bool {
+		return partitionIDs[a] < partitionIDs[b]
+	})
+
+	for _, partitionID := range partitionIDs {
+		table.Append(
+			[]string{
+				fmt.Sprintf("%d", partitionID),
+				fmt.Sprintf("%d", partitionOffsets[partitionID]),
 			},
 		)
 	}

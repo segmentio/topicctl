@@ -17,36 +17,24 @@ import (
 )
 
 var tailCmd = &cobra.Command{
-	Use:   "tail [topic name]",
-	Short: "tail events in a topic using kafkacat",
-	Args:  cobra.MinimumNArgs(1),
-	RunE:  tailRun,
+	Use:     "tail [topic name]",
+	Short:   "tail events in a topic",
+	Args:    cobra.MinimumNArgs(1),
+	PreRunE: tailPreRun,
+	RunE:    tailRun,
 }
 
 type tailCmdConfig struct {
-	zkAddr           string
-	zkPrefix         string
-	clusterConfig    string
-	offset           int64
-	partitionStrings []string
+	clusterConfig string
+	offset        int64
+	partitions    []int
+	zkAddr        string
+	zkPrefix      string
 }
 
 var tailConfig tailCmdConfig
 
 func init() {
-	tailCmd.Flags().StringVarP(
-		&tailConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 	tailCmd.Flags().StringVar(
 		&tailConfig.clusterConfig,
 		"cluster-config",
@@ -59,11 +47,24 @@ func init() {
 		kafka.LastOffset,
 		"Offset (defaults to last)",
 	)
-	tailCmd.Flags().StringArrayVar(
-		&tailConfig.partitionStrings,
-		"partition",
-		[]string{},
+	tailCmd.Flags().IntSliceVar(
+		&tailConfig.partitions,
+		"partitions",
+		[]int{},
 		"Partition (defaults to all)",
+	)
+	tailCmd.Flags().StringVarP(
+		&tailConfig.zkAddr,
+		"zk-addr",
+		"z",
+		"",
+		"ZooKeeper address",
+	)
+	tailCmd.Flags().StringVar(
+		&tailConfig.zkPrefix,
+		"zk-prefix",
+		"",
+		"Prefix for cluster-related nodes in zk",
 	)
 
 	RootCmd.AddCommand(tailCmd)
@@ -124,7 +125,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		ctx,
 		args[0],
 		tailConfig.offset,
-		tailConfig.partitionStrings,
+		tailConfig.partitions,
 		-1,
 		"",
 	)

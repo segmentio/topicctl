@@ -33,15 +33,27 @@ var getCmd = &cobra.Command{
 }
 
 type getCmdConfig struct {
-	zkAddr        string
-	zkPrefix      string
 	clusterConfig string
 	full          bool
+	zkAddr        string
+	zkPrefix      string
 }
 
 var getConfig getCmdConfig
 
 func init() {
+	getCmd.Flags().StringVar(
+		&getConfig.clusterConfig,
+		"cluster-config",
+		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
+		"Cluster config",
+	)
+	getCmd.Flags().BoolVar(
+		&getConfig.full,
+		"full",
+		false,
+		"Show more full information for resources",
+	)
 	getCmd.Flags().StringVarP(
 		&getConfig.zkAddr,
 		"zk-addr",
@@ -54,18 +66,6 @@ func init() {
 		"zk-prefix",
 		"",
 		"Prefix for cluster-related nodes in zk",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
-	getCmd.Flags().BoolVar(
-		&getConfig.full,
-		"full",
-		false,
-		"Show more full information for resources",
 	)
 
 	RootCmd.AddCommand(getCmd)
@@ -100,8 +100,8 @@ func getRun(cmd *cobra.Command, args []string) error {
 		adminClient, clientErr = admin.NewClient(
 			ctx,
 			admin.ClientConfig{
-				ZKAddrs:  []string{replConfig.zkAddr},
-				ZKPrefix: replConfig.zkPrefix,
+				ZKAddrs:  []string{getConfig.zkAddr},
+				ZKPrefix: getConfig.zkPrefix,
 				Sess:     sess,
 				// Run in read-only mode to ensure that tailing doesn't make any changes
 				// in the cluster

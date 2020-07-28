@@ -3,7 +3,6 @@ package groups
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sort"
 
 	"github.com/segmentio/kafka-go"
@@ -112,15 +111,6 @@ func (c *Client) GetMemberLags(
 		return nil, errors.New("Group state is dead; check that group ID is valid")
 	}
 
-	topicsMap := groupDetails.TopicsMap()
-	if _, ok := topicsMap[topic]; !ok {
-		return nil, fmt.Errorf(
-			"No assignments found for topic %s in group %s",
-			topic,
-			groupID,
-		)
-	}
-
 	partitionMembers := groupDetails.PartitionMembers(topic)
 
 	offsets, err := c.client.ConsumerOffsets(
@@ -158,4 +148,33 @@ func (c *Client) GetMemberLags(
 	}
 
 	return partitionLags, nil
+}
+
+func (c *Client) ResetOffsets(
+	ctx context.Context,
+	topic string,
+	groupID string,
+	partitionOffsets map[int]int64,
+) error {
+	consumerGroup, err := kafka.NewConsumerGroup(
+		kafka.ConsumerGroupConfig{
+			ID:      groupID,
+			Brokers: []string{c.brokerAddr},
+			Topics:  []string{topic},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	generation, err := consumerGroup.Next(ctx)
+	if err != nil {
+		return err
+	}
+
+	return generation.CommitOffsets(
+		map[string]map[int]int64{
+			topic: partitionOffsets,
+		},
+	)
 }
