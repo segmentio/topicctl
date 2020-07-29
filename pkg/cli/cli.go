@@ -72,6 +72,128 @@ func (c *CLIRunner) GetBrokers(ctx context.Context, full bool) error {
 	return nil
 }
 
+func (c *CLIRunner) ApplyTopic(
+	ctx context.Context,
+	applierConfig apply.TopicApplierConfig,
+) error {
+	applier, err := apply.NewTopicApplier(
+		ctx,
+		c.adminClient,
+		applierConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	c.printer(
+		"Starting apply for topic %s in environment %s, cluster %s",
+		applierConfig.TopicConfig.Meta.Name,
+		applierConfig.TopicConfig.Meta.Environment,
+		applierConfig.TopicConfig.Meta.Cluster,
+	)
+
+	err = applier.Apply(ctx)
+	if err != nil {
+		return err
+	}
+
+	c.printer("Apply completed successfully!")
+	return nil
+}
+
+func (c *CLIRunner) BootstrapTopics(
+	ctx context.Context,
+	topics []string,
+	clusterConfig config.ClusterConfig,
+	matchRegexpStr string,
+	excludeRegexpStr string,
+	outputDir string,
+	overwrite bool,
+) error {
+	topicInfoObjs, err := c.adminClient.GetTopics(ctx, topics, false)
+	if err != nil {
+		return err
+	}
+
+	matchRegexp, err := regexp.Compile(matchRegexpStr)
+	if err != nil {
+		return err
+	}
+	excludeRegexp, err := regexp.Compile(excludeRegexpStr)
+	if err != nil {
+		return err
+	}
+
+	topicConfigs := []config.TopicConfig{}
+
+	for _, topicInfo := range topicInfoObjs {
+		if strings.HasPrefix(topicInfo.Name, "__") {
+			// Never include underscore topics
+			continue
+		} else if !matchRegexp.MatchString(topicInfo.Name) {
+			continue
+		} else if excludeRegexp.MatchString(topicInfo.Name) {
+			continue
+		}
+
+		topicConfig := config.TopicConfig{
+			Meta: config.TopicMeta{
+				Name:        topicInfo.Name,
+				Cluster:     clusterConfig.Meta.Name,
+				Region:      clusterConfig.Meta.Region,
+				Environment: clusterConfig.Meta.Environment,
+				Description: "Bootstrapped via topicctl bootstrap",
+			},
+			Spec: config.TopicSpec{
+				Partitions:        len(topicInfo.Partitions),
+				ReplicationFactor: len(topicInfo.Partitions[0].Replicas),
+				RetentionMinutes:  int(topicInfo.Retention().Minutes()),
+				PlacementConfig: config.TopicPlacementConfig{
+					Strategy: config.PlacementStrategyAny,
+				},
+			},
+		}
+
+		topicConfigs = append(topicConfigs, topicConfig)
+	}
+
+	for _, topicConfig := range topicConfigs {
+		yamlStr, err := topicConfig.ToYAML()
+		if err != nil {
+			return err
+		}
+
+		if outputDir != "" {
+			outputPath := filepath.Join(
+				outputDir,
+				fmt.Sprintf("%s.yaml", topicConfig.Meta.Name),
+			)
+
+			var isNew bool
+
+			_, err := os.Stat(outputPath)
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			isNew = os.IsNotExist(err)
+
+			if isNew || overwrite {
+				log.Infof("Writing config to %s", outputPath)
+				err = ioutil.WriteFile(outputPath, []byte(yamlStr), 0644)
+				if err != nil {
+					return err
+				}
+			} else {
+				log.Infof("Skipping over existing config %s", outputPath)
+			}
+		} else {
+			log.Infof("Config for topic %s:\n%s", topicConfig.Meta.Name, yamlStr)
+		}
+	}
+
+	return nil
+}
+
 func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) error {
 	c.startSpinner()
 
@@ -253,6 +375,16 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 		messages.FormatBounds(bounds),
 	)
 
+	formattedTotals := messages.FormatBoundTotals(bounds)
+
+	if formattedTotals != "" {
+		c.printer(
+			"Total bounds for topic %s across all partitions:\n%s",
+			topic,
+			formattedTotals,
+		)
+	}
+
 	return nil
 }
 
@@ -275,27 +407,39 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	return nil
 }
 
+func (c *CLIRunner) ResetOffsets(
+	ctx context.Context,
+	topic string,
+	groupID string,
+	partitionOffsets map[int]int64,
+) error {
+	c.startSpinner()
+	err := c.groupsClient.ResetOffsets(ctx, topic, groupID, partitionOffsets)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Success")
+
+	return nil
+}
+
 func (c *CLIRunner) Tail(
 	ctx context.Context,
 	topic string,
 	offset int64,
-	partitionStrings []string,
+	partitions []int,
 	maxMessages int,
 	filterRegexp string,
 ) error {
-	var partitions []int
 	var err error
-	if len(partitionStrings) == 0 {
+	if len(partitions) == 0 {
 		topicInfo, err := c.adminClient.GetTopic(ctx, topic, false)
 		if err != nil {
 			return err
 		}
 		partitions = topicInfo.PartitionIDs()
-	} else {
-		partitions, err = stringsToInts(partitionStrings)
-		if err != nil {
-			return err
-		}
 	}
 
 	log.Debugf("Tailing partitions %+v", partitions)
@@ -313,128 +457,6 @@ func (c *CLIRunner) Tail(
 
 	c.printer("Tail stats:\n%s", messages.FormatTailStats(stats, filtered))
 	return err
-}
-
-func (c *CLIRunner) ApplyTopic(
-	ctx context.Context,
-	applierConfig apply.TopicApplierConfig,
-) error {
-	applier, err := apply.NewTopicApplier(
-		ctx,
-		c.adminClient,
-		applierConfig,
-	)
-	if err != nil {
-		return err
-	}
-
-	c.printer(
-		"Starting apply for topic %s in environment %s, cluster %s",
-		applierConfig.TopicConfig.Meta.Name,
-		applierConfig.TopicConfig.Meta.Environment,
-		applierConfig.TopicConfig.Meta.Cluster,
-	)
-
-	err = applier.Apply(ctx)
-	if err != nil {
-		return err
-	}
-
-	c.printer("Apply completed successfully!")
-	return nil
-}
-
-func (c *CLIRunner) BootstrapTopics(
-	ctx context.Context,
-	topics []string,
-	clusterConfig config.ClusterConfig,
-	matchRegexpStr string,
-	excludeRegexpStr string,
-	outputDir string,
-	overwrite bool,
-) error {
-	topicInfoObjs, err := c.adminClient.GetTopics(ctx, topics, false)
-	if err != nil {
-		return err
-	}
-
-	matchRegexp, err := regexp.Compile(matchRegexpStr)
-	if err != nil {
-		return err
-	}
-	excludeRegexp, err := regexp.Compile(excludeRegexpStr)
-	if err != nil {
-		return err
-	}
-
-	topicConfigs := []config.TopicConfig{}
-
-	for _, topicInfo := range topicInfoObjs {
-		if strings.HasPrefix(topicInfo.Name, "__") {
-			// Never include underscore topics
-			continue
-		} else if !matchRegexp.MatchString(topicInfo.Name) {
-			continue
-		} else if excludeRegexp.MatchString(topicInfo.Name) {
-			continue
-		}
-
-		topicConfig := config.TopicConfig{
-			Meta: config.TopicMeta{
-				Name:        topicInfo.Name,
-				Cluster:     clusterConfig.Meta.Name,
-				Region:      clusterConfig.Meta.Region,
-				Environment: clusterConfig.Meta.Environment,
-				Description: "Bootstrapped via topicctl bootstrap",
-			},
-			Spec: config.TopicSpec{
-				Partitions:        len(topicInfo.Partitions),
-				ReplicationFactor: len(topicInfo.Partitions[0].Replicas),
-				RetentionMinutes:  int(topicInfo.Retention().Minutes()),
-				PlacementConfig: config.TopicPlacementConfig{
-					Strategy: config.PlacementStrategyAny,
-				},
-			},
-		}
-
-		topicConfigs = append(topicConfigs, topicConfig)
-	}
-
-	for _, topicConfig := range topicConfigs {
-		yamlStr, err := topicConfig.ToYAML()
-		if err != nil {
-			return err
-		}
-
-		if outputDir != "" {
-			outputPath := filepath.Join(
-				outputDir,
-				fmt.Sprintf("%s.yaml", topicConfig.Meta.Name),
-			)
-
-			var isNew bool
-
-			_, err := os.Stat(outputPath)
-			if err != nil && !os.IsNotExist(err) {
-				return err
-			}
-			isNew = os.IsNotExist(err)
-
-			if isNew || overwrite {
-				log.Infof("Writing config to %s", outputPath)
-				err = ioutil.WriteFile(outputPath, []byte(yamlStr), 0644)
-				if err != nil {
-					return err
-				}
-			} else {
-				log.Infof("Skipping over existing config %s", outputPath)
-			}
-		} else {
-			log.Infof("Config for topic %s:\n%s", topicConfig.Meta.Name, yamlStr)
-		}
-	}
-
-	return nil
 }
 
 func (c *CLIRunner) startSpinner() {

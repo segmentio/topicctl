@@ -207,6 +207,11 @@ func (r *Repl) executor(in string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	case "get":
+		if len(words) == 1 {
+			log.Error("Unrecognized input. Run 'help' for details on available commands.")
+			return
+		}
+
 		switch words[1] {
 		case "balance":
 			if err := checkArgsMax(words, 3); err != nil {

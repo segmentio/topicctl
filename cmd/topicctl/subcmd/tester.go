@@ -23,28 +23,16 @@ var testerCmd = &cobra.Command{
 }
 
 type testerCmdConfig struct {
-	zkAddr       string
-	topic        string
 	mode         string
 	readConsumer string
+	topic        string
 	writeRate    int
+	zkAddr       string
 }
 
 var testerConfig testerCmdConfig
 
 func init() {
-	testerCmd.Flags().StringVar(
-		&testerConfig.zkAddr,
-		"zk-addr",
-		"localhost:2181",
-		"Zookeeper address",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.topic,
-		"topic",
-		"",
-		"Topic to write to",
-	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.mode,
 		"mode",
@@ -57,11 +45,23 @@ func init() {
 		"test-consumer",
 		"Consumer group ID for reads; if blank, no consumer group is set",
 	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.topic,
+		"topic",
+		"",
+		"Topic to write to",
+	)
 	testerCmd.Flags().IntVar(
 		&testerConfig.writeRate,
 		"write-rate",
 		5,
 		"Approximate number of messages to write per sec",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.zkAddr,
+		"zk-addr",
+		"localhost:2181",
+		"Zookeeper address",
 	)
 
 	testerCmd.MarkFlagRequired("topic")

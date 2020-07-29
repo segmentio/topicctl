@@ -21,14 +21,20 @@ var replCmd = &cobra.Command{
 }
 
 type replCmdConfig struct {
+	clusterConfig string
 	zkAddr        string
 	zkPrefix      string
-	clusterConfig string
 }
 
 var replConfig replCmdConfig
 
 func init() {
+	replCmd.Flags().StringVar(
+		&replConfig.clusterConfig,
+		"cluster-config",
+		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
+		"Cluster config",
+	)
 	replCmd.Flags().StringVarP(
 		&replConfig.zkAddr,
 		"zk-addr",
@@ -41,12 +47,6 @@ func init() {
 		"zk-prefix",
 		"",
 		"Prefix for cluster-related nodes in zk",
-	)
-	replCmd.Flags().StringVar(
-		&replConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
 	)
 
 	RootCmd.AddCommand(replCmd)

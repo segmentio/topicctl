@@ -3,9 +3,11 @@ package groups
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/segmentio/topicctl/pkg/util"
 )
@@ -148,7 +150,19 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 	)
 
 	for _, memberLag := range memberLags {
-		memberID, _ := util.TruncateStringMiddle(memberLag.MemberID, 30, 5)
+		var memberID string
+
+		if memberLag.MemberID != "" {
+			memberID, _ = util.TruncateStringMiddle(memberLag.MemberID, 30, 5)
+		}
+
+		var memberIDPrinter func(f string, a ...interface{}) string
+		if !util.InTerminal() || memberID != "" {
+			memberIDPrinter = fmt.Sprintf
+		} else {
+			memberID = "None"
+			memberIDPrinter = color.New(color.FgRed).SprintfFunc()
+		}
 
 		var memberTimeStr string
 		var timeLagStr string
@@ -157,13 +171,13 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 		// only show this and the time lag if it's set.
 		if !memberLag.MemberTime.IsZero() {
 			memberTimeStr = memberLag.MemberTime.Format(time.RFC3339)
-			timeLagStr = prettyDuration(memberLag.TimeLag())
+			timeLagStr = util.PrettyDuration(memberLag.TimeLag())
 		}
 
 		table.Append(
 			[]string{
 				fmt.Sprintf("%d", memberLag.Partition),
-				memberID,
+				memberIDPrinter("%s", memberID),
 				fmt.Sprintf("%d", memberLag.MemberOffset),
 				memberTimeStr,
 				fmt.Sprintf("%d", memberLag.NewestOffset),
@@ -178,16 +192,50 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
-func prettyDuration(duration time.Duration) string {
-	seconds := duration.Seconds()
+func FormatPartitionOffsets(partitionOffsets map[int]int64) string {
+	buf := &bytes.Buffer{}
 
-	if seconds < 1.0 {
-		return fmt.Sprintf("%dms", duration.Milliseconds())
-	} else if seconds < 240.0 {
-		return fmt.Sprintf("%ds", int(seconds))
-	} else if seconds < (2.0 * 60.0 * 60.0) {
-		return fmt.Sprintf("%dm", int(duration.Minutes()))
-	} else {
-		return fmt.Sprintf("%dh", int(duration.Hours()))
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(
+		[]string{
+			"Partition",
+			"New Offset",
+		},
+	)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	partitionIDs := []int{}
+	for partitionID := range partitionOffsets {
+		partitionIDs = append(partitionIDs, partitionID)
 	}
+
+	sort.Slice(partitionIDs, func(a, b int) bool {
+		return partitionIDs[a] < partitionIDs[b]
+	})
+
+	for _, partitionID := range partitionIDs {
+		table.Append(
+			[]string{
+				fmt.Sprintf("%d", partitionID),
+				fmt.Sprintf("%d", partitionOffsets[partitionID]),
+			},
+		)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }

@@ -103,6 +103,49 @@ func TestGetLags(t *testing.T) {
 	}
 }
 
+func TestResetOffsets(t *testing.T) {
+	ctx := context.Background()
+	topicName := createTestTopic(t, ctx)
+	groupID := fmt.Sprintf("test-group-%s", topicName)
+
+	reader := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{util.TestKafkaAddr()},
+			GroupID:  groupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	readerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for i := 0; i < 8; i++ {
+		_, err := reader.ReadMessage(readerCtx)
+		require.Nil(t, err)
+	}
+
+	client := NewClient(util.TestKafkaAddr())
+	err := client.ResetOffsets(
+		ctx,
+		topicName,
+		groupID,
+		map[int]int64{
+			0: 2,
+			1: 1,
+		},
+	)
+	require.Nil(t, err)
+
+	lags, err := client.GetMemberLags(ctx, topicName, groupID)
+	require.Nil(t, err)
+
+	require.Equal(t, 2, len(lags))
+	assert.Equal(t, int64(2), lags[0].MemberOffset)
+	assert.Equal(t, int64(1), lags[1].MemberOffset)
+}
+
 func createTestTopic(t *testing.T, ctx context.Context) string {
 	controllerConn := util.TestKafkaContollerConn(t, ctx)
 	defer controllerConn.Close()
