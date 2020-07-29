@@ -358,6 +358,14 @@ func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
 func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 	c.startSpinner()
 
+	// Check that topic exists before getting offsets; otherwise, the topic might
+	// be created.
+	_, err := c.adminClient.GetTopic(ctx, topic, false)
+	if err != nil {
+		c.stopSpinner()
+		return fmt.Errorf("Error fetching topic info: %+v", err)
+	}
+
 	bounds, err := messages.GetAllPartitionBounds(
 		ctx,
 		c.adminClient.GetBootstrapAddrs()[0],
