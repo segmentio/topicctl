@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/segmentio/topicctl/pkg/util"
 )
@@ -149,7 +150,19 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 	)
 
 	for _, memberLag := range memberLags {
-		memberID, _ := util.TruncateStringMiddle(memberLag.MemberID, 30, 5)
+		var memberID string
+
+		if memberLag.MemberID != "" {
+			memberID, _ = util.TruncateStringMiddle(memberLag.MemberID, 30, 5)
+		}
+
+		var memberIDPrinter func(f string, a ...interface{}) string
+		if !util.InTerminal() || memberID != "" {
+			memberIDPrinter = fmt.Sprintf
+		} else {
+			memberID = "None"
+			memberIDPrinter = color.New(color.FgRed).SprintfFunc()
+		}
 
 		var memberTimeStr string
 		var timeLagStr string
@@ -164,7 +177,7 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 		table.Append(
 			[]string{
 				fmt.Sprintf("%d", memberLag.Partition),
-				memberID,
+				memberIDPrinter("%s", memberID),
 				fmt.Sprintf("%d", memberLag.MemberOffset),
 				memberTimeStr,
 				fmt.Sprintf("%d", memberLag.NewestOffset),
