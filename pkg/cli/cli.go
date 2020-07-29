@@ -320,6 +320,14 @@ func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string) error {
 func (c *CLIRunner) GetMemberLags(ctx context.Context, topic string, groupID string) error {
 	c.startSpinner()
 
+	// Check that topic exists before getting offsets; otherwise, the topic get
+	// created as part of the lag check.
+	_, err := c.adminClient.GetTopic(ctx, topic, false)
+	if err != nil {
+		c.stopSpinner()
+		return fmt.Errorf("Error fetching topic info: %+v", err)
+	}
+
 	memberLags, err := c.groupsClient.GetMemberLags(ctx, topic, groupID)
 	c.stopSpinner()
 
@@ -359,7 +367,7 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 	c.startSpinner()
 
 	// Check that topic exists before getting offsets; otherwise, the topic might
-	// be created.
+	// be created as part of the bounds check.
 	_, err := c.adminClient.GetTopic(ctx, topic, false)
 	if err != nil {
 		c.stopSpinner()
