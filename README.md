@@ -135,6 +135,15 @@ topicctl repl [flags]
 The `repl` subcommand starts up a shell that allows running the `get` and `tail`
 subcommands interactively.
 
+#### reset-offsets
+
+```
+topicctl reset-offsets [topic] [group] [flags]
+```
+
+The `reset-offsets` subcommand allows resetting the offsets for a consumer group
+in a topic. The partition and offset values are set in the flags.
+
 #### tail
 
 ```
@@ -172,8 +181,8 @@ There are two patterns for specifying a target cluster in the `topicctl` subcomm
 2. `--zk-addr=[zookeeper address]` and `--zk-prefix=[optional prefix for cluster in zookeeper]`
 
 All subcommands support the `cluster-config` pattern. The second is also supported
-by the `get`, `repl`, and `tail` subcommands since these can be run independently
-of an `apply` workflow.
+by the `get`, `repl`, `reset-offsets`, and `tail` subcommands since these can be run
+independently of an `apply` workflow.
 
 ### Version compatibility
 
@@ -189,7 +198,7 @@ typically source-controlled so that changes can be reviewed before being applied
 
 Each cluster associated with a managed topic must have a config. These
 configs can also be used with the `get`, `repl`, and `tail` subcommands instead
-of specifying a zookeeper address.
+of specifying a ZooKeeper address.
 
 The following shows an annotated example:
 
@@ -309,9 +318,11 @@ The `apply` subcommand can make changes, but under the following conditions:
 7. Partition replica migrations are protected via
   ["throttles"](https://kafka.apache.org/0101/documentation.html#rep-throttle)
   to prevent the cluster network from getting overwhelmed
-8. Before applying, the tool checks the cluster ID in zookeeper against the expected value in the
+8. Before applying, the tool checks the cluster ID in ZooKeeper against the expected value in the
   cluster config. This can help prevent errors around applying in the wrong cluster when multiple
   clusters are accessed through the same address, e.g `localhost:2181`.
+
+The `reset-offsets` command can also make changes in the cluster and should be used carefully.
 
 ### Idempotency
 
@@ -328,15 +339,16 @@ the process should continue from where it left off.
 
 ## Cluster access details
 
-Most `topicctl` functionality interacts with the cluster through Zookeeper. Currently, only
+Most `topicctl` functionality interacts with the cluster through ZooKeeper. Currently, only
 the following depend on broker APIs:
 
 1. Group-related `get` commands: `get groups`, `get lags`, `get members`
 2. `get offsets`
-2. `tail`
-3. `apply` with topic creation
+3. `reset-offsets`
+4. `tail`
+5. `apply` with topic creation
 
-In the future, we may shift more functionality away from Zookeeper, but it's unlikely that
+In the future, we may shift more functionality away from ZooKeeper, but it's unlikely that
 we can remove the ZK access completely since many operations aren't yet supported
 through broker APIs.
 
