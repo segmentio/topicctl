@@ -375,6 +375,16 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 		messages.FormatBounds(bounds),
 	)
 
+	formattedTotals := messages.FormatBoundTotals(bounds)
+
+	if formattedTotals != "" {
+		c.printer(
+			"Total bounds for topic %s across all partitions:\n%s",
+			topic,
+			formattedTotals,
+		)
+	}
+
 	return nil
 }
 

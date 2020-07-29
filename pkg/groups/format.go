@@ -171,7 +171,7 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 		// only show this and the time lag if it's set.
 		if !memberLag.MemberTime.IsZero() {
 			memberTimeStr = memberLag.MemberTime.Format(time.RFC3339)
-			timeLagStr = prettyDuration(memberLag.TimeLag())
+			timeLagStr = util.PrettyDuration(memberLag.TimeLag())
 		}
 
 		table.Append(
@@ -238,18 +238,4 @@ func FormatPartitionOffsets(partitionOffsets map[int]int64) string {
 
 	table.Render()
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
-}
-
-func prettyDuration(duration time.Duration) string {
-	seconds := duration.Seconds()
-
-	if seconds < 1.0 {
-		return fmt.Sprintf("%dms", duration.Milliseconds())
-	} else if seconds < 240.0 {
-		return fmt.Sprintf("%ds", int(seconds))
-	} else if seconds < (2.0 * 60.0 * 60.0) {
-		return fmt.Sprintf("%dm", int(duration.Minutes()))
-	} else {
-		return fmt.Sprintf("%dh", int(duration.Hours()))
-	}
 }
