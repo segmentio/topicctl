@@ -28,6 +28,7 @@ type tailCmdConfig struct {
 	clusterConfig string
 	offset        int64
 	partitions    []int
+	raw           bool
 	zkAddr        string
 	zkPrefix      string
 }
@@ -52,6 +53,12 @@ func init() {
 		"partitions",
 		[]int{},
 		"Partition (defaults to all)",
+	)
+	tailCmd.Flags().BoolVar(
+		&tailConfig.raw,
+		"raw",
+		false,
+		"Output raw values only",
 	)
 	tailCmd.Flags().StringVarP(
 		&tailConfig.zkAddr,
@@ -128,6 +135,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		tailConfig.partitions,
 		-1,
 		"",
+		tailConfig.raw,
 	)
 }
 

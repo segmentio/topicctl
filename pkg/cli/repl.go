@@ -327,6 +327,7 @@ func (r *Repl) executor(in string) {
 			nil,
 			-1,
 			filterRegexp,
+			false,
 		)
 		if err != nil {
 			log.Errorf("Error: %+v", err)
