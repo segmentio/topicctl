@@ -298,7 +298,7 @@ func (c *CLIRunner) GetGroups(ctx context.Context) error {
 	return nil
 }
 
-func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string) error {
+func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bool) error {
 	c.startSpinner()
 
 	groupDetails, err := c.groupsClient.GetGroupDetails(ctx, groupID)
@@ -311,7 +311,11 @@ func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string) error {
 	c.printer(
 		"Group members (%d):\n%s",
 		len(groupDetails.Members),
-		groups.FormatGroupMembers(groupDetails.Members, false),
+		groups.FormatGroupMembers(groupDetails.Members, full),
+	)
+	c.printer(
+		"Member frequency by partition count:\n%s",
+		groups.FormatMemberPartitionCounts(groupDetails.Members),
 	)
 
 	return nil

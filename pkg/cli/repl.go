@@ -268,7 +268,7 @@ func (r *Repl) executor(in string) {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetGroupMembers(ctx, words[2]); err != nil {
+			if err := r.cliRunner.GetGroupMembers(ctx, words[2], false); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
