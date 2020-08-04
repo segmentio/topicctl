@@ -61,12 +61,14 @@ func FormatGroupMembers(members []MemberInfo, full bool) string {
 		[]string{
 			"Member ID",
 			"Client Host",
+			"Num\nPartitions",
 			"Partition\nAssignments",
 		},
 	)
 	table.SetAutoWrapText(true)
 	table.SetColumnAlignment(
 		[]int{
+			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
@@ -97,11 +99,78 @@ func FormatGroupMembers(members []MemberInfo, full bool) string {
 			memberID, _ = util.TruncateStringMiddle(member.MemberID, 40, 5)
 		}
 
+		totalPartitions := 0
+
+		for _, partitions := range member.TopicPartitions {
+			totalPartitions += len(partitions)
+		}
+
 		table.Append(
 			[]string{
 				memberID,
 				clientHost,
+				fmt.Sprintf("%d", totalPartitions),
 				fmt.Sprintf("%+v", member.TopicPartitions),
+			},
+		)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+func FormatMemberPartitionCounts(members []MemberInfo) string {
+	buf := &bytes.Buffer{}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(
+		[]string{
+			"Num Partitions",
+			"Num Members",
+		},
+	)
+	table.SetAutoWrapText(true)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	countKeys := []int{}
+	membersByCount := map[int]int{}
+
+	for _, member := range members {
+		totalPartitions := 0
+
+		for _, partitions := range member.TopicPartitions {
+			totalPartitions += len(partitions)
+		}
+
+		if _, ok := membersByCount[totalPartitions]; !ok {
+			countKeys = append(countKeys, totalPartitions)
+		}
+
+		membersByCount[totalPartitions]++
+	}
+
+	sort.Slice(countKeys, func(a, b int) bool {
+		return countKeys[a] < countKeys[b]
+	})
+
+	for _, countKey := range countKeys {
+		table.Append(
+			[]string{
+				fmt.Sprintf("%d", countKey),
+				fmt.Sprintf("%d", membersByCount[countKey]),
 			},
 		)
 	}

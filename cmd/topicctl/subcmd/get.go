@@ -159,7 +159,7 @@ func getRun(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Must provide group ID as second positional argument")
 		}
 
-		return cliRunner.GetGroupMembers(ctx, args[1])
+		return cliRunner.GetGroupMembers(ctx, args[1], getConfig.full)
 	case "partitions":
 		if len(args) != 2 {
 			return fmt.Errorf("Must provide topic as second positional argument")

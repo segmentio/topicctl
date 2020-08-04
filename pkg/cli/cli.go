@@ -298,7 +298,7 @@ func (c *CLIRunner) GetGroups(ctx context.Context) error {
 	return nil
 }
 
-func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string) error {
+func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bool) error {
 	c.startSpinner()
 
 	groupDetails, err := c.groupsClient.GetGroupDetails(ctx, groupID)
@@ -311,7 +311,11 @@ func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string) error {
 	c.printer(
 		"Group members (%d):\n%s",
 		len(groupDetails.Members),
-		groups.FormatGroupMembers(groupDetails.Members, false),
+		groups.FormatGroupMembers(groupDetails.Members, full),
+	)
+	c.printer(
+		"Member frequency by partition count:\n%s",
+		groups.FormatMemberPartitionCounts(groupDetails.Members),
 	)
 
 	return nil
@@ -448,6 +452,7 @@ func (c *CLIRunner) Tail(
 	partitions []int,
 	maxMessages int,
 	filterRegexp string,
+	raw bool,
 ) error {
 	var err error
 	if len(partitions) == 0 {
@@ -468,10 +473,13 @@ func (c *CLIRunner) Tail(
 		10e3,
 		10e6,
 	)
-	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp)
+	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw)
 	filtered := filterRegexp != ""
 
-	c.printer("Tail stats:\n%s", messages.FormatTailStats(stats, filtered))
+	if !raw {
+		c.printer("Tail stats:\n%s", messages.FormatTailStats(stats, filtered))
+	}
+
 	return err
 }
 

@@ -153,6 +153,7 @@ func (t *TopicTailer) LogMessages(
 	ctx context.Context,
 	maxMessages int,
 	filterRegexp string,
+	raw bool,
 ) (TailStats, error) {
 	var filterRegexpObj *regexp.Regexp
 	var err error
@@ -206,6 +207,11 @@ func (t *TopicTailer) LogMessages(
 			partitionStats.TotalMessagesFiltered++
 			partitionStats.TotalMessageBytesFiltered += int64(len(tailMessage.Message.Key))
 			partitionStats.TotalMessageBytesFiltered += int64(len(tailMessage.Message.Value))
+
+			if raw {
+				fmt.Printf("%s\n", string(tailMessage.Message.Value))
+				continue
+			}
 
 			var dividerPrinter func(f string, a ...interface{}) string
 			var keyPrinter func(f string, a ...interface{}) string
