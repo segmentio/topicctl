@@ -78,6 +78,11 @@ func init() {
 }
 
 func tailPreRun(cmd *cobra.Command, args []string) error {
+	if tailConfig.raw {
+		// In raw mode, only log out errors
+		log.SetLevel(log.ErrorLevel)
+	}
+
 	if tailConfig.clusterConfig == "" && tailConfig.zkAddr == "" {
 		return errors.New("Must set either cluster-config or zk address")
 	}
