@@ -112,7 +112,7 @@ topicctl check [path(s) to topic config(s)]
 ```
 
 The `check` command validates that each topic config has the correct fields set and is
-consistent with the associated cluster config. If `--validate-only` is not set, it then
+consistent with the associated cluster config. Unless `--validate-only` is set, it then
 checks the topic config against the state of the topic in the corresponding cluster.
 
 #### get
