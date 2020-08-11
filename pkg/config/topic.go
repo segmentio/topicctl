@@ -119,7 +119,7 @@ type TopicPlacementConfig struct {
 // running a partition migration. If these are left unset, resonable defaults
 // will be used instead.
 type TopicMigrationConfig struct {
-	ThrottleBytes      int64 `json:"throttleBytes"`
+	ThrottleMB         int64 `json:"throttleMB"`
 	PartitionBatchSize int   `json:"partitionBatchSize"`
 }
 

@@ -72,10 +72,10 @@ func NewTopicApplier(
 	var throttleBytes int64
 	if applierConfig.BrokerThrottleMBsOverride > 0 {
 		throttleBytes = int64(applierConfig.BrokerThrottleMBsOverride) * 1000000
-	} else if applierConfig.TopicConfig.Spec.MigrationConfig.ThrottleBytes > 0 {
-		throttleBytes = applierConfig.TopicConfig.Spec.MigrationConfig.ThrottleBytes
-	} else if applierConfig.ClusterConfig.Spec.DefaultThrottleBytes > 0 {
-		throttleBytes = applierConfig.ClusterConfig.Spec.DefaultThrottleBytes
+	} else if applierConfig.TopicConfig.Spec.MigrationConfig.ThrottleMB > 0 {
+		throttleBytes = applierConfig.TopicConfig.Spec.MigrationConfig.ThrottleMB * 1000000
+	} else if applierConfig.ClusterConfig.Spec.DefaultThrottleMB > 0 {
+		throttleBytes = applierConfig.ClusterConfig.Spec.DefaultThrottleMB * 1000000
 	} else {
 		// Default to 120MB / sec
 		throttleBytes = 120000000
