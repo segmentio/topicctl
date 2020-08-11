@@ -67,11 +67,18 @@ func NewTopicApplier(
 		maxBatchSize = applierConfig.TopicConfig.Spec.MigrationConfig.PartitionBatchSize
 	}
 
+	// Set throttle from override (if set), then topic migration config (if set), then
+	// cluster default (if set), otherwise hard-coded default.
 	var throttleBytes int64
 	if applierConfig.BrokerThrottleMBsOverride > 0 {
 		throttleBytes = int64(applierConfig.BrokerThrottleMBsOverride) * 1000000
-	} else {
+	} else if applierConfig.TopicConfig.Spec.MigrationConfig.ThrottleBytes > 0 {
 		throttleBytes = applierConfig.TopicConfig.Spec.MigrationConfig.ThrottleBytes
+	} else if applierConfig.ClusterConfig.Spec.DefaultBrokerThrottleBytes > 0 {
+		throttleBytes = applierConfig.ClusterConfig.Spec.DefaultBrokerThrottleBytes
+	} else {
+		// Default to 120MB / sec
+		throttleBytes = 120000000
 	}
 
 	return &TopicApplier{

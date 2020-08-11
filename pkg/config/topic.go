@@ -151,10 +151,6 @@ func (t *TopicConfig) SetDefaults() {
 		t.Spec.MigrationConfig = &TopicMigrationConfig{}
 	}
 
-	if t.Spec.MigrationConfig.ThrottleBytes == 0 {
-		// Default to 120MB/s
-		t.Spec.MigrationConfig.ThrottleBytes = 240000000
-	}
 	if t.Spec.MigrationConfig.PartitionBatchSize == 0 {
 		// Migration partitions one at a time
 		t.Spec.MigrationConfig.PartitionBatchSize = 1
