@@ -14,6 +14,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
+	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
@@ -192,6 +193,18 @@ func (c *CLIRunner) BootstrapTopics(
 	}
 
 	return nil
+}
+
+func (c *CLIRunner) CheckTopic(
+	ctx context.Context,
+	topicConfig config.TopicConfig,
+) error {
+	checker := check.NewTopicChecker(
+		c.adminClient,
+		topicConfig,
+	)
+
+	return checker.Check()
 }
 
 func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) error {
