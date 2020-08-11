@@ -119,7 +119,7 @@ type TopicPlacementConfig struct {
 // running a partition migration. If these are left unset, resonable defaults
 // will be used instead.
 type TopicMigrationConfig struct {
-	ThrottleBytes      int64 `json:"throttleBytes"`
+	ThrottleMB         int64 `json:"throttleMB"`
 	PartitionBatchSize int   `json:"partitionBatchSize"`
 }
 
@@ -151,10 +151,6 @@ func (t *TopicConfig) SetDefaults() {
 		t.Spec.MigrationConfig = &TopicMigrationConfig{}
 	}
 
-	if t.Spec.MigrationConfig.ThrottleBytes == 0 {
-		// Default to 120MB/s
-		t.Spec.MigrationConfig.ThrottleBytes = 240000000
-	}
 	if t.Spec.MigrationConfig.PartitionBatchSize == 0 {
 		// Migration partitions one at a time
 		t.Spec.MigrationConfig.PartitionBatchSize = 1

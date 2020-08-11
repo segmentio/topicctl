@@ -35,7 +35,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 				Picker:   config.PickerMethodLowestIndex,
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -43,7 +43,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 
 	applier := testApplier(t, ctx, topicConfig)
 	assert.Equal(t, 3, applier.maxBatchSize)
-	assert.Equal(t, int64(100000), applier.throttleBytes)
+	assert.Equal(t, int64(2000000), applier.throttleBytes)
 
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
@@ -101,7 +101,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 				},
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -214,7 +214,7 @@ func TestApplyRebalance(t *testing.T) {
 				},
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -293,7 +293,7 @@ func TestApplyExtendPartitions(t *testing.T) {
 				},
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -377,7 +377,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 				Picker:   config.PickerMethodLowestIndex,
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -403,7 +403,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 				},
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -547,7 +547,7 @@ func TestApplyDryRun(t *testing.T) {
 				Picker:   config.PickerMethodLowestIndex,
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -620,7 +620,7 @@ func TestApplyThrottles(t *testing.T) {
 				},
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         20,
 				PartitionBatchSize: 3,
 			},
 		},
@@ -780,8 +780,8 @@ func TestApplyThrottles(t *testing.T) {
 			assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
 			assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
 		} else {
-			assert.Equal(t, "100000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "100000", broker.Config[admin.FollowerThrottledKey])
+			assert.Equal(t, "20000000", broker.Config[admin.LeaderThrottledKey])
+			assert.Equal(t, "20000000", broker.Config[admin.FollowerThrottledKey])
 		}
 	}
 
@@ -838,7 +838,7 @@ func TestApplyOverrides(t *testing.T) {
 				Picker:   config.PickerMethodLowestIndex,
 			},
 			MigrationConfig: &config.TopicMigrationConfig{
-				ThrottleBytes:      100000,
+				ThrottleMB:         2,
 				PartitionBatchSize: 3,
 			},
 		},

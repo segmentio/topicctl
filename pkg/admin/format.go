@@ -131,6 +131,7 @@ func FormatBrokerReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 	for p := 0; p < maxReplicas; p++ {
 		headers = append(headers, fmt.Sprintf("Position %d", p+1))
 	}
+	headers = append(headers, "Total")
 
 	table.SetHeader(headers)
 
@@ -186,12 +187,16 @@ func FormatBrokerReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 			)
 		}
 
+		total := 0
+
 		for p := 0; p < maxReplicas; p++ {
 			row = append(
 				row,
 				fmt.Sprintf("%d", brokerPositions[broker.ID][p]),
 			)
+			total += brokerPositions[broker.ID][p]
 		}
+		row = append(row, fmt.Sprintf("%d", total))
 
 		table.Append(row)
 	}
@@ -222,13 +227,13 @@ func FormatBrokerRackReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 	for p := 0; p < maxReplicas; p++ {
 		headers = append(headers, fmt.Sprintf("Position %d", p+1))
 	}
+	headers = append(headers, "Total")
 
 	table.SetHeader(headers)
 
 	table.SetAutoWrapText(false)
 	table.SetColumnAlignment(
 		[]int{
-			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
@@ -282,12 +287,16 @@ func FormatBrokerRackReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 			)
 		}
 
+		total := 0
+
 		for p := 0; p < maxReplicas; p++ {
 			row = append(
 				row,
 				fmt.Sprintf("%d", rackPositions[rack][p]),
 			)
+			total += rackPositions[rack][p]
 		}
+		row = append(row, fmt.Sprintf("%d", total))
 
 		table.Append(row)
 	}

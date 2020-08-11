@@ -63,6 +63,10 @@ type ClusterSpec struct {
 	// used for any logic in the tool, but it may be used in the future to adjust API calls
 	// and/or decide whether to use zk or brokers for certain information.
 	VersionMajor KafkaVersionMajor `json:"versionMajor"`
+
+	// DefaultThrottleMB is the default broker throttle used for migrations in this
+	// cluster. If unset, then a reasonable default is used instead.
+	DefaultThrottleMB int64 `json:"defaultThrottleMB"`
 }
 
 // Validate evaluates whether the cluster config is valid.

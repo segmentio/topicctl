@@ -14,6 +14,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
+	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
@@ -49,12 +50,16 @@ func NewCLIRunner(
 		spinnerObj.Prefix = "Loading: "
 	}
 
-	return &CLIRunner{
-		adminClient:  adminClient,
-		groupsClient: groups.NewClient(adminClient.GetBootstrapAddrs()[0]),
-		printer:      printer,
-		spinnerObj:   spinnerObj,
+	cliRunner := &CLIRunner{
+		adminClient: adminClient,
+		printer:     printer,
+		spinnerObj:  spinnerObj,
 	}
+	if adminClient != nil {
+		cliRunner.groupsClient = groups.NewClient(adminClient.GetBootstrapAddrs()[0])
+	}
+
+	return cliRunner
 }
 
 func (c *CLIRunner) GetBrokers(ctx context.Context, full bool) error {
@@ -192,6 +197,32 @@ func (c *CLIRunner) BootstrapTopics(
 	}
 
 	return nil
+}
+
+func (c *CLIRunner) CheckTopic(
+	ctx context.Context,
+	checkConfig check.CheckConfig,
+) (bool, error) {
+	results, err := check.CheckTopic(ctx, checkConfig)
+
+	if results.AllOK() {
+		c.printer(
+			"Topic %s (cluster=%s, env=%s) OK",
+			checkConfig.TopicConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Environment,
+		)
+	} else {
+		c.printer(
+			"Check failed for topic %s (cluster=%s, env=%s):\n%s",
+			checkConfig.TopicConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Environment,
+			check.FormatResults(results),
+		)
+	}
+
+	return results.AllOK(), err
 }
 
 func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) error {

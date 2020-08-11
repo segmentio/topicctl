@@ -12,7 +12,7 @@ import (
 
 var bootstrapCmd = &cobra.Command{
 	Use:   "bootstrap [topics]",
-	Short: "bootstrap",
+	Short: "bootstrap topic configs from existing topic(s) in a cluster",
 	RunE:  bootstrapRun,
 }
 

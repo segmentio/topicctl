@@ -64,7 +64,6 @@ func TestLoadTopic(t *testing.T) {
 					Picker:   PickerMethodRandomized,
 				},
 				MigrationConfig: &TopicMigrationConfig{
-					ThrottleBytes:      240000000,
 					PartitionBatchSize: 1,
 				},
 			},
