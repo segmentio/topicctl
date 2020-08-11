@@ -74,7 +74,7 @@ func checkRun(cmd *cobra.Command, args []string) error {
 	okCount := 0
 
 	for _, arg := range args {
-		if checkConfig.pathPrefix != "" {
+		if checkConfig.pathPrefix != "" && !filepath.IsAbs(arg) {
 			arg = filepath.Join(checkConfig.pathPrefix, arg)
 		}
 

@@ -120,7 +120,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	matchCount := 0
 
 	for _, arg := range args {
-		if applyConfig.pathPrefix != "" {
+		if applyConfig.pathPrefix != "" && !filepath.IsAbs(arg) {
 			arg = filepath.Join(applyConfig.pathPrefix, arg)
 		}
 
