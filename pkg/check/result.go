@@ -3,6 +3,8 @@ package check
 type CheckName string
 
 const (
+	CheckNameConfigsConsistent        CheckName = "configs consistent"
+	CheckNameConfigCorrect            CheckName = "config correct"
 	CheckNameLeadersCorrect           CheckName = "leaders correct"
 	CheckNamePartitionCountCorrect    CheckName = "partition count correct"
 	CheckNameReplicasInSync           CheckName = "replicas in-sync"
@@ -20,8 +22,8 @@ type TopicCheckResults struct {
 // TopicCheckResult contains the name and status of a single check.
 type TopicCheckResult struct {
 	Name        CheckName
-	Description string
 	OK          bool
+	Description string
 }
 
 // AllOK returns true if all subresults are OK, otherwise it returns false.

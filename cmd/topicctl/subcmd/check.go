@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -18,13 +16,15 @@ import (
 
 var checkCmd = &cobra.Command{
 	Use:   "check [topic configs]",
-	Short: "check that configs match cluster state",
+	Short: "check that configs are valid and (optionally) match cluster state",
 	RunE:  checkRun,
 }
 
 type checkCmdConfig struct {
 	clusterConfig string
 	checkLeaders  bool
+	pathPrefix    string
+	validateOnly  bool
 }
 
 var checkConfig checkCmdConfig
@@ -36,26 +36,30 @@ func init() {
 		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
 		"Cluster config",
 	)
+	checkCmd.Flags().StringVar(
+		&checkConfig.pathPrefix,
+		"path-prefix",
+		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
+		"Prefix for topic config paths",
+	)
 	checkCmd.Flags().BoolVar(
 		&checkConfig.checkLeaders,
 		"check-leaders",
 		false,
 		"Check leaders",
 	)
+	checkCmd.Flags().BoolVar(
+		&checkConfig.validateOnly,
+		"validate-only",
+		false,
+		"Validate configs only, without connecting to cluster",
+	)
 
 	RootCmd.AddCommand(checkCmd)
 }
 
 func checkRun(cmd *cobra.Command, args []string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sigChan := make(chan os.Signal)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		cancel()
-	}()
+	ctx := context.Background()
 
 	// Keep a cache of the admin clients with the cluster config path as the key
 	adminClients := map[string]*admin.Client{}
@@ -67,10 +71,11 @@ func checkRun(cmd *cobra.Command, args []string) error {
 	}()
 
 	matchCount := 0
+	okCount := 0
 
 	for _, arg := range args {
-		if applyConfig.pathPrefix != "" {
-			arg = filepath.Join(applyConfig.pathPrefix, arg)
+		if checkConfig.pathPrefix != "" {
+			arg = filepath.Join(checkConfig.pathPrefix, arg)
 		}
 
 		matches, err := filepath.Glob(arg)
@@ -80,14 +85,26 @@ func checkRun(cmd *cobra.Command, args []string) error {
 
 		for _, match := range matches {
 			matchCount++
-			if err := checkTopic(ctx, match, adminClients); err != nil {
+
+			ok, err := checkTopic(ctx, match, adminClients)
+			if err != nil {
 				return err
+			}
+
+			if ok {
+				okCount++
 			}
 		}
 	}
 
 	if matchCount == 0 {
 		return fmt.Errorf("No topic configs match the provided args (%+v)", args)
+	} else if matchCount > okCount {
+		return fmt.Errorf(
+			"Check failed for %d/%d topic configs",
+			matchCount-okCount,
+			matchCount,
+		)
 	}
 
 	return nil
@@ -97,13 +114,13 @@ func checkTopic(
 	ctx context.Context,
 	topicConfigPath string,
 	adminClients map[string]*admin.Client,
-) error {
+) (bool, error) {
 	clusterConfigPath, err := clusterConfigForTopicCheck(topicConfigPath)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	log.Infof(
+	log.Debugf(
 		"Processing topic config %s with cluster config %s",
 		topicConfigPath,
 		clusterConfigPath,
@@ -111,31 +128,38 @@ func checkTopic(
 
 	topicConfig, err := config.LoadTopicFile(topicConfigPath)
 	if err != nil {
-		return err
+		return false, err
 	}
 	topicConfig.SetDefaults()
 
 	clusterConfig, err := config.LoadClusterFile(clusterConfigPath)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	adminClient, ok := adminClients[clusterConfigPath]
-	if !ok {
-		adminClient, err = clusterConfig.NewAdminClient(ctx, nil, true)
-		if err != nil {
-			return err
+	var adminClient *admin.Client
+
+	if !checkConfig.validateOnly {
+		var ok bool
+		adminClient, ok = adminClients[clusterConfigPath]
+		if !ok {
+			adminClient, err = clusterConfig.NewAdminClient(ctx, nil, true)
+			if err != nil {
+				return false, err
+			}
+			adminClients[clusterConfigPath] = adminClient
 		}
-		adminClients[clusterConfigPath] = adminClient
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 	topicCheckConfig := check.CheckConfig{
 		AdminClient:   adminClient,
-		BrokerRacks:   -1,
 		CheckLeaders:  checkConfig.checkLeaders,
 		ClusterConfig: clusterConfig,
-		TopicConfig:   topicConfig,
+		// TODO: Add support for broker rack verification.
+		NumRacks:     -1,
+		TopicConfig:  topicConfig,
+		ValidateOnly: checkConfig.validateOnly,
 	}
 	return cliRunner.CheckTopic(
 		ctx,

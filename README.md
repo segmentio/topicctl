@@ -105,6 +105,16 @@ The `bootstrap` subcommand creates apply topic configs from the existing topics
 in a cluster. The output can be sent to either a directory (if the `--output` flag
 is set) or `stdout`.
 
+#### check
+
+```
+topicctl check [path(s) to topic config(s)]
+```
+
+The `check` command validates that each topic config has the correct fields set and is
+consistent with the associated cluster config. If `--validate-only` is not set, it then
+checks the topic config against the state of the topic in the corresponding cluster.
+
 #### get
 
 ```
@@ -162,15 +172,6 @@ topicctl tester [flags]
 
 The `tester` command reads or writes test messages in a topic. For testing/demonstration purposes
 only.
-
-#### validate
-
-```
-topicctl validate [path(s) to topic config(s)]
-```
-
-The `validate` command validates that each topic config has the correct fields set and is
-consistent with the associated cluster config.
 
 ### Specifying the target cluster
 

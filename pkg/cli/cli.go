@@ -198,9 +198,27 @@ func (c *CLIRunner) BootstrapTopics(
 func (c *CLIRunner) CheckTopic(
 	ctx context.Context,
 	checkConfig check.CheckConfig,
-) error {
-	_, err := check.CheckTopic(ctx, checkConfig)
-	return err
+) (bool, error) {
+	results, err := check.CheckTopic(ctx, checkConfig)
+
+	if results.AllOK() {
+		c.printer(
+			"Topic %s (cluster=%s, env=%s) OK",
+			checkConfig.TopicConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Environment,
+		)
+	} else {
+		c.printer(
+			"Check failed for topic %s (cluster=%s, env=%s):\n%s",
+			checkConfig.TopicConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Name,
+			checkConfig.ClusterConfig.Meta.Environment,
+			check.FormatResults(results),
+		)
+	}
+
+	return results.AllOK(), err
 }
 
 func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) error {

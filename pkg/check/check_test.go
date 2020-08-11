@@ -74,6 +74,7 @@ func TestCheck(t *testing.T) {
 		description      string
 		checkTopicConfig config.TopicConfig
 		expectedResults  map[CheckName]bool
+		validateOnly     bool
 	}
 
 	testCases := []testCase{
@@ -81,6 +82,8 @@ func TestCheck(t *testing.T) {
 			description:      "all good",
 			checkTopicConfig: topicConfig,
 			expectedResults: map[CheckName]bool{
+				CheckNameConfigCorrect:            true,
+				CheckNameConfigsConsistent:        true,
 				CheckNameTopicExists:              true,
 				CheckNameRetentionCorrect:         true,
 				CheckNameReplicationFactorCorrect: true,
@@ -91,24 +94,101 @@ func TestCheck(t *testing.T) {
 			},
 		},
 		{
+			description:      "all good (validate only)",
+			checkTopicConfig: topicConfig,
+			expectedResults: map[CheckName]bool{
+				CheckNameConfigCorrect:     true,
+				CheckNameConfigsConsistent: true,
+			},
+			validateOnly: true,
+		},
+		{
 			description: "topic does not exist",
 			checkTopicConfig: config.TopicConfig{
 				Meta: config.TopicMeta{
-					Name: "non-matching-name",
+					Name:        "non-existent-topic",
+					Cluster:     "non-matching-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+				},
+				Spec: config.TopicSpec{
+					Partitions:        9,
+					ReplicationFactor: 2,
+					RetentionMinutes:  500,
+					PlacementConfig: config.TopicPlacementConfig{
+						Strategy: config.PlacementStrategyAny,
+						Picker:   config.PickerMethodLowestIndex,
+					},
+					MigrationConfig: &config.TopicMigrationConfig{
+						ThrottleMB:         2,
+						PartitionBatchSize: 3,
+					},
 				},
 			},
 			expectedResults: map[CheckName]bool{
-				CheckNameTopicExists: false,
+				CheckNameConfigCorrect:     true,
+				CheckNameConfigsConsistent: false,
 			},
 		},
 		{
-			description:      "wrong retention",
-			checkTopicConfig: topicConfig,
+			description: "topic does not exist",
+			checkTopicConfig: config.TopicConfig{
+				Meta: config.TopicMeta{
+					Name:        "non-existent-topic",
+					Cluster:     "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+				},
+				Spec: config.TopicSpec{
+					Partitions:        9,
+					ReplicationFactor: 2,
+					RetentionMinutes:  500,
+					PlacementConfig: config.TopicPlacementConfig{
+						Strategy: config.PlacementStrategyAny,
+						Picker:   config.PickerMethodLowestIndex,
+					},
+					MigrationConfig: &config.TopicMigrationConfig{
+						ThrottleMB:         2,
+						PartitionBatchSize: 3,
+					},
+				},
+			},
 			expectedResults: map[CheckName]bool{
+				CheckNameConfigCorrect:     true,
+				CheckNameConfigsConsistent: true,
+				CheckNameTopicExists:       false,
+			},
+		},
+		{
+			description: "wrong configuration",
+			checkTopicConfig: config.TopicConfig{
+				Meta: config.TopicMeta{
+					Name:        topicName,
+					Cluster:     "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+				},
+				Spec: config.TopicSpec{
+					Partitions:        10,
+					ReplicationFactor: 3,
+					RetentionMinutes:  600,
+					PlacementConfig: config.TopicPlacementConfig{
+						Strategy: config.PlacementStrategyAny,
+						Picker:   config.PickerMethodLowestIndex,
+					},
+					MigrationConfig: &config.TopicMigrationConfig{
+						ThrottleMB:         2,
+						PartitionBatchSize: 3,
+					},
+				},
+			},
+			expectedResults: map[CheckName]bool{
+				CheckNameConfigCorrect:            true,
+				CheckNameConfigsConsistent:        true,
 				CheckNameTopicExists:              true,
-				CheckNameRetentionCorrect:         true,
-				CheckNameReplicationFactorCorrect: true,
-				CheckNamePartitionCountCorrect:    true,
+				CheckNameRetentionCorrect:         false,
+				CheckNameReplicationFactorCorrect: false,
+				CheckNamePartitionCountCorrect:    false,
 				CheckNameThrottlesClear:           true,
 				CheckNameReplicasInSync:           true,
 				CheckNameLeadersCorrect:           true,
@@ -121,10 +201,11 @@ func TestCheck(t *testing.T) {
 			ctx,
 			CheckConfig{
 				AdminClient:   adminClient,
-				BrokerRacks:   -1,
 				ClusterConfig: clusterConfig,
 				CheckLeaders:  true,
+				NumRacks:      -1,
 				TopicConfig:   testCase.checkTopicConfig,
+				ValidateOnly:  testCase.validateOnly,
 			},
 		)
 		require.Nil(t, err, testCase.description)
