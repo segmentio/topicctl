@@ -64,9 +64,9 @@ type ClusterSpec struct {
 	// and/or decide whether to use zk or brokers for certain information.
 	VersionMajor KafkaVersionMajor `json:"versionMajor"`
 
-	// DefaultBrokerThrottleBytes is the default broker throttle used for migrations in this
+	// DefaultThrottleBytes is the default broker throttle used for migrations in this
 	// cluster. If unset, then a reasonable default is used instead.
-	DefaultBrokerThrottleBytes int64 `json:"defaultBrokerThrottleBytes"`
+	DefaultThrottleBytes int64 `json:"defaultThrottleBytes"`
 }
 
 // Validate evaluates whether the cluster config is valid.
