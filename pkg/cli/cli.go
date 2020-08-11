@@ -197,14 +197,10 @@ func (c *CLIRunner) BootstrapTopics(
 
 func (c *CLIRunner) CheckTopic(
 	ctx context.Context,
-	topicConfig config.TopicConfig,
+	checkConfig check.CheckConfig,
 ) error {
-	checker := check.NewTopicChecker(
-		c.adminClient,
-		topicConfig,
-	)
-
-	return checker.Check()
+	_, err := check.CheckTopic(ctx, checkConfig)
+	return err
 }
 
 func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) error {

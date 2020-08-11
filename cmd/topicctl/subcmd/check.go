@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/segmentio/topicctl/pkg/admin"
+	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
@@ -23,10 +24,7 @@ var checkCmd = &cobra.Command{
 
 type checkCmdConfig struct {
 	clusterConfig string
-	matchRegexp   string
-	excludeRegexp string
-	outputDir     string
-	overwrite     bool
+	checkLeaders  bool
 }
 
 var checkConfig checkCmdConfig
@@ -37,6 +35,12 @@ func init() {
 		"cluster-config",
 		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
 		"Cluster config",
+	)
+	checkCmd.Flags().BoolVar(
+		&checkConfig.checkLeaders,
+		"check-leaders",
+		false,
+		"Check leaders",
 	)
 
 	RootCmd.AddCommand(checkCmd)
@@ -94,7 +98,7 @@ func checkTopic(
 	topicConfigPath string,
 	adminClients map[string]*admin.Client,
 ) error {
-	clusterConfigPath, err := clusterConfigForTopicApply(topicConfigPath)
+	clusterConfigPath, err := clusterConfigForTopicCheck(topicConfigPath)
 	if err != nil {
 		return err
 	}
@@ -126,5 +130,29 @@ func checkTopic(
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
-	return cliRunner.CheckTopic(ctx, topicConfig)
+	topicCheckConfig := check.CheckConfig{
+		AdminClient:   adminClient,
+		BrokerRacks:   -1,
+		CheckLeaders:  checkConfig.checkLeaders,
+		ClusterConfig: clusterConfig,
+		TopicConfig:   topicConfig,
+	}
+	return cliRunner.CheckTopic(
+		ctx,
+		topicCheckConfig,
+	)
+}
+
+func clusterConfigForTopicCheck(topicConfigPath string) (string, error) {
+	if checkConfig.clusterConfig != "" {
+		return checkConfig.clusterConfig, nil
+	}
+
+	return filepath.Abs(
+		filepath.Join(
+			filepath.Dir(topicConfigPath),
+			"..",
+			"cluster.yaml",
+		),
+	)
 }
