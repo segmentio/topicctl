@@ -9,6 +9,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
+// FormatResults generates a pretty table from topic check results.
 func FormatResults(results TopicCheckResults) string {
 	buf := &bytes.Buffer{}
 

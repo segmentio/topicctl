@@ -50,12 +50,16 @@ func NewCLIRunner(
 		spinnerObj.Prefix = "Loading: "
 	}
 
-	return &CLIRunner{
-		adminClient:  adminClient,
-		groupsClient: groups.NewClient(adminClient.GetBootstrapAddrs()[0]),
-		printer:      printer,
-		spinnerObj:   spinnerObj,
+	cliRunner := &CLIRunner{
+		adminClient: adminClient,
+		printer:     printer,
+		spinnerObj:  spinnerObj,
 	}
+	if adminClient != nil {
+		cliRunner.groupsClient = groups.NewClient(adminClient.GetBootstrapAddrs()[0])
+	}
+
+	return cliRunner
 }
 
 func (c *CLIRunner) GetBrokers(ctx context.Context, full bool) error {

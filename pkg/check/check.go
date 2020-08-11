@@ -10,6 +10,7 @@ import (
 	tconfig "github.com/segmentio/topicctl/pkg/config"
 )
 
+// CheckConfig contains all of the context necessary to check a single topic config.
 type CheckConfig struct {
 	AdminClient   *admin.Client
 	ClusterConfig config.ClusterConfig
