@@ -89,15 +89,13 @@ type TopicMeta struct {
 
 // TopicSpec stores the (mutable) specification for a topic.
 type TopicSpec struct {
-	Partitions        int `json:"partitions"`
-	ReplicationFactor int `json:"replicationFactor"`
-	RetentionMinutes  int `json:"retentionMinutes,omitempty"`
+	Partitions        int           `json:"partitions"`
+	ReplicationFactor int           `json:"replicationFactor"`
+	RetentionMinutes  int           `json:"retentionMinutes,omitempty"`
+	Settings          TopicSettings `json:"settings,omitempty"`
 
 	PlacementConfig TopicPlacementConfig  `json:"placement"`
 	MigrationConfig *TopicMigrationConfig `json:"migration,omitempty"`
-
-	// TODO: Add compression scheme?
-	// TODO: Add support for compaction?
 }
 
 // TopicPlacementConfig describes how the partition replicas in a topic
@@ -182,6 +180,20 @@ func (t TopicConfig) Validate(numRacks int) error {
 	}
 	if t.Spec.ReplicationFactor <= 0 {
 		err = multierror.Append(err, errors.New("ReplicationFactor must be > 0"))
+	}
+
+	if settingsErr := t.Spec.Settings.Validate(); settingsErr != nil {
+		err = multierror.Append(err, settingsErr)
+	}
+
+	if t.Spec.RetentionMinutes < 0 {
+		err = multierror.Append(err, errors.New("RetentionMinutes must be >= 0"))
+	}
+	if t.Spec.RetentionMinutes > 0 && t.Spec.Settings["retention.ms"] != nil {
+		err = multierror.Append(
+			err,
+			errors.New("Cannot set both RetentionMinutes and retention.ms in settings"),
+		)
 	}
 
 	placement := t.Spec.PlacementConfig
