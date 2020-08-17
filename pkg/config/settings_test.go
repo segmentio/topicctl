@@ -3,6 +3,7 @@ package config
 import (
 	"testing"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,5 +102,57 @@ func TestValidateSettings(t *testing.T) {
 }
 
 func TestSettingsToConfigEntries(t *testing.T) {
+	settings := TopicSettings{
+		"cleanup.policy": "compact",
+		"follower.replication.throttled.replicas": []string{
+			"1:3",
+			"4:5",
+			"6:7",
+		},
+		"leader.replication.throttled.replicas": nil,
+		"min.cleanable.dirty.ratio":             0.54,
+		"preallocate":                           true,
+		"retention.ms":                          1234,
+	}
 
+	configEntries, err := settings.ToConfigEntries()
+	assert.Nil(t, err)
+	assert.ElementsMatch(
+		t,
+		[]kafka.ConfigEntry{
+			{
+				ConfigName:  "cleanup.policy",
+				ConfigValue: "compact",
+			},
+			{
+				ConfigName:  "follower.replication.throttled.replicas",
+				ConfigValue: "1:3,4:5,6:7",
+			},
+			{
+				ConfigName:  "leader.replication.throttled.replicas",
+				ConfigValue: "",
+			},
+			{
+				ConfigName:  "min.cleanable.dirty.ratio",
+				ConfigValue: "0.54",
+			},
+			{
+				ConfigName:  "preallocate",
+				ConfigValue: "true",
+			},
+			{
+				ConfigName:  "retention.ms",
+				ConfigValue: "1234",
+			},
+		},
+		configEntries,
+	)
+
+	badSettings := TopicSettings{
+		"key": map[string]int{
+			"abc": 123,
+		},
+	}
+	_, err = badSettings.ToConfigEntries()
+	assert.NotNil(t, err)
 }

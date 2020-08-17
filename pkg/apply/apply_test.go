@@ -627,7 +627,10 @@ func TestApplyThrottles(t *testing.T) {
 	}
 	applier := testApplier(t, ctx, topicConfig)
 	defer applier.adminClient.Close()
-	err := applier.adminClient.CreateTopic(ctx, topicConfig.ToNewTopicConfig())
+	kafkaTopicConfig, err := topicConfig.ToNewTopicConfig()
+	require.Nil(t, err)
+
+	err = applier.adminClient.CreateTopic(ctx, kafkaTopicConfig)
 	require.Nil(t, err)
 	time.Sleep(250 * time.Millisecond)
 

@@ -137,7 +137,10 @@ func (t *TopicApplier) Apply(ctx context.Context) error {
 }
 
 func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
-	newTopicConfig := t.topicConfig.ToNewTopicConfig()
+	newTopicConfig, err := t.topicConfig.ToNewTopicConfig()
+	if err != nil {
+		return err
+	}
 
 	if t.config.DryRun {
 		log.Infof("Would create topic with config %+v", newTopicConfig)
@@ -156,7 +159,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 
 	log.Infof("Creating new topic with config %+v", newTopicConfig)
 
-	err := t.adminClient.CreateTopic(
+	err = t.adminClient.CreateTopic(
 		ctx,
 		newTopicConfig,
 	)
