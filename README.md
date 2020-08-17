@@ -249,11 +249,19 @@ spec:
   placement:
     strategy: in-zone                   # Placement strategy, see info below
     picker: randomized                  # Picker method, see info below
+  settings:                             # Miscellaneous other config settings
+    cleanup.policy: delete
+    max.message.bytes: 5242880
 ```
 
 The `cluster`, `environment`, and `region` fields are used for matching
 against a cluster config and double-checking that the cluster we're applying
 in is correct; they don't appear in any API calls.
+
+See the [Kafka documentation](https://kafka.apache.org/documentation/#topicconfigs)
+for more details on the parameters that can be set in the `settings` field. Note
+that retention time can be set in either this section or via `retentionMinutes` but
+not in both places. The latter is easier, so it's recommended.
 
 #### Placement strategies
 

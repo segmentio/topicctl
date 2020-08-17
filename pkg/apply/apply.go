@@ -372,7 +372,7 @@ func (t *TopicApplier) updateSettings(
 		}
 
 		ok, _ := Confirm(
-			"OK to update to the values in the topic config?",
+			"OK to update to the new values in the topic config?",
 			t.config.SkipConfirm,
 		)
 		if !ok {
