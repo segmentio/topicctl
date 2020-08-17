@@ -193,7 +193,7 @@ func (t *TopicApplier) applyExistingTopic(
 		return err
 	}
 
-	if err := t.updateRetention(ctx, topicInfo); err != nil {
+	if err := t.updateSettings(ctx, topicInfo); err != nil {
 		return err
 	}
 
@@ -338,7 +338,7 @@ func (t *TopicApplier) checkExistingState(
 	return nil
 }
 
-func (t *TopicApplier) updateRetention(
+func (t *TopicApplier) updateSettings(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
 ) error {

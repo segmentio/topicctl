@@ -5,6 +5,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateSettings(t *testing.T) {
@@ -115,7 +116,7 @@ func TestSettingsToConfigEntries(t *testing.T) {
 		"retention.ms":                          1234,
 	}
 
-	configEntries, err := settings.ToConfigEntries()
+	configEntries, err := settings.ToConfigEntries(nil)
 	assert.Nil(t, err)
 	assert.ElementsMatch(
 		t,
@@ -148,11 +149,66 @@ func TestSettingsToConfigEntries(t *testing.T) {
 		configEntries,
 	)
 
+	configEntries, err = settings.ToConfigEntries(
+		[]string{"cleanup.policy", "retention.ms"},
+	)
+	assert.Nil(t, err)
+	assert.ElementsMatch(
+		t,
+		configEntries,
+		[]kafka.ConfigEntry{
+			{
+				ConfigName:  "cleanup.policy",
+				ConfigValue: "compact",
+			},
+			{
+				ConfigName:  "retention.ms",
+				ConfigValue: "1234",
+			},
+		},
+	)
+
+	_, err = settings.ToConfigEntries(
+		[]string{"cleanup.policy", "invalid-key"},
+	)
+	assert.NotNil(t, err)
+
 	badSettings := TopicSettings{
 		"key": map[string]int{
 			"abc": 123,
 		},
 	}
-	_, err = badSettings.ToConfigEntries()
+	_, err = badSettings.ToConfigEntries(nil)
 	assert.NotNil(t, err)
+}
+
+func TestConfigMapDiffs(t *testing.T) {
+	settings := TopicSettings{
+		"cleanup.policy": "compact",
+		"follower.replication.throttled.replicas": []string{
+			"1:3",
+			"4:5",
+			"6:8",
+		},
+		"preallocate": true,
+	}
+	configMap := map[string]string{
+		"cleanup.policy": "compact",
+		"follower.replication.throttled.replicas": "1:3,4:5,6:7",
+		"leader.replication.throttled.replicas":   "4:8,6:7",
+		"preallocate":                             "false",
+		"retention.ms":                            "1234",
+	}
+	diffKeys, missingKeys, err := settings.ConfigMapDiffs(configMap)
+	require.Nil(t, err)
+	assert.ElementsMatch(
+		t,
+		[]string{"follower.replication.throttled.replicas", "preallocate"},
+		diffKeys,
+	)
+	assert.ElementsMatch(
+		t,
+		[]string{"leader.replication.throttled.replicas", "retention.ms"},
+		missingKeys,
+	)
 }

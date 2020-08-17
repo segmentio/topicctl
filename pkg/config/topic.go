@@ -131,7 +131,7 @@ func (t TopicConfig) ToNewTopicConfig() (kafka.TopicConfig, error) {
 	}
 
 	if len(t.Spec.Settings) > 0 {
-		entries, err := t.Spec.Settings.ToConfigEntries()
+		entries, err := t.Spec.Settings.ToConfigEntries(nil)
 		if err != nil {
 			return config, err
 		}

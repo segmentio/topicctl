@@ -266,32 +266,87 @@ func (t TopicSettings) Validate() error {
 	return validateErr
 }
 
-// ToConfigEntries converts the TopicSettings into a slice of kafka-go config entries.
-func (t TopicSettings) ToConfigEntries() ([]kafka.ConfigEntry, error) {
+// ToConfigEntries converts the argument keys in the TopicSettings into a slice of
+// kafka-go config entries. If keys is nil, then all fields are converted.
+func (t TopicSettings) ToConfigEntries(keys []string) ([]kafka.ConfigEntry, error) {
 	entries := []kafka.ConfigEntry{}
 
-	for key, value := range t {
-		strValue, err := interfaceToString(value)
-		if err != nil {
-			return nil, fmt.Errorf("Error converting value for key %s: %+v", key, err)
-		}
+	if keys == nil {
+		for key, value := range t {
+			strValue, err := interfaceToString(value)
+			if err != nil {
+				return nil, fmt.Errorf("Error converting value for key %s: %+v", key, err)
+			}
 
-		entries = append(
-			entries,
-			kafka.ConfigEntry{
-				ConfigName:  key,
-				ConfigValue: strValue,
-			},
-		)
+			entries = append(
+				entries,
+				kafka.ConfigEntry{
+					ConfigName:  key,
+					ConfigValue: strValue,
+				},
+			)
+		}
+	} else {
+		for _, key := range keys {
+			value, ok := t[key]
+			if !ok {
+				return nil, fmt.Errorf("Key %s not found", key)
+			}
+
+			strValue, err := interfaceToString(value)
+			if err != nil {
+				return nil, fmt.Errorf("Error converting value for key %s: %+v", key, err)
+			}
+
+			entries = append(
+				entries,
+				kafka.ConfigEntry{
+					ConfigName:  key,
+					ConfigValue: strValue,
+				},
+			)
+		}
 	}
 
 	return entries, nil
 }
 
+// ConfigMapDiffs compares these topic settings to a string map fetched from
+// the cluster. It returns the keys that are set in the settings but different in
+// the cluster and also the keys that are set in the cluster but not set in
+// the settings.
+func (t TopicSettings) ConfigMapDiffs(
+	configMap map[string]string,
+) ([]string, []string, error) {
+	diffKeys := []string{}
+	missingKeys := []string{}
+
+	for key, value := range t {
+		strValue, err := interfaceToString(value)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		configStrValue := configMap[key]
+		if strValue != configStrValue {
+			diffKeys = append(diffKeys, key)
+		}
+	}
+
+	for configKey := range configMap {
+		_, ok := t[configKey]
+		if !ok {
+			missingKeys = append(missingKeys, configKey)
+		}
+	}
+
+	return diffKeys, missingKeys, nil
+}
+
 // FromConfigMap converts a string map from a Kafka topic to a TopicSettings instance.
-func FromConfigMap(m map[string]string) TopicSettings {
+func FromConfigMap(configMap map[string]string) TopicSettings {
 	t := TopicSettings{}
-	for key, value := range m {
+	for key, value := range configMap {
 		t[key] = value
 	}
 	return t
