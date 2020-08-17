@@ -30,6 +30,9 @@ func TestApplyBasicUpdates(t *testing.T) {
 			Partitions:        9,
 			ReplicationFactor: 2,
 			RetentionMinutes:  500,
+			Settings: config.TopicSettings{
+				"cleanup.policy": "compact",
+			},
 			PlacementConfig: config.TopicPlacementConfig{
 				Strategy: config.PlacementStrategyAny,
 				Picker:   config.PickerMethodLowestIndex,
@@ -49,21 +52,24 @@ func TestApplyBasicUpdates(t *testing.T) {
 	err := applier.Apply(ctx)
 	require.Nil(t, err)
 
-	// Topic exists and retention is set correctly
+	// Topic exists and is set up correctly
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
 	require.Nil(t, err)
 	assert.Equal(t, topicName, topicInfo.Name)
 	assert.Equal(t, 9, len(topicInfo.Partitions))
 	assert.Equal(t, 2, len(topicInfo.Partitions[0].Replicas))
 	assert.Equal(t, "30000000", topicInfo.Config[admin.RetentionKey])
+	assert.Equal(t, "compact", topicInfo.Config["cleanup.policy"])
 
-	// Update retention
+	// Update retention and settings
 	applier.topicConfig.Spec.RetentionMinutes = 501
+	applier.topicConfig.Spec.Settings["cleanup.policy"] = "delete"
 	err = applier.Apply(ctx)
 	require.Nil(t, err)
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
 	require.Nil(t, err)
 	assert.Equal(t, "30060000", topicInfo.Config[admin.RetentionKey])
+	assert.Equal(t, "delete", topicInfo.Config["cleanup.policy"])
 
 	// Updating replication factor not allowed
 	applier.topicConfig.Spec.Partitions = 9

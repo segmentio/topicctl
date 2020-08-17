@@ -14,7 +14,18 @@ type configValidator func(v string) bool
 
 var keyValidators = map[string]configValidator{
 	"cleanup.policy": func(v string) bool {
-		return inValues(v, "compact", "delete")
+		subValues := strings.Split(v, ",")
+		if len(subValues) > 2 {
+			return false
+		}
+
+		for _, subValue := range subValues {
+			if !inValues(subValue, "compact", "delete") {
+				return false
+			}
+		}
+
+		return true
 	},
 	"compression.type": func(v string) bool {
 		return inValues(v, "uncompressed", "zstd", "lz4", "snappy", "gzip", "producer")
@@ -266,7 +277,7 @@ func (t TopicSettings) Validate() error {
 	return validateErr
 }
 
-// ToConfigEntries converts the argument keys in the TopicSettings into a slice of
+// ToConfigEntries converts the argument keys in the current settings into a slice of
 // kafka-go config entries. If keys is nil, then all fields are converted.
 func (t TopicSettings) ToConfigEntries(keys []string) ([]kafka.ConfigEntry, error) {
 	entries := []kafka.ConfigEntry{}
@@ -311,6 +322,22 @@ func (t TopicSettings) ToConfigEntries(keys []string) ([]kafka.ConfigEntry, erro
 	return entries, nil
 }
 
+// HasKey returns whether the current settings instance contains the argument key.
+func (t TopicSettings) HasKey(key string) bool {
+	_, ok := t[key]
+	return ok
+}
+
+// GetValueStr returns the string value for a key in this settings instance. It
+// returns an error if the key is not found.
+func (t TopicSettings) GetValueStr(key string) (string, error) {
+	value, ok := t[key]
+	if !ok {
+		return "", fmt.Errorf("Key %s not found", key)
+	}
+	return interfaceToString(value)
+}
+
 // ConfigMapDiffs compares these topic settings to a string map fetched from
 // the cluster. It returns the keys that are set in the settings but different in
 // the cluster and also the keys that are set in the cluster but not set in
@@ -341,6 +368,17 @@ func (t TopicSettings) ConfigMapDiffs(
 	}
 
 	return diffKeys, missingKeys, nil
+}
+
+// Copy returns a shallow copy of this settings instance.
+func (t TopicSettings) Copy() TopicSettings {
+	copy := TopicSettings{}
+
+	for key, value := range t {
+		copy[key] = value
+	}
+
+	return copy
 }
 
 // FromConfigMap converts a string map from a Kafka topic to a TopicSettings instance.

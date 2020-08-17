@@ -39,7 +39,7 @@ func TestValidateSettings(t *testing.T) {
 		{
 			description: "string types",
 			settings: TopicSettings{
-				"cleanup.policy":                          "compact",
+				"cleanup.policy":                          "compact,delete",
 				"retention.ms":                            "1234",
 				"min.cleanable.dirty.ratio":               "0.54",
 				"preallocate":                             "true",
