@@ -12,3 +12,9 @@ spec:
   retentionMinutes: 100
   placement:
     strategy: in-rack
+  settings:
+    cleanup.policy: compact
+    follower.replication.throttled.replicas:
+      - "1:3"
+      - "4:5"
+    max.compaction.lag.ms: 12345

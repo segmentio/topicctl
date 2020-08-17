@@ -306,8 +306,18 @@ func interfaceToString(v interface{}) (string, error) {
 	case bool:
 		return strconv.FormatBool(t), nil
 	case float32:
+		if t == float32(int64(t)) {
+			// Treat this value as an int
+			return strconv.FormatInt(int64(t), 10), nil
+		}
+
 		return strconv.FormatFloat(float64(t), 'f', 2, 32), nil
 	case float64:
+		if t == float64(int64(t)) {
+			// Treat this value as an int
+			return strconv.FormatInt(int64(t), 10), nil
+		}
+
 		return strconv.FormatFloat(t, 'f', 2, 64), nil
 	case int:
 		return strconv.FormatInt(int64(t), 10), nil

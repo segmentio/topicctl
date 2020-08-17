@@ -66,6 +66,14 @@ func TestLoadTopic(t *testing.T) {
 				MigrationConfig: &TopicMigrationConfig{
 					PartitionBatchSize: 1,
 				},
+				Settings: TopicSettings{
+					"cleanup.policy": "compact",
+					"follower.replication.throttled.replicas": []interface{}{
+						"1:3",
+						"4:5",
+					},
+					"max.compaction.lag.ms": 12345.0,
+				},
 			},
 		},
 		topicConfig,
