@@ -220,7 +220,7 @@ spec:
   zkPrefix: my-cluster                  # Prefix for zookeeper nodes
   zkLockPath: /topicctl/locks           # Path used for apply locks (optional)
   clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as
-                                        # safety check only)
+                                        #   safety check only)
 ```
 
 Note that the `name`, `environment`, `region`, and `description` fields are used
