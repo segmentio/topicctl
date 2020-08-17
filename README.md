@@ -245,11 +245,11 @@ meta:
 spec:
   partitions: 9                         # Number of topic partitions
   replicationFactor: 3                  # Replication factor per partition
-  retentionMinutes: 360                 # Number of minutes to retain messages
+  retentionMinutes: 360                 # Number of minutes to retain messages (optional)
   placement:
     strategy: in-zone                   # Placement strategy, see info below
-    picker: randomized                  # Picker method, see info below
-  settings:                             # Miscellaneous other config settings
+    picker: randomized                  # Picker method, see info below (optional)
+  settings:                             # Miscellaneous other config settings (optional)
     cleanup.policy: delete
     max.message.bytes: 5242880
 ```
