@@ -5,11 +5,11 @@ type CheckName string
 const (
 	CheckNameConfigsConsistent        CheckName = "configs consistent"
 	CheckNameConfigCorrect            CheckName = "config correct"
+	CheckNameConfigSettingsCorrect    CheckName = "config settings correct"
 	CheckNameLeadersCorrect           CheckName = "leaders correct"
 	CheckNamePartitionCountCorrect    CheckName = "partition count correct"
 	CheckNameReplicasInSync           CheckName = "replicas in-sync"
 	CheckNameReplicationFactorCorrect CheckName = "replication factor correct"
-	CheckNameRetentionCorrect         CheckName = "retention correct"
 	CheckNameThrottlesClear           CheckName = "throttles clear"
 	CheckNameTopicExists              CheckName = "topic exists"
 )

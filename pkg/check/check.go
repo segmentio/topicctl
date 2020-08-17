@@ -3,7 +3,7 @@ package check
 import (
 	"context"
 	"fmt"
-	"time"
+	"sort"
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -85,19 +85,41 @@ func CheckTopic(ctx context.Context, config CheckConfig) (TopicCheckResults, err
 	// Check retention
 	results.AppendResult(
 		TopicCheckResult{
-			Name: CheckNameRetentionCorrect,
+			Name: CheckNameConfigSettingsCorrect,
 		},
 	)
-	if config.TopicConfig.Spec.RetentionMinutes == 0 ||
-		topicInfo.Retention() == time.Duration(config.TopicConfig.Spec.RetentionMinutes)*time.Minute {
+
+	settings := config.TopicConfig.Spec.Settings.Copy()
+	if config.TopicConfig.Spec.RetentionMinutes > 0 {
+		settings[admin.RetentionKey] = config.TopicConfig.Spec.RetentionMinutes * 60000
+	}
+
+	diffKeys, missingKeys, err := settings.ConfigMapDiffs(topicInfo.Config)
+	if err != nil {
+		return results, err
+	}
+
+	if len(diffKeys) == 0 && len(missingKeys) == 0 {
 		results.UpdateLastResult(true, "")
 	} else {
+		combinedKeys := []string{}
+		for _, diffKey := range diffKeys {
+			combinedKeys = append(combinedKeys, diffKey)
+		}
+		for _, missingKey := range missingKeys {
+			combinedKeys = append(combinedKeys, missingKey)
+		}
+
+		sort.Slice(combinedKeys, func(a, b int) bool {
+			return combinedKeys[a] < combinedKeys[b]
+		})
+
 		results.UpdateLastResult(
 			false,
 			fmt.Sprintf(
-				"expected %d min, observed %d min",
-				config.TopicConfig.Spec.RetentionMinutes,
-				int(topicInfo.Retention().Minutes()),
+				"%d keys have different values between cluster and topic config: %v",
+				len(combinedKeys),
+				combinedKeys,
 			),
 		)
 	}

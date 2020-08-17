@@ -137,7 +137,10 @@ func (t *TopicApplier) Apply(ctx context.Context) error {
 }
 
 func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
-	newTopicConfig := t.topicConfig.ToNewTopicConfig()
+	newTopicConfig, err := t.topicConfig.ToNewTopicConfig()
+	if err != nil {
+		return err
+	}
 
 	if t.config.DryRun {
 		log.Infof("Would create topic with config %+v", newTopicConfig)
@@ -156,7 +159,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 
 	log.Infof("Creating new topic with config %+v", newTopicConfig)
 
-	err := t.adminClient.CreateTopic(
+	err = t.adminClient.CreateTopic(
 		ctx,
 		newTopicConfig,
 	)
@@ -190,7 +193,7 @@ func (t *TopicApplier) applyExistingTopic(
 		return err
 	}
 
-	if err := t.updateRetention(ctx, topicInfo); err != nil {
+	if err := t.updateSettings(ctx, topicInfo); err != nil {
 		return err
 	}
 
@@ -335,20 +338,32 @@ func (t *TopicApplier) checkExistingState(
 	return nil
 }
 
-func (t *TopicApplier) updateRetention(
+func (t *TopicApplier) updateSettings(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
 ) error {
-	log.Infof("Checking retention...")
+	log.Infof("Checking topic config settings...")
 
-	currRetention := topicInfo.Retention()
-	desiredRetention := time.Minute * time.Duration(t.topicConfig.Spec.RetentionMinutes)
+	topicSettings := t.topicConfig.Spec.Settings.Copy()
+	if t.topicConfig.Spec.RetentionMinutes > 0 {
+		topicSettings[admin.RetentionKey] = t.topicConfig.Spec.RetentionMinutes * 60000
+	}
 
-	if currRetention != desiredRetention {
+	diffKeys, missingKeys, err := topicSettings.ConfigMapDiffs(topicInfo.Config)
+	if err != nil {
+		return err
+	}
+
+	if len(diffKeys) > 0 {
+		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
+		if err != nil {
+			return err
+		}
+
 		log.Infof(
-			"Current retention (%d min) is different from desired retention in topic config (%d min)",
-			int(currRetention.Minutes()),
-			int(desiredRetention.Minutes()),
+			"Found %d key(s) with different values:\n%s",
+			len(diffKeys),
+			diffsTable,
 		)
 
 		if t.config.DryRun {
@@ -357,32 +372,36 @@ func (t *TopicApplier) updateRetention(
 		}
 
 		ok, _ := Confirm(
-			fmt.Sprintf(
-				"OK to update to %d min?",
-				int(desiredRetention.Minutes()),
-			),
+			"OK to update to the new values in the topic config?",
 			t.config.SkipConfirm,
 		)
 		if !ok {
-			log.Info("OK, skipping update")
-			return nil
+			return errors.New("Stopping because of user response")
 		}
 		log.Infof("OK, updating")
 
-		_, err := t.adminClient.UpdateTopicConfig(
+		configEntries, err := topicSettings.ToConfigEntries(diffKeys)
+		if err != nil {
+			return err
+		}
+
+		_, err = t.adminClient.UpdateTopicConfig(
 			ctx,
 			t.topicName,
-			[]kafka.ConfigEntry{
-				{
-					ConfigName:  admin.RetentionKey,
-					ConfigValue: fmt.Sprintf("%d", t.topicConfig.Spec.RetentionMinutes*60*1000),
-				},
-			},
+			configEntries,
 			true,
 		)
 		if err != nil {
 			return err
 		}
+	}
+
+	if len(missingKeys) > 0 {
+		log.Warnf(
+			"Found %d key(s) set in cluster but missing from config:\n%s\nThese will be left as-is.",
+			len(missingKeys),
+			FormatMissingKeys(topicInfo.Config, missingKeys),
+		)
 	}
 
 	return nil

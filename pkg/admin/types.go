@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// ZK config non-throttle keys
+	// ZK retention key
 	RetentionKey = "retention.ms"
 
 	// ZK config throttle keys

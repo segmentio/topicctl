@@ -141,24 +141,10 @@ func (c *CLIRunner) BootstrapTopics(
 			continue
 		}
 
-		topicConfig := config.TopicConfig{
-			Meta: config.TopicMeta{
-				Name:        topicInfo.Name,
-				Cluster:     clusterConfig.Meta.Name,
-				Region:      clusterConfig.Meta.Region,
-				Environment: clusterConfig.Meta.Environment,
-				Description: "Bootstrapped via topicctl bootstrap",
-			},
-			Spec: config.TopicSpec{
-				Partitions:        len(topicInfo.Partitions),
-				ReplicationFactor: len(topicInfo.Partitions[0].Replicas),
-				RetentionMinutes:  int(topicInfo.Retention().Minutes()),
-				PlacementConfig: config.TopicPlacementConfig{
-					Strategy: config.PlacementStrategyAny,
-				},
-			},
-		}
-
+		topicConfig := config.TopicConfigFromTopicInfo(
+			clusterConfig,
+			topicInfo,
+		)
 		topicConfigs = append(topicConfigs, topicConfig)
 	}
 

@@ -220,7 +220,7 @@ spec:
   zkPrefix: my-cluster                  # Prefix for zookeeper nodes
   zkLockPath: /topicctl/locks           # Path used for apply locks (optional)
   clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as
-                                        # safety check only)
+                                        #   safety check only)
 ```
 
 Note that the `name`, `environment`, `region`, and `description` fields are used
@@ -245,15 +245,23 @@ meta:
 spec:
   partitions: 9                         # Number of topic partitions
   replicationFactor: 3                  # Replication factor per partition
-  retentionMinutes: 360                 # Number of minutes to retain messages
+  retentionMinutes: 360                 # Number of minutes to retain messages (optional)
   placement:
     strategy: in-zone                   # Placement strategy, see info below
-    picker: randomized                  # Picker method, see info below
+    picker: randomized                  # Picker method, see info below (optional)
+  settings:                             # Miscellaneous other config settings (optional)
+    cleanup.policy: delete
+    max.message.bytes: 5242880
 ```
 
 The `cluster`, `environment`, and `region` fields are used for matching
 against a cluster config and double-checking that the cluster we're applying
 in is correct; they don't appear in any API calls.
+
+See the [Kafka documentation](https://kafka.apache.org/documentation/#topicconfigs)
+for more details on the parameters that can be set in the `settings` field. Note
+that retention time can be set in either this section or via `retentionMinutes` but
+not in both places. The latter is easier, so it's recommended.
 
 #### Placement strategies
 

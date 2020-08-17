@@ -89,15 +89,13 @@ type TopicMeta struct {
 
 // TopicSpec stores the (mutable) specification for a topic.
 type TopicSpec struct {
-	Partitions        int `json:"partitions"`
-	ReplicationFactor int `json:"replicationFactor"`
-	RetentionMinutes  int `json:"retentionMinutes,omitempty"`
+	Partitions        int           `json:"partitions"`
+	ReplicationFactor int           `json:"replicationFactor"`
+	RetentionMinutes  int           `json:"retentionMinutes,omitempty"`
+	Settings          TopicSettings `json:"settings,omitempty"`
 
 	PlacementConfig TopicPlacementConfig  `json:"placement"`
 	MigrationConfig *TopicMigrationConfig `json:"migration,omitempty"`
-
-	// TODO: Add compression scheme?
-	// TODO: Add support for compaction?
 }
 
 // TopicPlacementConfig describes how the partition replicas in a topic
@@ -125,23 +123,32 @@ type TopicMigrationConfig struct {
 
 // ToNewTopicConfig converts a TopicConfig to a kafka.TopicConfig that can be
 // used by kafka-go to create a new topic.
-func (t TopicConfig) ToNewTopicConfig() kafka.TopicConfig {
+func (t TopicConfig) ToNewTopicConfig() (kafka.TopicConfig, error) {
 	config := kafka.TopicConfig{
 		Topic:             t.Meta.Name,
 		NumPartitions:     t.Spec.Partitions,
 		ReplicationFactor: t.Spec.ReplicationFactor,
 	}
 
+	if len(t.Spec.Settings) > 0 {
+		entries, err := t.Spec.Settings.ToConfigEntries(nil)
+		if err != nil {
+			return config, err
+		}
+		config.ConfigEntries = entries
+	}
+
 	if t.Spec.RetentionMinutes > 0 {
-		config.ConfigEntries = []kafka.ConfigEntry{
-			{
+		config.ConfigEntries = append(
+			config.ConfigEntries,
+			kafka.ConfigEntry{
 				ConfigName:  admin.RetentionKey,
 				ConfigValue: fmt.Sprintf("%d", t.Spec.RetentionMinutes*60*1000),
 			},
-		}
+		)
 	}
 
-	return config
+	return config, nil
 }
 
 // SetDefaults sets the default migration and placement settings in a topic config
@@ -182,6 +189,20 @@ func (t TopicConfig) Validate(numRacks int) error {
 	}
 	if t.Spec.ReplicationFactor <= 0 {
 		err = multierror.Append(err, errors.New("ReplicationFactor must be > 0"))
+	}
+
+	if settingsErr := t.Spec.Settings.Validate(); settingsErr != nil {
+		err = multierror.Append(err, settingsErr)
+	}
+
+	if t.Spec.RetentionMinutes < 0 {
+		err = multierror.Append(err, errors.New("RetentionMinutes must be >= 0"))
+	}
+	if t.Spec.RetentionMinutes > 0 && t.Spec.Settings["retention.ms"] != nil {
+		err = multierror.Append(
+			err,
+			errors.New("Cannot set both RetentionMinutes and retention.ms in settings"),
+		)
 	}
 
 	placement := t.Spec.PlacementConfig
@@ -283,4 +304,36 @@ func (t TopicConfig) ToYAML() (string, error) {
 		return "", err
 	}
 	return string(outBytes), nil
+}
+
+func TopicConfigFromTopicInfo(
+	clusterConfig ClusterConfig,
+	topicInfo admin.TopicInfo,
+) TopicConfig {
+	topicConfig := TopicConfig{
+		Meta: TopicMeta{
+			Name:        topicInfo.Name,
+			Cluster:     clusterConfig.Meta.Name,
+			Region:      clusterConfig.Meta.Region,
+			Environment: clusterConfig.Meta.Environment,
+			Description: "Bootstrapped via topicctl bootstrap",
+		},
+		Spec: TopicSpec{
+			Partitions:        len(topicInfo.Partitions),
+			ReplicationFactor: len(topicInfo.Partitions[0].Replicas),
+			PlacementConfig: TopicPlacementConfig{
+				Strategy: PlacementStrategyAny,
+			},
+		},
+	}
+
+	topicConfig.Spec.Settings = FromConfigMap(topicInfo.Config)
+
+	retentionMinutes := topicInfo.Retention().Minutes()
+	if retentionMinutes >= 1.0 && float64(int(retentionMinutes)) == retentionMinutes {
+		topicConfig.Spec.RetentionMinutes = int(retentionMinutes)
+		delete(topicConfig.Spec.Settings, admin.RetentionKey)
+	}
+
+	return topicConfig
 }
