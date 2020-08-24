@@ -70,11 +70,17 @@ tail topic-default
 ```
 
 7. Increase the number of partitions in the `topic-default` topic by changing the `partitions: ...`
-line in [topic-default.yaml](/examples/local-cluster/topics/topic-default.yaml) and
-re-applying:
+line in
+[topic-default.yaml](https://github.com/segmentio/topicctl/blob/master/examples/local-cluster/topics/topic-default.yaml#L10) to `9` and re-applying:
 
 ```
 topicctl apply examples/local-cluster/topics/topic-default.yaml
+```
+
+8. Bring down the local cluster:
+
+```
+docker-compose down
 ```
 
 ## Usage
@@ -302,7 +308,7 @@ cluster-wide broker inbalance.
 If `apply` is run with the `--rebalance` flag set, then `topicctl` will do a full broker rebalance
 after the usual apply steps. This process will check the balance of the brokers for each index
 position (i.e., first, second, third, etc.) in each partition and make replacements if there
-are any brokers that are significant over- or under-represented.
+are any brokers that are significantly over- or under-represented.
 
 The rebalance process can optionally remove brokers from a topic too. To use this feature, set the
 `--to-remove` flag. Note that this flag has no effect unless `--rebalance` is also set.
