@@ -70,7 +70,7 @@ tail topic-default
 ```
 
 7. Increase the number of partitions in the `topic-default` topic by changing the `partitions: ...`
-line in
+value in
 [topic-default.yaml](https://github.com/segmentio/topicctl/blob/master/examples/local-cluster/topics/topic-default.yaml#L10) to `9` and re-applying:
 
 ```
