@@ -525,6 +525,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 	require.Nil(t, err)
 
 	err = updatedApplier1.Apply(ctx)
+	require.Nil(t, err)
 	brokers, err = updatedApplier1.adminClient.GetBrokers(ctx, nil)
 	require.Nil(t, err)
 
@@ -795,6 +796,8 @@ func TestApplyThrottles(t *testing.T) {
 	}
 
 	err = applier.removeThottles(ctx, throttledTopic, throttledBrokers)
+	require.Nil(t, err)
+
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, false)
 	require.Nil(t, err)
 	assert.Equal(t, "", topicInfo.Config[admin.LeaderReplicasThrottledKey])

@@ -472,7 +472,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 
 	extraPartitions := t.topicConfig.Spec.Partitions - len(topicInfo.Partitions)
 	log.Infof(
-		"Trying to add %d additional partitions consistent with '%s' startegy",
+		"Trying to add %d additional partitions consistent with '%s' strategy",
 		extraPartitions,
 		desiredPlacement,
 	)

@@ -186,6 +186,9 @@ func (c *Client) GetBrokers(
 			ctx,
 			zBrokerConfigPath,
 		)
+		if err != nil {
+			return nil, err
+		}
 		if exists {
 			_, err = c.zkClient.GetJSON(
 				ctx,
@@ -547,6 +550,9 @@ func (c *Client) UpdateBrokerConfig(
 	zBrokerRoot := c.zNode(brokerConfigsPath)
 
 	exists, _, err := c.zkClient.Exists(ctx, zBrokerRoot)
+	if err != nil {
+		return nil, err
+	}
 	if !exists {
 		log.Infof("Creating broker configs path: %s", zBrokerRoot)
 		err := c.zkClient.Create(ctx, zBrokerRoot, nil, false)
@@ -559,6 +565,9 @@ func (c *Client) UpdateBrokerConfig(
 	zBrokerPath := c.zNode(brokerConfigsPath, idStr)
 
 	exists, _, err = c.zkClient.Exists(ctx, zBrokerPath)
+	if err != nil {
+		return nil, err
+	}
 	if !exists {
 		zkBrokerConfigObj := zkBrokerConfig{
 			Version: 1,
