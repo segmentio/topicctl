@@ -11,6 +11,7 @@ type StaticAssigner struct {
 
 var _ Assigner = (*StaticAssigner)(nil)
 
+// Assign returns a new partition assignment according to the assigner-specific logic.
 func (s *StaticAssigner) Assign(
 	topic string,
 	curr []admin.PartitionAssignment,

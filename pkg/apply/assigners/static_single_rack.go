@@ -37,6 +37,7 @@ type StaticSingleRackAssigner struct {
 
 var _ Assigner = (*StaticSingleRackAssigner)(nil)
 
+// NewStaticSingleRackAssigner returns a new StaticSingleRackAssigner instance.
 func NewStaticSingleRackAssigner(
 	brokers []admin.BrokerInfo,
 	rackAssignments []string,
@@ -51,6 +52,7 @@ func NewStaticSingleRackAssigner(
 	}
 }
 
+// Assign returns a new partition assignment according to the assigner-specific logic.
 func (s *StaticSingleRackAssigner) Assign(
 	topic string,
 	curr []admin.PartitionAssignment,

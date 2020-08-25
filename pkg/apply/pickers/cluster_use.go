@@ -14,6 +14,7 @@ type ClusterUsePicker struct {
 
 var _ Picker = (*ClusterUsePicker)(nil)
 
+// NewClusterUsePicker generates a new picker from the argument brokers and topics.
 func NewClusterUsePicker(
 	brokers []admin.BrokerInfo,
 	topics []admin.TopicInfo,
@@ -48,6 +49,8 @@ func NewClusterUsePicker(
 	}
 }
 
+// PickNew updates the replica for the argument partition and index, using the choices in
+// brokerChoices.
 func (c *ClusterUsePicker) PickNew(
 	topic string,
 	brokerChoices []int,
@@ -65,6 +68,8 @@ func (c *ClusterUsePicker) PickNew(
 	)
 }
 
+// SortRemovals sorts the argument partitions in order of priority for removing the broker
+// at the argument index.
 func (c *ClusterUsePicker) SortRemovals(
 	topic string,
 	partitionChoices []int,
@@ -80,6 +85,7 @@ func (c *ClusterUsePicker) SortRemovals(
 	)
 }
 
+// ScoreBroker returns an integer score for the given broker at the provided partition and index.
 func (c *ClusterUsePicker) ScoreBroker(
 	topic string,
 	brokerID int,
@@ -97,10 +103,9 @@ func (c *ClusterUsePicker) keySorter(index int, asc bool) util.KeySorter {
 			if asc {
 				return c.brokerCountsByPosition[index][keys[a]] <
 					c.brokerCountsByPosition[index][keys[b]]
-			} else {
-				return c.brokerCountsByPosition[index][keys[a]] >
-					c.brokerCountsByPosition[index][keys[b]]
 			}
+			return c.brokerCountsByPosition[index][keys[a]] >
+				c.brokerCountsByPosition[index][keys[b]]
 		})
 
 		return keys

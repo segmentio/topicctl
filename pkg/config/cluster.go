@@ -9,6 +9,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/admin"
 )
 
+// KafkaVersionMajor is a string type for storing Kafka versions.
 type KafkaVersionMajor string
 
 const (
@@ -100,6 +101,7 @@ func (c ClusterConfig) Validate() error {
 	return err
 }
 
+// NewAdminClient returns a new admin client using the parameters in the current cluster config.
 func (c ClusterConfig) NewAdminClient(
 	ctx context.Context,
 	sess *session.Session,

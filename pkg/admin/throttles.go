@@ -97,7 +97,7 @@ func (b BrokerThrottle) ConfigEntries() []kafka.ConfigEntry {
 	}
 }
 
-// LeaderThrottles returns a slice of PartitionThrottles that we should apply
+// LeaderPartitionThrottles returns a slice of PartitionThrottles that we should apply
 // on the leader side.
 //
 // See https://kafka.apache.org/0101/documentation.html for discussion on how these
@@ -132,7 +132,7 @@ func LeaderPartitionThrottles(
 	return throttles
 }
 
-// LeaderThrottles returns a slice of PartitionThrottles that we should apply
+// FollowerPartitionThrottles returns a slice of PartitionThrottles that we should apply
 // on the follower side.
 //
 // See https://kafka.apache.org/0101/documentation.html for discussion on how these
@@ -206,7 +206,7 @@ func BrokerThrottles(
 	return brokerThrottles
 }
 
-// ThrottledBrokers returns slices of the leader and follower throttles for the
+// ParseBrokerThrottles returns slices of the leader and follower throttles for the
 // argument brokers.
 func ParseBrokerThrottles(brokers []BrokerInfo) (
 	[]BrokerThrottle,
@@ -253,7 +253,7 @@ func ParseBrokerThrottles(brokers []BrokerInfo) (
 	return leaderThrottles, followerThrottles, nil
 }
 
-// ThrottledPartitions returns slices of the leader and follower partition
+// ParsePartitionThrottles returns slices of the leader and follower partition
 // throttles for the argument topic.
 func ParsePartitionThrottles(topic TopicInfo) (
 	[]PartitionThrottle,
@@ -283,6 +283,8 @@ func ParsePartitionThrottles(topic TopicInfo) (
 	return leaderThrottles, followerThrottles, nil
 }
 
+// ParsePartitionThrottleStr converts a throttle config string from zk into a slice
+// of PartitionThrottle structs.
 func ParsePartitionThrottleStr(valuesStr string) ([]PartitionThrottle, error) {
 	throttles := []PartitionThrottle{}
 

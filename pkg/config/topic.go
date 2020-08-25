@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PlacementStrategy is a string type that stores a replica placement strategy for a topic.
 type PlacementStrategy string
 
 const (
@@ -44,10 +45,12 @@ var allPlacementStrategies = []PlacementStrategy{
 	PlacementStrategyStaticInRack,
 }
 
+// PickerMethod is a string type that stores a picker method for breaking ties when choosing
+// the replica placements for a topic.
 type PickerMethod string
 
 const (
-	// PickerMethodClusterUser uses broker frequency in the topic, breaking ties by
+	// PickerMethodClusterUse uses broker frequency in the topic, breaking ties by
 	// looking at the total number of replicas across the entire cluster that each broker
 	// appears in.
 	PickerMethodClusterUse PickerMethod = "cluster-use"
@@ -298,6 +301,7 @@ func (t TopicConfig) Validate(numRacks int) error {
 	return err
 }
 
+// ToYAML converts the current TopicConfig to a YAML string.
 func (t TopicConfig) ToYAML() (string, error) {
 	outBytes, err := yaml.Marshal(t)
 	if err != nil {
@@ -306,6 +310,8 @@ func (t TopicConfig) ToYAML() (string, error) {
 	return string(outBytes), nil
 }
 
+// TopicConfigFromTopicInfo generates a TopicConfig from a ClusterConfig and admin.TopicInfo
+// struct generated from the cluster state.
 func TopicConfigFromTopicInfo(
 	clusterConfig ClusterConfig,
 	topicInfo admin.TopicInfo,

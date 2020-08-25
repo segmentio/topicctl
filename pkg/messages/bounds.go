@@ -7,8 +7,13 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	_ "github.com/segmentio/kafka-go/snappy"
 	log "github.com/sirupsen/logrus"
+
+	// Read snappy-compressed messages
+	_ "github.com/segmentio/kafka-go/snappy"
+
+	// Read zstd-encoded messages
+	_ "github.com/segmentio/kafka-go/zstd"
 )
 
 const (

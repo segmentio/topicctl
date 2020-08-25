@@ -9,11 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// PathTuple is a <path, object> combination used for generating nodes in zk. For testing purposes
+// only.
 type PathTuple struct {
 	Path string
 	Obj  interface{}
 }
 
+// CreateNode creates a single node at the argument path. For testing purposes only.
 func CreateNode(t *testing.T, zkConn *szk.Conn, path string, obj interface{}) {
 	var data []byte
 	var err error
@@ -29,6 +32,7 @@ func CreateNode(t *testing.T, zkConn *szk.Conn, path string, obj interface{}) {
 	require.Nil(t, err)
 }
 
+// CreateNodes creates nodes according to the argument PathTuples. For testing purposes only.
 func CreateNodes(t *testing.T, zkConn *szk.Conn, pathTuples []PathTuple) {
 	for _, tuple := range pathTuples {
 		CreateNode(t, zkConn, tuple.Path, tuple.Obj)

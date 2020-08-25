@@ -1,8 +1,10 @@
 package check
 
+// CheckName is a string name for a topic check.
 type CheckName string
 
 const (
+	// All possible CheckName values.
 	CheckNameConfigsConsistent        CheckName = "configs consistent"
 	CheckNameConfigCorrect            CheckName = "config correct"
 	CheckNameConfigSettingsCorrect    CheckName = "config settings correct"

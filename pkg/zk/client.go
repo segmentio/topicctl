@@ -70,6 +70,7 @@ type PooledClient struct {
 	readOnly    bool
 }
 
+// NewPooledClient returns a new PooledClient instance.
 func NewPooledClient(
 	zkAddrs []string,
 	timeout time.Duration,
@@ -133,6 +134,7 @@ func NewPooledClient(
 	}, nil
 }
 
+// Get returns the value at the argument zk path.
 func (c *PooledClient) Get(
 	ctx context.Context,
 	path string,
@@ -154,6 +156,7 @@ func (c *PooledClient) Get(
 	}
 }
 
+// GetJSON unmarshals the JSON content at the argument zk path into an object.
 func (c *PooledClient) GetJSON(
 	ctx context.Context,
 	path string,
@@ -168,6 +171,7 @@ func (c *PooledClient) GetJSON(
 	return stats, err
 }
 
+// Children gets all children of the node at the argument zk path.
 func (c *PooledClient) Children(
 	ctx context.Context,
 	path string,
@@ -189,6 +193,7 @@ func (c *PooledClient) Children(
 	}
 }
 
+// Exists returns whether a node exists at the argument zk path.
 func (c *PooledClient) Exists(
 	ctx context.Context,
 	path string,
@@ -209,6 +214,7 @@ func (c *PooledClient) Exists(
 	}
 }
 
+// Create adds a new node at the argument zk path.
 func (c *PooledClient) Create(
 	ctx context.Context,
 	path string,
@@ -251,6 +257,8 @@ func (c *PooledClient) Create(
 	}
 }
 
+// CreateJSON creates a new node at the argument zk path using the JSON-marshalled contents of
+// the argument object.
 func (c *PooledClient) CreateJSON(
 	ctx context.Context,
 	path string,
@@ -270,6 +278,7 @@ type setResp struct {
 	err   error
 }
 
+// Set updates the contents of the node at the argument zk path.
 func (c *PooledClient) Set(
 	ctx context.Context,
 	path string,
@@ -295,6 +304,8 @@ func (c *PooledClient) Set(
 	}
 }
 
+// SetJSON updates the contents of the node at the argument zk path using the JSON marshalling
+// of the argument object.
 func (c *PooledClient) SetJSON(
 	ctx context.Context,
 	path string,
@@ -309,6 +320,7 @@ func (c *PooledClient) SetJSON(
 	return c.Set(ctx, path, data, version)
 }
 
+// AcquireLock tries to acquire a lock using the argument zk path.
 func (c *PooledClient) AcquireLock(ctx context.Context, path string) (Lock, error) {
 	if c.readOnly {
 		return nil, errors.New("Cannot create lock in read-only mode")
@@ -329,6 +341,7 @@ func (c *PooledClient) AcquireLock(ctx context.Context, path string) (Lock, erro
 	}
 }
 
+// Close closes the current client and frees the associated resources.
 func (c *PooledClient) Close() error {
 	close(c.requestChan)
 

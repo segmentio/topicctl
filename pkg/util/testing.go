@@ -41,7 +41,7 @@ func TestKafkaAddr() string {
 }
 
 // TestKafkaConn returns a kafka-go connection for unit testing purposes.
-func TestKafkaConn(t *testing.T, ctx context.Context) *kafka.Conn {
+func TestKafkaConn(ctx context.Context, t *testing.T) *kafka.Conn {
 	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", TestKafkaAddr())
 	require.Nil(t, err)
 	return conn
@@ -49,8 +49,8 @@ func TestKafkaConn(t *testing.T, ctx context.Context) *kafka.Conn {
 
 // TestKafkaContollerConn returns a kafka-go connection to the cluster controller
 // for unit testing purposes.
-func TestKafkaContollerConn(t *testing.T, ctx context.Context) *kafka.Conn {
-	conn := TestKafkaConn(t, ctx)
+func TestKafkaContollerConn(ctx context.Context, t *testing.T) *kafka.Conn {
+	conn := TestKafkaConn(ctx, t)
 	defer conn.Close()
 
 	broker, err := conn.Controller()
@@ -68,7 +68,7 @@ func TestKafkaContollerConn(t *testing.T, ctx context.Context) *kafka.Conn {
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // RandomString returns a random string with the argument length.
-
+//
 // Adapted from the example in
 // https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go.
 func RandomString(prefix string, length int) string {

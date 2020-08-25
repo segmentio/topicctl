@@ -76,6 +76,7 @@ var (
 	helpTableStr = helpTable()
 )
 
+// Repl manages the repl mode for topicctl.
 type Repl struct {
 	cliRunner                 *CLIRunner
 	brokerAndTopicSuggestions []prompt.Suggest
@@ -83,6 +84,7 @@ type Repl struct {
 	groupSuggestions          []prompt.Suggest
 }
 
+// NewRepl initializes and returns a Repl instance.
 func NewRepl(ctx context.Context, adminClient *admin.Client) (*Repl, error) {
 	cliRunner := NewCLIRunner(
 		adminClient,
@@ -176,6 +178,7 @@ func NewRepl(ctx context.Context, adminClient *admin.Client) (*Repl, error) {
 	}, nil
 }
 
+// Run starts the repl main loop.
 func (r *Repl) Run() {
 	fmt.Println("Welcome to the topicctl repl. Type 'help' for available commands.")
 

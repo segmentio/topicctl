@@ -12,13 +12,21 @@ import (
 )
 
 const (
-	// ZK retention key
+	// RetentionKey is the config key used for topic time retention.
 	RetentionKey = "retention.ms"
 
-	// ZK config throttle keys
-	LeaderThrottledKey           = "leader.replication.throttled.rate"
-	FollowerThrottledKey         = "follower.replication.throttled.rate"
-	LeaderReplicasThrottledKey   = "leader.replication.throttled.replicas"
+	// LeaderThrottledKey is the config key for the leader throttle rate.
+	LeaderThrottledKey = "leader.replication.throttled.rate"
+
+	// FollowerThrottledKey is the config key for the follower throttle rate.
+	FollowerThrottledKey = "follower.replication.throttled.rate"
+
+	// LeaderReplicasThrottledKey is the config key for the list of leader replicas
+	// that should be throttled.
+	LeaderReplicasThrottledKey = "leader.replication.throttled.replicas"
+
+	// FollowerReplicasThrottledKey is the config key for the list of follower replicas
+	// that should be throttled.
 	FollowerReplicasThrottledKey = "follower.replication.throttled.replicas"
 )
 
@@ -128,6 +136,7 @@ type zkChangeNotification struct {
 	EntityPath string `json:"entity_path"`
 }
 
+// Addr returns the address of the current BrokerInfo.
 func (b BrokerInfo) Addr() string {
 	return fmt.Sprintf("%s:%d", b.Host, b.Port)
 }
@@ -176,7 +185,7 @@ func BrokerRacks(brokers []BrokerInfo) map[int]string {
 	return brokerRacks
 }
 
-// Brokers per rack returns a mapping of rack -> broker IDs.
+// BrokersPerRack returns a mapping of rack -> broker IDs.
 func BrokersPerRack(brokers []BrokerInfo) map[string][]int {
 	brokersPerRack := map[string][]int{}
 

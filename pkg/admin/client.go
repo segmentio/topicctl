@@ -35,7 +35,9 @@ const (
 )
 
 var (
-	TopicDoesNotExistError = errors.New("Topic does not exist")
+	// ErrTopicDoesNotExist is returned by admin functions when a topic that should exist
+	// does not.
+	ErrTopicDoesNotExist = errors.New("Topic does not exist")
 )
 
 // Client is a general client for interacting with a kafka cluster. Most
@@ -49,6 +51,7 @@ type Client struct {
 	readOnly       bool
 }
 
+// ClientConfig contains all of the parameters necessary to create a kafka admin client.
 type ClientConfig struct {
 	ZKAddrs           []string
 	ZKPrefix          string
@@ -58,6 +61,7 @@ type ClientConfig struct {
 	ReadOnly          bool
 }
 
+// NewClient creates and returns a new Client instance.
 func NewClient(
 	ctx context.Context,
 	config ClientConfig,
@@ -130,8 +134,8 @@ func NewClient(
 	return client, nil
 }
 
-// GetID gets the cluster ID from zookeeper. This ID is generated when the cluster is created
-// and should be stable over the life of the cluster.
+// GetClusterID gets the cluster ID from zookeeper. This ID is generated when the cluster is
+// created and should be stable over the life of the cluster.
 func (c *Client) GetClusterID(
 	ctx context.Context,
 ) (string, error) {
@@ -399,14 +403,13 @@ func (c *Client) GetTopic(
 	topics, err := c.GetTopics(ctx, []string{name}, detailed)
 	if err != nil {
 		if strings.Contains(err.Error(), "node does not exist") {
-			return TopicInfo{}, TopicDoesNotExistError
-		} else {
-			return TopicInfo{}, err
+			return TopicInfo{}, ErrTopicDoesNotExist
 		}
+		return TopicInfo{}, err
 	}
 
 	if len(topics) != 1 {
-		return TopicInfo{}, TopicDoesNotExistError
+		return TopicInfo{}, ErrTopicDoesNotExist
 	}
 
 	return topics[0], nil
@@ -1060,9 +1063,8 @@ func (c *Client) getInstances(
 func minInt(a, b int) int {
 	if a < b {
 		return a
-	} else {
-		return b
 	}
+	return b
 }
 
 func updateConfig(

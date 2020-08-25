@@ -26,6 +26,7 @@ const (
 	spinnerDuration = 200 * time.Millisecond
 )
 
+// CLIRunner is a utility that runs commands from either the command-line or the repl.
 type CLIRunner struct {
 	adminClient  *admin.Client
 	groupsClient *groups.Client
@@ -33,6 +34,7 @@ type CLIRunner struct {
 	spinnerObj   *spinner.Spinner
 }
 
+// NewCLIRunner creates and returns a new CLIRunner instance.
 func NewCLIRunner(
 	adminClient *admin.Client,
 	printer func(f string, a ...interface{}),
@@ -62,6 +64,7 @@ func NewCLIRunner(
 	return cliRunner
 }
 
+// GetBrokers gets all brokers and prints out a summary for the user.
 func (c *CLIRunner) GetBrokers(ctx context.Context, full bool) error {
 	c.startSpinner()
 
@@ -77,6 +80,7 @@ func (c *CLIRunner) GetBrokers(ctx context.Context, full bool) error {
 	return nil
 }
 
+// ApplyTopic does an apply run according to the spec in the argument config.
 func (c *CLIRunner) ApplyTopic(
 	ctx context.Context,
 	applierConfig apply.TopicApplierConfig,
@@ -106,6 +110,8 @@ func (c *CLIRunner) ApplyTopic(
 	return nil
 }
 
+// BootstrapTopics creates configs for one or more topics based on their current state in the
+// cluster.
 func (c *CLIRunner) BootstrapTopics(
 	ctx context.Context,
 	topics []string,
@@ -185,6 +191,7 @@ func (c *CLIRunner) BootstrapTopics(
 	return nil
 }
 
+// CheckTopic runs a topic check against a single topic and prints a summary of the results out.
 func (c *CLIRunner) CheckTopic(
 	ctx context.Context,
 	checkConfig check.CheckConfig,
@@ -211,6 +218,8 @@ func (c *CLIRunner) CheckTopic(
 	return results.AllOK(), err
 }
 
+// GetBrokerBalance evaluates the balance of the brokers for a single topic and prints a summary
+// out for user inspection.
 func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) error {
 	c.startSpinner()
 
@@ -239,6 +248,7 @@ func (c *CLIRunner) GetBrokerBalance(ctx context.Context, topicName string) erro
 	return nil
 }
 
+// GetConfig fetches the config for a broker or topic and prints it out for user inspection.
 func (c *CLIRunner) GetConfig(ctx context.Context, brokerOrTopic string) error {
 	c.startSpinner()
 
@@ -302,6 +312,7 @@ func (c *CLIRunner) GetConfig(ctx context.Context, brokerOrTopic string) error {
 	return fmt.Errorf("Could not find broker or topic named %s", brokerOrTopic)
 }
 
+// GetGroups fetches all consumer groups and prints them out for user inspection.
 func (c *CLIRunner) GetGroups(ctx context.Context) error {
 	c.startSpinner()
 
@@ -315,6 +326,7 @@ func (c *CLIRunner) GetGroups(ctx context.Context) error {
 	return nil
 }
 
+// GetGroupMembers fetches and prints out information about every member in a consumer group.
 func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bool) error {
 	c.startSpinner()
 
@@ -338,6 +350,8 @@ func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bo
 	return nil
 }
 
+// GetMemberLags fetches and prints a summary of the consumer group lag for each partition
+// in a single topic.
 func (c *CLIRunner) GetMemberLags(ctx context.Context, topic string, groupID string) error {
 	c.startSpinner()
 
@@ -360,6 +374,8 @@ func (c *CLIRunner) GetMemberLags(ctx context.Context, topic string, groupID str
 	return nil
 }
 
+// GetPartitions fetches the details of each partition in a topic and prints out a summary for
+// user inspection.
 func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
 	c.startSpinner()
 
@@ -384,6 +400,8 @@ func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
 	return nil
 }
 
+// GetOffsets fetches details about all partition offsets in a single topic and prints out
+// a summary.
 func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 	c.startSpinner()
 
@@ -425,6 +443,7 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 	return nil
 }
 
+// GetTopics fetches the details of each topic in the cluster and prints out a summary.
 func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	c.startSpinner()
 
@@ -444,6 +463,7 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	return nil
 }
 
+// ResetOffsets resets the offsets for a single consumer group / topic combination.
 func (c *CLIRunner) ResetOffsets(
 	ctx context.Context,
 	topic string,
@@ -462,6 +482,7 @@ func (c *CLIRunner) ResetOffsets(
 	return nil
 }
 
+// Tail prints out a stream of the latest messages in a topic.
 func (c *CLIRunner) Tail(
 	ctx context.Context,
 	topic string,
