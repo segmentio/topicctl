@@ -14,7 +14,7 @@ import (
 
 func TestGetGroups(t *testing.T) {
 	ctx := context.Background()
-	topicName := createTestTopic(t, ctx)
+	topicName := createTestTopic(ctx, t)
 	groupID := fmt.Sprintf("test-group-%s", topicName)
 
 	reader := kafka.NewReader(
@@ -70,7 +70,7 @@ func TestGetGroups(t *testing.T) {
 
 func TestGetLags(t *testing.T) {
 	ctx := context.Background()
-	topicName := createTestTopic(t, ctx)
+	topicName := createTestTopic(ctx, t)
 	groupID := fmt.Sprintf("test-group-%s", topicName)
 
 	reader := kafka.NewReader(
@@ -105,7 +105,7 @@ func TestGetLags(t *testing.T) {
 
 func TestResetOffsets(t *testing.T) {
 	ctx := context.Background()
-	topicName := createTestTopic(t, ctx)
+	topicName := createTestTopic(ctx, t)
 	groupID := fmt.Sprintf("test-group-%s", topicName)
 
 	reader := kafka.NewReader(
@@ -146,8 +146,8 @@ func TestResetOffsets(t *testing.T) {
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
 }
 
-func createTestTopic(t *testing.T, ctx context.Context) string {
-	controllerConn := util.TestKafkaContollerConn(t, ctx)
+func createTestTopic(ctx context.Context, t *testing.T) string {
+	controllerConn := util.TestKafkaContollerConn(ctx, t)
 	defer controllerConn.Close()
 
 	topicName := util.RandomString("topic-groups-", 6)

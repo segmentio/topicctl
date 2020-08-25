@@ -28,6 +28,7 @@ type BalancedExtender struct {
 
 var _ Extender = (*BalancedExtender)(nil)
 
+// NewBalancedExtender returns a new BalancedExtender instance.
 func NewBalancedExtender(
 	brokers []admin.BrokerInfo,
 	inRack bool,
@@ -43,6 +44,7 @@ func NewBalancedExtender(
 	}
 }
 
+// Extend returns partition assignments for the extension of the argument topic.
 func (b *BalancedExtender) Extend(
 	topic string,
 	curr []admin.PartitionAssignment,

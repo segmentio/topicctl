@@ -12,6 +12,7 @@ import (
 
 var debug bool
 
+// RootCmd is the cobra CLI root command.
 var RootCmd = &cobra.Command{
 	Use:               "topicctl",
 	Short:             "topicctl runs topic workflows",
@@ -34,6 +35,7 @@ func init() {
 	)
 }
 
+// Execute runs topicctl.
 func Execute(versionRef string) {
 	RootCmd.Version = fmt.Sprintf("v%s (ref:%s)", version.Version, versionRef)
 

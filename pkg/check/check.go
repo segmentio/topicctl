@@ -73,12 +73,11 @@ func CheckTopic(ctx context.Context, config CheckConfig) (TopicCheckResults, err
 	topicInfo, err := config.AdminClient.GetTopic(ctx, config.TopicConfig.Meta.Name, true)
 	if err != nil {
 		// Don't bother with remaining checks if we can't get the topic
-		if err == admin.TopicDoesNotExistError {
+		if err == admin.ErrTopicDoesNotExist {
 			results.UpdateLastResult(false, "")
 			return results, nil
-		} else {
-			return results, err
 		}
+		return results, err
 	}
 	results.UpdateLastResult(true, "")
 

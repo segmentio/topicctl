@@ -37,6 +37,7 @@ type BalancedLeaderAssigner struct {
 
 var _ Assigner = (*BalancedLeaderAssigner)(nil)
 
+// NewBalancedLeaderAssigner creates and returns a BalancedLeaderAssigner instance.
 func NewBalancedLeaderAssigner(
 	brokers []admin.BrokerInfo,
 	picker pickers.Picker,
@@ -50,6 +51,7 @@ func NewBalancedLeaderAssigner(
 	}
 }
 
+// Assign returns a new partition assignment according to the assigner-specific logic.
 func (b *BalancedLeaderAssigner) Assign(
 	topic string,
 	curr []admin.PartitionAssignment,

@@ -16,7 +16,7 @@ func TestTailerGetMessages(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	controllerConn := util.TestKafkaContollerConn(t, ctx)
+	controllerConn := util.TestKafkaContollerConn(ctx, t)
 
 	topicName := util.RandomString("topic-tail-", 6)
 

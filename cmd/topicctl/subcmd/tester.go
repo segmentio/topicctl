@@ -198,7 +198,7 @@ func runTestWriter(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			index += 1
+			index++
 		case <-logTicker.C:
 			log.Infof("%d messages sent", index)
 		}

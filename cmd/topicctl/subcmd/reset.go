@@ -145,7 +145,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		groups.FormatPartitionOffsets(partitionOffsets),
 	)
 	log.Info(
-		"Please ensure that all other consumers are stopped, otherwise the reset might be overriden.",
+		"Please ensure that all other consumers are stopped, otherwise the reset might be overridden.",
 	)
 
 	ok, _ := apply.Confirm("OK to continue?", false)

@@ -9,7 +9,9 @@ import (
 )
 
 var (
-	NoFeasibleChoiceErr = errors.New("Picker could not find a feasible choice")
+	// ErrNoFeasibleChoice is returned by a picker when there is no feasible choice among
+	// the offered possibilities.
+	ErrNoFeasibleChoice = errors.New("Picker could not find a feasible choice")
 )
 
 // Picker is an interface that picks a replica assignment based on arbitrary criteria (e.g.,
@@ -58,7 +60,7 @@ func pickNewByPositionFrequency(
 	keySorter util.KeySorter,
 ) error {
 	if len(brokerChoices) == 0 {
-		return NoFeasibleChoiceErr
+		return ErrNoFeasibleChoice
 	}
 
 	brokerChoicesMap := map[int]struct{}{}
@@ -91,7 +93,7 @@ func pickNewByPositionFrequency(
 		}
 	}
 
-	return NoFeasibleChoiceErr
+	return ErrNoFeasibleChoice
 }
 
 func sortRemovalsByPositionFrequency(
@@ -102,7 +104,7 @@ func sortRemovalsByPositionFrequency(
 	keySorter util.KeySorter,
 ) error {
 	if len(partitionChoices) == 0 {
-		return NoFeasibleChoiceErr
+		return ErrNoFeasibleChoice
 	}
 
 	brokerCounts := map[int]int{}

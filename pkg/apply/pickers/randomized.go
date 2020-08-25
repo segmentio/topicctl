@@ -13,10 +13,13 @@ type RandomizedPicker struct{}
 
 var _ Picker = (*RandomizedPicker)(nil)
 
+// NewRandomizedPicker returns a new RandomizedPicker instance.
 func NewRandomizedPicker() *RandomizedPicker {
 	return &RandomizedPicker{}
 }
 
+// PickNew updates the replica for the argument partition and index, using the choices in
+// brokerChoices.
 func (r *RandomizedPicker) PickNew(
 	topic string,
 	brokerChoices []int,
@@ -39,6 +42,8 @@ func (r *RandomizedPicker) PickNew(
 	)
 }
 
+// SortRemovals sorts the argument partitions in order of priority for removing the broker
+// at the argument index.
 func (r *RandomizedPicker) SortRemovals(
 	topic string,
 	partitionChoices []int,
@@ -58,6 +63,7 @@ func (r *RandomizedPicker) SortRemovals(
 	)
 }
 
+// ScoreBroker returns an integer score for the given broker at the provided partition and index.
 func (r *RandomizedPicker) ScoreBroker(
 	topic string,
 	brokerID int,

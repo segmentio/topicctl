@@ -119,6 +119,8 @@ func FormatGroupMembers(members []MemberInfo, full bool) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatMemberPartitionCounts generates a pretty table with the details on how many partitions
+// group members are consuming from.
 func FormatMemberPartitionCounts(members []MemberInfo) string {
 	buf := &bytes.Buffer{}
 
@@ -261,6 +263,8 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatPartitionOffsets generates a pretty table that shows the proposed offsets for each
+// partition in a reset.
 func FormatPartitionOffsets(partitionOffsets map[int]int64) string {
 	buf := &bytes.Buffer{}
 

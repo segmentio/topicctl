@@ -6,6 +6,7 @@ import (
 	"sort"
 )
 
+// KeySorter is a type for a function that sorts integer keys based on their values in a map.
 type KeySorter func(map[int]int) []int
 
 // SortedKeys returns the keys of the argument, sorted by value.

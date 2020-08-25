@@ -590,7 +590,7 @@ func FormatTopicLeadersPerRack(topic TopicInfo, brokers []BrokerInfo) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
-// FormatAssignmentDiffs generates a pretty table that shows the before
+// FormatAssignentDiffs generates a pretty table that shows the before
 // and after states of a partition replica and/or leader update.
 func FormatAssignentDiffs(
 	curr []PartitionAssignment,
@@ -827,9 +827,8 @@ func partitionCountDiffStr(diffValue int) string {
 
 	if diffValue > 0 {
 		return fmt.Sprintf(" (%s)", increasedSprintf("%+d", diffValue))
-	} else {
-		return fmt.Sprintf(" (%s)", decreasedSprintf("%-d", diffValue))
 	}
+	return fmt.Sprintf(" (%s)", decreasedSprintf("%-d", diffValue))
 }
 
 func intSliceString(values []int, maxWidth int) string {

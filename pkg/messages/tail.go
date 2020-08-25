@@ -10,10 +10,14 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/segmentio/kafka-go"
-	_ "github.com/segmentio/kafka-go/snappy"
-	_ "github.com/segmentio/kafka-go/zstd"
 	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
+
+	// Read snappy-compressed messages
+	_ "github.com/segmentio/kafka-go/snappy"
+
+	// Read zstd-encoded messages
+	_ "github.com/segmentio/kafka-go/zstd"
 )
 
 // TopicTailer fetches a stream of messages from a topic.
@@ -26,6 +30,7 @@ type TopicTailer struct {
 	maxBytes   int
 }
 
+// NewTopicTailer returns a new TopicTailer instance.
 func NewTopicTailer(
 	brokerAddr string,
 	topic string,
@@ -270,7 +275,6 @@ func (t *TopicTailer) LogMessages(
 func bytesToStr(input []byte) string {
 	if utf8.Valid(input) {
 		return strings.TrimSpace(string(input))
-	} else {
-		return fmt.Sprintf("Binary [%+v]", input)
 	}
+	return fmt.Sprintf("Binary [%+v]", input)
 }

@@ -9,11 +9,13 @@ import (
 	"github.com/segmentio/topicctl/pkg/messages"
 )
 
+// Client is a struct for getting information about consumer groups from a cluster.
 type Client struct {
 	brokerAddr string
 	client     *kafka.Client
 }
 
+// NewClient creates and returns a new Client instance.
 func NewClient(brokerAddr string) *Client {
 	return &Client{
 		brokerAddr: brokerAddr,
@@ -21,6 +23,7 @@ func NewClient(brokerAddr string) *Client {
 	}
 }
 
+// GetGroups fetches and returns information about all consumer groups in the cluster.
 func (c *Client) GetGroups(
 	ctx context.Context,
 ) ([]GroupCoordinator, error) {
@@ -48,6 +51,7 @@ func (c *Client) GetGroups(
 	return groupCoordinators, err
 }
 
+// GetGroupDetails returns the details (membership, etc.) for a single consumer group.
 func (c *Client) GetGroupDetails(
 	ctx context.Context,
 	groupID string,
@@ -97,6 +101,8 @@ func (c *Client) GetGroupDetails(
 	return &groupDetails, nil
 }
 
+// GetMemberLags returns the lag for each partition being consumed by the argument group in the
+// argument topic.
 func (c *Client) GetMemberLags(
 	ctx context.Context,
 	topic string,
@@ -150,6 +156,7 @@ func (c *Client) GetMemberLags(
 	return partitionLags, nil
 }
 
+// ResetOffsets updates the offsets for a given topic / group combination.
 func (c *Client) ResetOffsets(
 	ctx context.Context,
 	topic string,

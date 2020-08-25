@@ -13,8 +13,8 @@ func TruncateStringSuffix(input string, maxLen int) (string, int) {
 	return fmt.Sprintf("%s...", input[:maxLen-3]), numOmitted
 }
 
-// TruncateStringSuffix truncates a string by replacing characters in the middle with
-// "..." in the middle if needed.
+// TruncateStringMiddle truncates a string by replacing characters in the middle with
+// "..." if needed.
 func TruncateStringMiddle(input string, maxLen int, suffixLen int) (string, int) {
 	if len(input)-3 <= maxLen {
 		return input, 0

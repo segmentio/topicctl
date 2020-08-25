@@ -11,6 +11,7 @@ type StaticExtender struct {
 
 var _ Extender = (*StaticExtender)(nil)
 
+// Extend returns partition assignments for the extension of the argument topic.
 func (s *StaticExtender) Extend(
 	topic string,
 	curr []admin.PartitionAssignment,

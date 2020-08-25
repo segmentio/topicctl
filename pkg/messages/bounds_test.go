@@ -14,7 +14,7 @@ import (
 
 func TestGetAllPartitionBounds(t *testing.T) {
 	ctx := context.Background()
-	controllerConn := util.TestKafkaContollerConn(t, ctx)
+	controllerConn := util.TestKafkaContollerConn(ctx, t)
 	defer controllerConn.Close()
 
 	topicName := util.RandomString("topic-bounds-", 6)

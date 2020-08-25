@@ -10,6 +10,7 @@ type ZKDebugLogger struct{}
 
 var _ szk.Logger = (*ZKDebugLogger)(nil)
 
+// Printf sends samuel zk log messages to logrus at the debug level.
 func (l *ZKDebugLogger) Printf(format string, args ...interface{}) {
 	log.Debugf(format, args...)
 }

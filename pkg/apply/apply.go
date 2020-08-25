@@ -50,6 +50,7 @@ type TopicApplier struct {
 	topicName     string
 }
 
+// NewTopicApplier creates and returns a new TopicApplier instance.
 func NewTopicApplier(
 	ctx context.Context,
 	adminClient *admin.Client,
@@ -126,11 +127,10 @@ func (t *TopicApplier) Apply(ctx context.Context) error {
 
 	topicInfo, err := t.adminClient.GetTopic(ctx, t.topicName, true)
 	if err != nil {
-		if err == admin.TopicDoesNotExistError {
+		if err == admin.ErrTopicDoesNotExist {
 			return t.applyNewTopic(ctx)
-		} else {
-			return err
 		}
+		return err
 	}
 
 	return t.applyExistingTopic(ctx, topicInfo)
@@ -472,7 +472,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 
 	extraPartitions := t.topicConfig.Spec.Partitions - len(topicInfo.Partitions)
 	log.Infof(
-		"Trying to add %d additional partitions consistent with '%s' startegy",
+		"Trying to add %d additional partitions consistent with '%s' strategy",
 		extraPartitions,
 		desiredPlacement,
 	)

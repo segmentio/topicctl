@@ -44,7 +44,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 		},
 	}
 
-	applier := testApplier(t, ctx, topicConfig)
+	applier := testApplier(ctx, t, topicConfig)
 	assert.Equal(t, 3, applier.maxBatchSize)
 	assert.Equal(t, int64(2000000), applier.throttleBytes)
 
@@ -114,7 +114,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	}
 
 	// Initial apply lays out partitions as specified in static config
-	applier := testApplier(t, ctx, topicConfig)
+	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
 	require.Nil(t, err)
@@ -227,7 +227,7 @@ func TestApplyRebalance(t *testing.T) {
 	}
 
 	// Initial apply lays out partitions as specified in static config
-	applier := testApplier(t, ctx, topicConfig)
+	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
 	require.Nil(t, err)
@@ -306,7 +306,7 @@ func TestApplyExtendPartitions(t *testing.T) {
 	}
 
 	// Initial apply lays out partitions as specified in static config
-	applier := testApplier(t, ctx, topicConfig)
+	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
 	require.Nil(t, err)
@@ -416,12 +416,12 @@ func TestApplyExistingThrottles(t *testing.T) {
 	}
 
 	// Create topics
-	applier1 := testApplier(t, ctx, topicConfig1)
+	applier1 := testApplier(ctx, t, topicConfig1)
 	defer applier1.adminClient.Close()
 	err := applier1.Apply(ctx)
 	require.Nil(t, err)
 
-	applier2 := testApplier(t, ctx, topicConfig2)
+	applier2 := testApplier(ctx, t, topicConfig2)
 	defer applier2.adminClient.Close()
 	err = applier2.Apply(ctx)
 	require.Nil(t, err)
@@ -482,7 +482,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 	require.Nil(t, err)
 
 	// Reapply topic1 with new applier (to pick up updated brokers)
-	updatedApplier1 := testApplier(t, ctx, topicConfig1)
+	updatedApplier1 := testApplier(ctx, t, topicConfig1)
 	defer updatedApplier1.adminClient.Close()
 	err = updatedApplier1.Apply(ctx)
 	require.Nil(t, err)
@@ -525,6 +525,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 	require.Nil(t, err)
 
 	err = updatedApplier1.Apply(ctx)
+	require.Nil(t, err)
 	brokers, err = updatedApplier1.adminClient.GetBrokers(ctx, nil)
 	require.Nil(t, err)
 
@@ -559,7 +560,7 @@ func TestApplyDryRun(t *testing.T) {
 		},
 	}
 
-	applier := testApplier(t, ctx, topicConfig)
+	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	applier.config.DryRun = true
 	err := applier.Apply(ctx)
@@ -631,7 +632,7 @@ func TestApplyThrottles(t *testing.T) {
 			},
 		},
 	}
-	applier := testApplier(t, ctx, topicConfig)
+	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	kafkaTopicConfig, err := topicConfig.ToNewTopicConfig()
 	require.Nil(t, err)
@@ -795,6 +796,8 @@ func TestApplyThrottles(t *testing.T) {
 	}
 
 	err = applier.removeThottles(ctx, throttledTopic, throttledBrokers)
+	require.Nil(t, err)
+
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, false)
 	require.Nil(t, err)
 	assert.Equal(t, "", topicInfo.Config[admin.LeaderReplicasThrottledKey])
@@ -879,8 +882,8 @@ func testTopicName(name string) string {
 }
 
 func testApplier(
-	t *testing.T,
 	ctx context.Context,
+	t *testing.T,
 	topicConfig config.TopicConfig,
 ) *TopicApplier {
 	clusterConfig := config.ClusterConfig{
