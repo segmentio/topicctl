@@ -352,7 +352,12 @@ func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bo
 
 // GetMemberLags fetches and prints a summary of the consumer group lag for each partition
 // in a single topic.
-func (c *CLIRunner) GetMemberLags(ctx context.Context, topic string, groupID string) error {
+func (c *CLIRunner) GetMemberLags(
+	ctx context.Context,
+	topic string,
+	groupID string,
+	full bool,
+) error {
 	c.startSpinner()
 
 	// Check that topic exists before getting offsets; otherwise, the topic get
@@ -370,7 +375,7 @@ func (c *CLIRunner) GetMemberLags(ctx context.Context, topic string, groupID str
 		return err
 	}
 
-	c.printer("Group member lags:\n%s", groups.FormatMemberLags(memberLags))
+	c.printer("Group member lags:\n%s", groups.FormatMemberLags(memberLags, full))
 	return nil
 }
 

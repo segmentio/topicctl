@@ -182,7 +182,7 @@ func FormatMemberPartitionCounts(members []MemberInfo) string {
 }
 
 // FormatMemberLags generates a pretty table from the results of GetMemberLags.
-func FormatMemberLags(memberLags []MemberPartitionLag) string {
+func FormatMemberLags(memberLags []MemberPartitionLag, full bool) string {
 	buf := &bytes.Buffer{}
 
 	table := tablewriter.NewWriter(buf)
@@ -198,7 +198,7 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 			"Time Lag",
 		},
 	)
-	table.SetAutoWrapText(false)
+	table.SetAutoWrapText(true)
 	table.SetColumnAlignment(
 		[]int{
 			tablewriter.ALIGN_LEFT,
@@ -224,7 +224,11 @@ func FormatMemberLags(memberLags []MemberPartitionLag) string {
 		var memberID string
 
 		if memberLag.MemberID != "" {
-			memberID, _ = util.TruncateStringMiddle(memberLag.MemberID, 30, 5)
+			if full {
+				memberID = memberLag.MemberID
+			} else {
+				memberID, _ = util.TruncateStringMiddle(memberLag.MemberID, 30, 5)
+			}
 		}
 
 		var memberIDPrinter func(f string, a ...interface{}) string

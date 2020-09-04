@@ -262,7 +262,7 @@ func (r *Repl) executor(in string) {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetMemberLags(ctx, words[2], words[3]); err != nil {
+			if err := r.cliRunner.GetMemberLags(ctx, words[2], words[3], false); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}

@@ -153,7 +153,7 @@ func getRun(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Must provide topic and groupID as additional positional arguments")
 		}
 
-		return cliRunner.GetMemberLags(ctx, args[1], args[2])
+		return cliRunner.GetMemberLags(ctx, args[1], args[2], getConfig.full)
 	case "members":
 		if len(args) != 2 {
 			return fmt.Errorf("Must provide group ID as second positional argument")
