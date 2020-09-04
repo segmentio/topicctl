@@ -20,6 +20,9 @@ We created `topicctl` to make the management of our Kafka topics more transparen
 user-friendly. The project was inspired by `kubectl` and other tools that we've used in
 non-Kafka-related contexts.
 
+See [this blog post](https://segment.com/blog/easier-management-of-Kafka-topics-with-topicctl/) for
+more details.
+
 ## Getting started
 
 ### Installation
@@ -364,9 +367,21 @@ the following depend on broker APIs:
 4. `tail`
 5. `apply` with topic creation
 
-In the future, we may shift more functionality away from ZooKeeper, but it's unlikely that
-we can remove the ZK access completely since many operations aren't yet supported
-through broker APIs.
+In the future, we may shift more functionality away from ZooKeeper, at least for newer cluster
+versions; see the "Feature roadmap" section below for more details.
+
+## Feature roadmap
+
+The following are in the medium-term roadmap:
+
+1. **Use broker APIs exclusively for newer cluster versions:** This is needed for a
+  [future world](https://www.confluent.io/blog/removing-zookeeper-dependency-in-kafka/)
+  where Kafka doesn't use ZooKeeper at all. Even before that happens, though, doing everything
+  through broker APIs simplifies the configuration and is also needed to run `topicctl` in
+  environments where users aren't given direct ZK access.
+2. **Support TLS for communication with cluster:** This is fairly straightforward assuming
+  that (1) is done. It allows `topicctl` to be run in environments that don't permit insecure
+  cluster access.
 
 ## Development
 
