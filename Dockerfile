@@ -8,7 +8,7 @@ RUN test -n "${VERSION}"
 COPY . /go/src/${SRC}
 RUN cd /go/src/${SRC} && make install VERSION=${VERSION}
 
-FROM alpine:3
+FROM scratch
 
-RUN apk update && apk add bash curl
-COPY --from=builder /go/bin/topicctl /usr/local/bin/topicctl
+COPY --from=builder /go/bin/topicctl /bin/topicctl
+ENTRYPOINT ["/bin/topicctl"]
