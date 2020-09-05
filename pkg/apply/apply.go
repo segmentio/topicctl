@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -29,8 +30,9 @@ type TopicApplierConfig struct {
 	DryRun                     bool
 	PartitionBatchSizeOverride int
 	Rebalance                  bool
+	RetentionDropStepDuration  time.Duration
 	SkipConfirm                bool
-	SleepLoopTime              time.Duration
+	SleepLoopDuration          time.Duration
 	TopicConfig                config.TopicConfig
 }
 
@@ -168,7 +170,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 	}
 
 	// Just do a short sleep to ensure that zk is updated before we check
-	if err := interruptableSleep(ctx, t.config.SleepLoopTime/5); err != nil {
+	if err := interruptableSleep(ctx, t.config.SleepLoopDuration/5); err != nil {
 		return err
 	}
 
@@ -354,6 +356,14 @@ func (t *TopicApplier) updateSettings(
 		return err
 	}
 
+	reduced, err := topicSettings.ReduceRetentionDrop(
+		topicInfo.Config,
+		t.config.RetentionDropStepDuration,
+	)
+	if err != nil {
+		return err
+	}
+
 	if len(diffKeys) > 0 {
 		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
 		if err != nil {
@@ -365,6 +375,18 @@ func (t *TopicApplier) updateSettings(
 			len(diffKeys),
 			diffsTable,
 		)
+
+		if reduced {
+			log.Infof(
+				strings.Join(
+					[]string{
+						"Note: Retention drop has been reduced to minimize cluster disruption.",
+						"Re-run apply afterwards to keep dropping retention to configured value or run with --retention-drop-step-duration=0 to not do gradual step-down.",
+					},
+					" ",
+				),
+			)
+		}
 
 		if t.config.DryRun {
 			log.Infof("Skipping update because dryRun is set to true")
@@ -887,7 +909,7 @@ func (t *TopicApplier) updatePartitionsIteration(
 		return err
 	}
 
-	checkTimer := time.NewTicker(t.config.SleepLoopTime)
+	checkTimer := time.NewTicker(t.config.SleepLoopDuration)
 	defer checkTimer.Stop()
 
 	log.Info("Sleeping then entering check loop")
@@ -945,7 +967,7 @@ outerLoop:
 				len(assignmentsToUpdate),
 				admin.FormatTopicPartitions(notReady, t.brokers),
 			)
-			log.Infof("Sleeping for %s", t.config.SleepLoopTime.String())
+			log.Infof("Sleeping for %s", t.config.SleepLoopDuration.String())
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -1181,7 +1203,7 @@ func (t *TopicApplier) updateLeadersIteration(
 		return err
 	}
 
-	checkTimer := time.NewTicker(t.config.SleepLoopTime)
+	checkTimer := time.NewTicker(t.config.SleepLoopDuration)
 	defer checkTimer.Stop()
 
 	log.Info("Sleeping then entering check loop")
@@ -1212,7 +1234,7 @@ outerLoop:
 				admin.FormatTopicPartitions(wrongLeaders, t.brokers),
 			)
 
-			log.Infof("Sleeping for %s", t.config.SleepLoopTime.String())
+			log.Infof("Sleeping for %s", t.config.SleepLoopDuration.String())
 		case <-ctx.Done():
 			return ctx.Err()
 		}

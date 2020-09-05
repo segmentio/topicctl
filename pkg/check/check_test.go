@@ -58,11 +58,11 @@ func TestCheck(t *testing.T) {
 		ctx,
 		adminClient,
 		apply.TopicApplierConfig{
-			ClusterConfig: clusterConfig,
-			TopicConfig:   topicConfig,
-			DryRun:        false,
-			SkipConfirm:   true,
-			SleepLoopTime: 500 * time.Millisecond,
+			ClusterConfig:     clusterConfig,
+			TopicConfig:       topicConfig,
+			DryRun:            false,
+			SkipConfirm:       true,
+			SleepLoopDuration: 500 * time.Millisecond,
 		},
 	)
 	require.Nil(t, err)

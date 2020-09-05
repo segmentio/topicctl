@@ -32,8 +32,9 @@ type applyCmdConfig struct {
 	partitionBatchSizeOverride int
 	pathPrefix                 string
 	rebalance                  bool
+	retentionDropStepDuration  time.Duration
 	skipConfirm                bool
-	sleepLoopTime              time.Duration
+	sleepLoopDuration          time.Duration
 }
 
 var applyConfig applyCmdConfig
@@ -69,17 +70,23 @@ func init() {
 		0,
 		"Partition batch size override",
 	)
+	applyCmd.Flags().StringVar(
+		&applyConfig.pathPrefix,
+		"path-prefix",
+		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
+		"Prefix for topic config paths",
+	)
 	applyCmd.Flags().BoolVar(
 		&applyConfig.rebalance,
 		"rebalance",
 		false,
 		"Explicitly rebalance broker partition assignments",
 	)
-	applyCmd.Flags().StringVar(
-		&applyConfig.pathPrefix,
-		"path-prefix",
-		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
-		"Prefix for topic config paths",
+	applyCmd.Flags().DurationVar(
+		&applyConfig.retentionDropStepDuration,
+		"retention-drop-step-duration",
+		10*time.Hour,
+		"Amount of time to use for retention drop steps; set to 0 to remove limit",
 	)
 	applyCmd.Flags().BoolVar(
 		&applyConfig.skipConfirm,
@@ -88,8 +95,8 @@ func init() {
 		"Skip confirmation prompts during apply process",
 	)
 	applyCmd.Flags().DurationVar(
-		&applyConfig.sleepLoopTime,
-		"sleep-loop-time",
+		&applyConfig.sleepLoopDuration,
+		"sleep-loop-duration",
 		10*time.Second,
 		"Amount of time to wait between partition checks",
 	)
@@ -189,8 +196,9 @@ func applyTopic(
 		DryRun:                     applyConfig.dryRun,
 		PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
 		Rebalance:                  applyConfig.rebalance,
+		RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
 		SkipConfirm:                applyConfig.skipConfirm,
-		SleepLoopTime:              applyConfig.sleepLoopTime,
+		SleepLoopDuration:          applyConfig.sleepLoopDuration,
 		TopicConfig:                topicConfig,
 	}
 

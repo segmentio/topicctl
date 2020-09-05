@@ -45,6 +45,8 @@ func TestApplyBasicUpdates(t *testing.T) {
 	}
 
 	applier := testApplier(ctx, t, topicConfig)
+	applier.config.RetentionDropStepDuration = 50 * time.Minute
+
 	assert.Equal(t, 3, applier.maxBatchSize)
 	assert.Equal(t, int64(2000000), applier.throttleBytes)
 
@@ -62,13 +64,15 @@ func TestApplyBasicUpdates(t *testing.T) {
 	assert.Equal(t, "compact", topicInfo.Config["cleanup.policy"])
 
 	// Update retention and settings
-	applier.topicConfig.Spec.RetentionMinutes = 501
+	applier.topicConfig.Spec.RetentionMinutes = 400
 	applier.topicConfig.Spec.Settings["cleanup.policy"] = "delete"
 	err = applier.Apply(ctx)
 	require.Nil(t, err)
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
 	require.Nil(t, err)
-	assert.Equal(t, "30060000", topicInfo.Config[admin.RetentionKey])
+
+	// Dropped to only 450 because of retention reduction
+	assert.Equal(t, "27000000", topicInfo.Config[admin.RetentionKey])
 	assert.Equal(t, "delete", topicInfo.Config["cleanup.policy"])
 
 	// Updating replication factor not allowed
@@ -868,7 +872,7 @@ func TestApplyOverrides(t *testing.T) {
 			TopicConfig:                topicConfig,
 			DryRun:                     false,
 			SkipConfirm:                true,
-			SleepLoopTime:              500 * time.Millisecond,
+			SleepLoopDuration:          500 * time.Millisecond,
 			PartitionBatchSizeOverride: 8,
 		},
 	)
@@ -906,11 +910,11 @@ func testApplier(
 		ctx,
 		adminClient,
 		TopicApplierConfig{
-			ClusterConfig: clusterConfig,
-			TopicConfig:   topicConfig,
-			DryRun:        false,
-			SkipConfirm:   true,
-			SleepLoopTime: 500 * time.Millisecond,
+			ClusterConfig:     clusterConfig,
+			TopicConfig:       topicConfig,
+			DryRun:            false,
+			SkipConfirm:       true,
+			SleepLoopDuration: 500 * time.Millisecond,
 		},
 	)
 	require.Nil(t, err)
