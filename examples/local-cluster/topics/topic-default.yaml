@@ -9,7 +9,7 @@ meta:
 spec:
   partitions: 3
   replicationFactor: 2
-  retentionMinutes: 50
+  retentionMinutes: 100
   placement:
     strategy: any
   settings:
