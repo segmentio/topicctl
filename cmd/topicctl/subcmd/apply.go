@@ -18,23 +18,26 @@ import (
 )
 
 var applyCmd = &cobra.Command{
-	Use:   "apply [topic configs]",
-	Short: "apply one or more topic configs",
-	Args:  cobra.MinimumNArgs(1),
-	RunE:  applyRun,
+	Use:     "apply [topic configs]",
+	Short:   "apply one or more topic configs",
+	Args:    cobra.MinimumNArgs(1),
+	PreRunE: applyPreRun,
+	RunE:    applyRun,
 }
 
 type applyCmdConfig struct {
-	brokersToRemove            []int
-	brokerThrottleMBsOverride  int
-	clusterConfig              string
-	dryRun                     bool
-	partitionBatchSizeOverride int
-	pathPrefix                 string
-	rebalance                  bool
-	retentionDropStepDuration  time.Duration
-	skipConfirm                bool
-	sleepLoopDuration          time.Duration
+	brokersToRemove              []int
+	brokerThrottleMBsOverride    int
+	clusterConfig                string
+	dryRun                       bool
+	partitionBatchSizeOverride   int
+	pathPrefix                   string
+	rebalance                    bool
+	retentionDropStepDurationStr string
+	skipConfirm                  bool
+	sleepLoopDuration            time.Duration
+
+	retentionDropStepDuration time.Duration
 }
 
 var applyConfig applyCmdConfig
@@ -82,11 +85,11 @@ func init() {
 		false,
 		"Explicitly rebalance broker partition assignments",
 	)
-	applyCmd.Flags().DurationVar(
-		&applyConfig.retentionDropStepDuration,
+	applyCmd.Flags().StringVar(
+		&applyConfig.retentionDropStepDurationStr,
 		"retention-drop-step-duration",
-		10*time.Hour,
-		"Amount of time to use for retention drop steps; set to 0 to remove limit",
+		os.Getenv("TOPICCTL_APPLY_RETENTION_DROP_STEP_DURATION"),
+		"Amount of time to use for retention drop steps",
 	)
 	applyCmd.Flags().BoolVar(
 		&applyConfig.skipConfirm,
@@ -102,6 +105,21 @@ func init() {
 	)
 
 	RootCmd.AddCommand(applyCmd)
+}
+
+func applyPreRun(cmd *cobra.Command, args []string) error {
+	if applyConfig.retentionDropStepDurationStr != "" {
+		var err error
+		applyConfig.retentionDropStepDuration, err = time.ParseDuration(
+			applyConfig.retentionDropStepDurationStr,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func applyRun(cmd *cobra.Command, args []string) error {
