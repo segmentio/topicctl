@@ -356,9 +356,20 @@ func (t *TopicApplier) updateSettings(
 		return err
 	}
 
+	var retentionDropStepDuration time.Duration
+	if t.config.RetentionDropStepDuration != 0 {
+		retentionDropStepDuration = t.config.RetentionDropStepDuration
+	} else {
+		var err error
+		retentionDropStepDuration, err = t.config.ClusterConfig.GetDefaultRetentionDropStepDuration()
+		if err != nil {
+			return err
+		}
+	}
+
 	reduced, err := topicSettings.ReduceRetentionDrop(
 		topicInfo.Config,
-		t.config.RetentionDropStepDuration,
+		retentionDropStepDuration,
 	)
 	if err != nil {
 		return err

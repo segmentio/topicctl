@@ -88,7 +88,7 @@ func init() {
 	applyCmd.Flags().StringVar(
 		&applyConfig.retentionDropStepDurationStr,
 		"retention-drop-step-duration",
-		os.Getenv("TOPICCTL_APPLY_RETENTION_DROP_STEP_DURATION"),
+		"",
 		"Amount of time to use for retention drop steps",
 	)
 	applyCmd.Flags().BoolVar(

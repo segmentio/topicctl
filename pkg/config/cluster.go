@@ -3,6 +3,8 @@ package config
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hashicorp/go-multierror"
@@ -68,6 +70,10 @@ type ClusterSpec struct {
 	// DefaultThrottleMB is the default broker throttle used for migrations in this
 	// cluster. If unset, then a reasonable default is used instead.
 	DefaultThrottleMB int64 `json:"defaultThrottleMB"`
+
+	// DefaultRetentionDropStepDuration is the default amount of time that retention drops will be
+	// limited by. If unset, no retention drop limiting will be applied.
+	DefaultRetentionDropStepDurationStr string `json:"defaultRetentionDropStepDuration"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -98,7 +104,23 @@ func (c ClusterConfig) Validate() error {
 		multierror.Append(err, errors.New("MajorVersion must be v0.10 or v2"))
 	}
 
+	_, parseErr := c.GetDefaultRetentionDropStepDuration()
+	if parseErr != nil {
+		err = multierror.Append(
+			err,
+			fmt.Errorf("Error parsing retention drop step retention: %+v", parseErr),
+		)
+	}
+
 	return err
+}
+
+func (c ClusterConfig) GetDefaultRetentionDropStepDuration() (time.Duration, error) {
+	if c.Spec.DefaultRetentionDropStepDurationStr == "" {
+		return 0, nil
+	}
+
+	return time.ParseDuration(c.Spec.DefaultRetentionDropStepDurationStr)
 }
 
 // NewAdminClient returns a new admin client using the parameters in the current cluster config.

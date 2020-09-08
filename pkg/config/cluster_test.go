@@ -24,9 +24,10 @@ func TestClusterValidate(t *testing.T) {
 					Description: "test-description",
 				},
 				Spec: ClusterSpec{
-					BootstrapAddrs: []string{"broker-addr"},
-					ZKAddrs:        []string{"zk-addr"},
-					VersionMajor:   "v2",
+					BootstrapAddrs:                      []string{"broker-addr"},
+					ZKAddrs:                             []string{"zk-addr"},
+					VersionMajor:                        "v2",
+					DefaultRetentionDropStepDurationStr: "5m",
 				},
 			},
 			expError: false,
@@ -74,6 +75,24 @@ func TestClusterValidate(t *testing.T) {
 				Spec: ClusterSpec{
 					BootstrapAddrs: []string{"broker-addr"},
 					VersionMajor:   "v2",
+				},
+			},
+			expError: true,
+		},
+		{
+			description: "bad retention drop format",
+			clusterConfig: ClusterConfig{
+				Meta: ClusterMeta{
+					Name:        "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+					Description: "test-description",
+				},
+				Spec: ClusterSpec{
+					BootstrapAddrs:                      []string{"broker-addr"},
+					ZKAddrs:                             []string{"zk-addr"},
+					VersionMajor:                        "v2",
+					DefaultRetentionDropStepDurationStr: "10xxx",
 				},
 			},
 			expError: true,
