@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
@@ -211,4 +213,191 @@ func TestConfigMapDiffs(t *testing.T) {
 		[]string{"leader.replication.throttled.replicas", "retention.ms"},
 		missingKeys,
 	)
+}
+
+func TestReduceRetentionDrop(t *testing.T) {
+	type testCase struct {
+		description            string
+		settings               TopicSettings
+		configMap              map[string]string
+		dropDuration           time.Duration
+		errExpected            bool
+		expectedReduce         bool
+		expectedNewRetentionMs string
+	}
+
+	testCases := []testCase{
+		{
+			description: "no change",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"retention.ms": "5000",
+				"other.key":    "other.value",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "5000",
+		},
+		{
+			description: "increase",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "500000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"retention.ms": "5000",
+				"other.key":    "other.value",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "500000",
+		},
+		{
+			description: "small decrease",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"retention.ms": "5010",
+				"other.key":    "other.value",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "5000",
+		},
+		{
+			description: "medium decrease",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"retention.ms": "5100",
+				"other.key":    "other.value",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "5000",
+		},
+		{
+			description: "big decrease",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"retention.ms": "6000",
+				"other.key":    "other.value",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         true,
+			expectedNewRetentionMs: "5900",
+		},
+		{
+			description: "no existing retention",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"other.key": "other.value",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "5000",
+		},
+		{
+			description: "no new retention",
+			settings: TopicSettings{
+				"other.key":   "other.value",
+				"another.key": "another.value",
+			},
+			configMap: map[string]string{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+			},
+			dropDuration:           100 * time.Millisecond,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "<nil>",
+		},
+		{
+			description: "0 step size",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": 3000,
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+			},
+			dropDuration:           0,
+			errExpected:            false,
+			expectedReduce:         false,
+			expectedNewRetentionMs: "3000",
+		},
+		{
+			description: "bad formatting settings",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "xxxx",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+			},
+			dropDuration: 100 * time.Millisecond,
+			errExpected:  true,
+		},
+		{
+			description: "bad formatting config",
+			settings: TopicSettings{
+				"other.key":    "other.value",
+				"retention.ms": "5000",
+				"another.key":  "another.value",
+			},
+			configMap: map[string]string{
+				"other.key":    "other.value",
+				"retention.ms": "xxxx",
+			},
+			dropDuration: 100 * time.Millisecond,
+			errExpected:  true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		reduce, err := testCase.settings.ReduceRetentionDrop(
+			testCase.configMap,
+			testCase.dropDuration,
+		)
+		if testCase.errExpected {
+			assert.Error(t, err, testCase.description)
+		} else {
+			assert.NoError(t, err, testCase.description)
+			assert.Equal(t, testCase.expectedReduce, reduce, testCase.description)
+			assert.Equal(
+				t,
+				testCase.expectedNewRetentionMs,
+				fmt.Sprintf("%v", testCase.settings["retention.ms"]),
+			)
+		}
+	}
 }

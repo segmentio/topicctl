@@ -5,9 +5,12 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
+	log "github.com/sirupsen/logrus"
 )
 
 type configValidator func(v string) bool
@@ -370,6 +373,60 @@ func (t TopicSettings) ConfigMapDiffs(
 	return diffKeys, missingKeys, nil
 }
 
+func (t TopicSettings) ReduceRetentionDrop(
+	configMap map[string]string,
+	retentionDropStepDuration time.Duration,
+) (bool, error) {
+	if retentionDropStepDuration <= 0 {
+		return false, nil
+	}
+
+	currRetentionMsStr, ok := configMap[admin.RetentionKey]
+	if !ok || currRetentionMsStr == "" {
+		// No retention currently set
+		return false, nil
+	}
+	currRetentionMs, err := strconv.ParseInt(currRetentionMsStr, 10, 64)
+	if err != nil {
+		// Parse error
+		return false, err
+	}
+
+	var setRetentionMsIface interface{}
+
+	for key, value := range t {
+		if key == admin.RetentionKey {
+			setRetentionMsIface = value
+			break
+		}
+	}
+
+	if setRetentionMsIface == nil {
+		// Retention not configured in topic settings
+		return false, nil
+	}
+	setRetentionMs, err := interfaceToInt64(setRetentionMsIface)
+	if err != nil {
+		// Parse error
+		return false, err
+	}
+
+	maxDropMs := retentionDropStepDuration.Milliseconds()
+
+	if currRetentionMs-setRetentionMs > maxDropMs {
+		// Reduce drop
+		log.Debugf(
+			"Updating retention from %d to %d ms",
+			setRetentionMs,
+			currRetentionMs-maxDropMs,
+		)
+		t[admin.RetentionKey] = currRetentionMs - maxDropMs
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // Copy returns a shallow copy of this settings instance.
 func (t TopicSettings) Copy() TopicSettings {
 	copy := TopicSettings{}
@@ -434,6 +491,31 @@ func interfaceToString(v interface{}) (string, error) {
 	}
 
 	return "", fmt.Errorf("Invalid setting value: %+v (%s)", v, reflect.TypeOf(v))
+}
+
+func interfaceToInt64(v interface{}) (int64, error) {
+	if v == nil {
+		return 0, nil
+	}
+
+	switch t := v.(type) {
+	case float32:
+		return int64(t), nil
+	case float64:
+		return int64(t), nil
+	case int:
+		return int64(t), nil
+	case int64:
+		return t, nil
+	case string:
+		return strconv.ParseInt(t, 10, 64)
+	default:
+		return 0, fmt.Errorf(
+			"Could not convert value %+v (type %+v) to int64",
+			v,
+			reflect.TypeOf(v),
+		)
+	}
 }
 
 func inValues(v string, values ...string) bool {

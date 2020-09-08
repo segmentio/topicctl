@@ -18,22 +18,26 @@ import (
 )
 
 var applyCmd = &cobra.Command{
-	Use:   "apply [topic configs]",
-	Short: "apply one or more topic configs",
-	Args:  cobra.MinimumNArgs(1),
-	RunE:  applyRun,
+	Use:     "apply [topic configs]",
+	Short:   "apply one or more topic configs",
+	Args:    cobra.MinimumNArgs(1),
+	PreRunE: applyPreRun,
+	RunE:    applyRun,
 }
 
 type applyCmdConfig struct {
-	brokersToRemove            []int
-	brokerThrottleMBsOverride  int
-	clusterConfig              string
-	dryRun                     bool
-	partitionBatchSizeOverride int
-	pathPrefix                 string
-	rebalance                  bool
-	skipConfirm                bool
-	sleepLoopTime              time.Duration
+	brokersToRemove              []int
+	brokerThrottleMBsOverride    int
+	clusterConfig                string
+	dryRun                       bool
+	partitionBatchSizeOverride   int
+	pathPrefix                   string
+	rebalance                    bool
+	retentionDropStepDurationStr string
+	skipConfirm                  bool
+	sleepLoopDuration            time.Duration
+
+	retentionDropStepDuration time.Duration
 }
 
 var applyConfig applyCmdConfig
@@ -69,6 +73,12 @@ func init() {
 		0,
 		"Partition batch size override",
 	)
+	applyCmd.Flags().StringVar(
+		&applyConfig.pathPrefix,
+		"path-prefix",
+		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
+		"Prefix for topic config paths",
+	)
 	applyCmd.Flags().BoolVar(
 		&applyConfig.rebalance,
 		"rebalance",
@@ -76,10 +86,10 @@ func init() {
 		"Explicitly rebalance broker partition assignments",
 	)
 	applyCmd.Flags().StringVar(
-		&applyConfig.pathPrefix,
-		"path-prefix",
-		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
-		"Prefix for topic config paths",
+		&applyConfig.retentionDropStepDurationStr,
+		"retention-drop-step-duration",
+		"",
+		"Amount of time to use for retention drop steps",
 	)
 	applyCmd.Flags().BoolVar(
 		&applyConfig.skipConfirm,
@@ -88,13 +98,28 @@ func init() {
 		"Skip confirmation prompts during apply process",
 	)
 	applyCmd.Flags().DurationVar(
-		&applyConfig.sleepLoopTime,
-		"sleep-loop-time",
+		&applyConfig.sleepLoopDuration,
+		"sleep-loop-duration",
 		10*time.Second,
 		"Amount of time to wait between partition checks",
 	)
 
 	RootCmd.AddCommand(applyCmd)
+}
+
+func applyPreRun(cmd *cobra.Command, args []string) error {
+	if applyConfig.retentionDropStepDurationStr != "" {
+		var err error
+		applyConfig.retentionDropStepDuration, err = time.ParseDuration(
+			applyConfig.retentionDropStepDurationStr,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func applyRun(cmd *cobra.Command, args []string) error {
@@ -189,8 +214,9 @@ func applyTopic(
 		DryRun:                     applyConfig.dryRun,
 		PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
 		Rebalance:                  applyConfig.rebalance,
+		RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
 		SkipConfirm:                applyConfig.skipConfirm,
-		SleepLoopTime:              applyConfig.sleepLoopTime,
+		SleepLoopDuration:          applyConfig.sleepLoopDuration,
 		TopicConfig:                topicConfig,
 	}
 
