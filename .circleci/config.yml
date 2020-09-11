@@ -144,9 +144,11 @@ jobs:
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             docker build \
               -t segment/topicctl:${CIRCLE_TAG} \
+              -t segment/topicctl:latest \
               --build-arg VERSION=${CIRCLE_TAG} \
               .
             docker push segment/topicctl:${CIRCLE_TAG}
+            docker push segment/topicctl:latest
 
 workflows:
   version: 2
