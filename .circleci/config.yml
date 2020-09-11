@@ -102,7 +102,7 @@ jobs:
           paths:
             - "/go/pkg/mod"
 
-  publish:
+  publish-ecr:
     working_directory: /go/src/github.com/segmentio/topicctl
     docker:
       - image: circleci/golang:1.14
@@ -128,16 +128,46 @@ jobs:
               .
             docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_GIT_SHA}
 
+  publish-dockerhub:
+    working_directory: /go/src/github.com/segmentio/topicctl
+    docker:
+      - image: circleci/golang:1.14
+
+    steps:
+      - checkout
+      - setup_remote_docker:
+          reusable: true
+          docker_layer_caching: true
+      - run:
+          name: Build and push image
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            docker build \
+              -t segment/topicctl:${CIRCLE_TAG} \
+              --build-arg VERSION=${CIRCLE_TAG} \
+              .
+            docker push segment/topicctl:${CIRCLE_TAG}
+
 workflows:
   version: 2
   run:
     jobs:
       - test:
           context: snyk
-      - publish:
+      - publish-ecr:
           context: segmentio-org-global
           requires: [test]
           filters:
             branches:
               only:
                 - master
+      - publish-dockerhub:
+          context: docker-publish
+          requires: [test]
+          filters:
+            # never publish from a branch event
+            branches:
+              ignore: /.*/
+            # release only on tag push events like vX[.Y.Z...][-whatever]
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9-]+)?/
