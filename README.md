@@ -33,8 +33,12 @@ Either:
 2. Clone this repo and run `make install` in the repo root
 3. Use the Docker image: `docker pull segment/topicctl`
 
-If you use (1) or (2), the binary will be placed in `$GOPATH/bin`. If you use Docker,
-you can run the tool via `docker run -ti --rm segment/topicctl [subcommand] [flags]`.
+If you use (1) or (2), the binary will be placed in `$GOPATH/bin`.
+
+If you use Docker, you can run the tool via
+`docker run -ti --rm segment/topicctl [subcommand] [flags]`. Depending on your Docker setup and
+what you're trying to do, you may also need to run in the host network via `--net=host` and/or
+mount local volumes with `-v`.
 
 ### Quick tour
 
