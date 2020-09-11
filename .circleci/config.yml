@@ -154,6 +154,9 @@ workflows:
     jobs:
       - test:
           context: snyk
+          filters:
+            tags:
+              only: /.*/
       - publish-ecr:
           context: segmentio-org-global
           requires: [test]
@@ -165,9 +168,9 @@ workflows:
           context: docker-publish
           requires: [test]
           filters:
-            # never publish from a branch event
+            # Never publish from a branch event
             branches:
               ignore: /.*/
-            # release only on tag push events like vX[.Y.Z...][-whatever]
+            # Release only on tag push events like vX[.Y.Z...][-whatever]
             tags:
               only: /v[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9-]+)?/
