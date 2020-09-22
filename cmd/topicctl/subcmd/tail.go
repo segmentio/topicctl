@@ -132,7 +132,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 	}
 	defer adminClient.Close()
 
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 	return cliRunner.Tail(
 		ctx,
 		args[0],

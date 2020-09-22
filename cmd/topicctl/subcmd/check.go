@@ -151,7 +151,7 @@ func checkTopic(
 		}
 	}
 
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 	topicCheckConfig := check.CheckConfig{
 		AdminClient:   adminClient,
 		CheckLeaders:  checkConfig.checkLeaders,
