@@ -115,7 +115,7 @@ func getRun(cmd *cobra.Command, args []string) error {
 	}
 	defer adminClient.Close()
 
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, true)
+	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 
 	resource := args[0]
 

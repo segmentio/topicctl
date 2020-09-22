@@ -77,7 +77,7 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
+	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 	return cliRunner.BootstrapTopics(
 		ctx,
 		args,

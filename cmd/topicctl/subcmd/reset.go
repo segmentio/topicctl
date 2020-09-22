@@ -153,7 +153,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, true)
+	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 	return cliRunner.ResetOffsets(
 		ctx,
 		topic,
