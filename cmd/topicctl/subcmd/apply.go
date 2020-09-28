@@ -179,17 +179,10 @@ func applyTopic(
 		return err
 	}
 
-	log.Infof(
-		"Processing topic config %s with cluster config %s",
-		topicConfigPath,
-		clusterConfigPath,
-	)
-
-	topicConfig, err := config.LoadTopicFile(topicConfigPath)
+	topicConfigs, err := config.LoadTopicsFile(topicConfigPath)
 	if err != nil {
 		return err
 	}
-	topicConfig.SetDefaults()
 
 	clusterConfig, err := config.LoadClusterFile(clusterConfigPath)
 	if err != nil {
@@ -207,20 +200,34 @@ func applyTopic(
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 
-	applierConfig := apply.TopicApplierConfig{
-		BrokerThrottleMBsOverride:  applyConfig.brokerThrottleMBsOverride,
-		BrokersToRemove:            applyConfig.brokersToRemove,
-		ClusterConfig:              clusterConfig,
-		DryRun:                     applyConfig.dryRun,
-		PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
-		Rebalance:                  applyConfig.rebalance,
-		RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
-		SkipConfirm:                applyConfig.skipConfirm,
-		SleepLoopDuration:          applyConfig.sleepLoopDuration,
-		TopicConfig:                topicConfig,
+	for _, topicConfig := range topicConfigs {
+		topicConfig.SetDefaults()
+		log.Infof(
+			"Processing topic %s in config %s with cluster config %s",
+			topicConfig.Meta.Name,
+			topicConfigPath,
+			clusterConfigPath,
+		)
+
+		applierConfig := apply.TopicApplierConfig{
+			BrokerThrottleMBsOverride:  applyConfig.brokerThrottleMBsOverride,
+			BrokersToRemove:            applyConfig.brokersToRemove,
+			ClusterConfig:              clusterConfig,
+			DryRun:                     applyConfig.dryRun,
+			PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
+			Rebalance:                  applyConfig.rebalance,
+			RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
+			SkipConfirm:                applyConfig.skipConfirm,
+			SleepLoopDuration:          applyConfig.sleepLoopDuration,
+			TopicConfig:                topicConfig,
+		}
+
+		if err := cliRunner.ApplyTopic(ctx, applierConfig); err != nil {
+			return err
+		}
 	}
 
-	return cliRunner.ApplyTopic(ctx, applierConfig)
+	return nil
 }
 
 func clusterConfigForTopicApply(topicConfigPath string) (string, error) {

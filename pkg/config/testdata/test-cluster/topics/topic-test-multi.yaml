@@ -1,0 +1,45 @@
+# This is an empty config.
+---
+meta:
+  name: topic-test1
+  cluster: test-cluster
+  environment: test-env
+  region: test-region
+  description: |
+    Test topic
+
+spec:
+  partitions: 9
+  replicationFactor: 2
+  retentionMinutes: 100
+  placement:
+    strategy: in-rack
+  settings:
+    cleanup.policy: compact
+    follower.replication.throttled.replicas:
+      - "1:3"
+      - "4:5"
+    max.compaction.lag.ms: 12345
+---
+meta:
+  name: topic-test2
+  cluster: test-cluster
+  environment: test-env
+  region: test-region
+  description: |
+    Test topic
+
+spec:
+  partitions: 9
+  replicationFactor: 2
+  retentionMinutes: 100
+  placement:
+    strategy: in-rack
+  settings:
+    cleanup.policy: compact
+    follower.replication.throttled.replicas:
+      - "1:3"
+      - "4:5"
+    max.compaction.lag.ms: 12345
+---
+# Another empty one

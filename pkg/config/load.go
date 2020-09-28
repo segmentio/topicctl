@@ -3,10 +3,14 @@ package config
 import (
 	"errors"
 	"io/ioutil"
+	"regexp"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-multierror"
 )
+
+var sep = regexp.MustCompile("(?:^|\\s*\n)---\\s*")
 
 // LoadClusterFile loads a ClusterConfig from a path to a YAML file.
 func LoadClusterFile(path string) (ClusterConfig, error) {
@@ -24,13 +28,33 @@ func LoadClusterBytes(contents []byte) (ClusterConfig, error) {
 	return config, err
 }
 
-// LoadTopicFile loads a TopicConfig from a path to a YAML file.
-func LoadTopicFile(path string) (TopicConfig, error) {
+// LoadTopicsFile loads one or more TopicConfigs from a path to a YAML file.
+func LoadTopicsFile(path string) ([]TopicConfig, error) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		return TopicConfig{}, err
+		return nil, err
 	}
-	return LoadTopicBytes(contents)
+
+	trimmedFile := strings.TrimSpace(string(contents))
+	topicStrs := sep.Split(trimmedFile, -1)
+
+	topicConfigs := []TopicConfig{}
+
+	for _, topicStr := range topicStrs {
+		topicStr = strings.TrimSpace(topicStr)
+		if isEmpty(topicStr) {
+			continue
+		}
+
+		topicConfig, err := LoadTopicBytes([]byte(topicStr))
+		if err != nil {
+			return nil, err
+		}
+
+		topicConfigs = append(topicConfigs, topicConfig)
+	}
+
+	return topicConfigs, nil
 }
 
 // LoadTopicBytes loads a TopicConfig from YAML bytes.
@@ -65,4 +89,16 @@ func CheckConsistency(topicConfig TopicConfig, clusterConfig ClusterConfig) erro
 	}
 
 	return err
+}
+
+func isEmpty(contents string) bool {
+	lines := strings.Split(contents, "\n")
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		if len(trimmedLine) > 0 && !strings.HasPrefix(trimmedLine, "#") {
+			return false
+		}
+	}
+
+	return true
 }

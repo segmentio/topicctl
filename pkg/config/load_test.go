@@ -40,8 +40,10 @@ func TestLoadCluster(t *testing.T) {
 	assert.NotNil(t, clusterConfig.Validate())
 }
 
-func TestLoadTopic(t *testing.T) {
-	topicConfig, err := LoadTopicFile("testdata/test-cluster/topics/topic-test.yaml")
+func TestLoadTopicsFile(t *testing.T) {
+	topicConfigs, err := LoadTopicsFile("testdata/test-cluster/topics/topic-test.yaml")
+	assert.Equal(t, 1, len(topicConfigs))
+	topicConfig := topicConfigs[0]
 	require.Nil(t, err)
 	topicConfig.SetDefaults()
 
@@ -80,9 +82,16 @@ func TestLoadTopic(t *testing.T) {
 	)
 	assert.Nil(t, topicConfig.Validate(3))
 
-	topicConfig, err = LoadTopicFile("testdata/test-cluster/topics/topic-test-invalid.yaml")
+	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-invalid.yaml")
+	assert.Equal(t, 1, len(topicConfigs))
+	topicConfig = topicConfigs[0]
 	require.Nil(t, err)
 	assert.NotNil(t, topicConfig.Validate(3))
+
+	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-multi.yaml")
+	assert.Equal(t, 2, len(topicConfigs))
+	assert.Equal(t, "topic-test1", topicConfigs[0].Meta.Name)
+	assert.Equal(t, "topic-test2", topicConfigs[1].Meta.Name)
 }
 
 func TestCheckConsistency(t *testing.T) {
@@ -90,14 +99,18 @@ func TestCheckConsistency(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, clusterConfig.Validate())
 
-	topicConfig, err := LoadTopicFile("testdata/test-cluster/topics/topic-test.yaml")
+	topicConfigs, err := LoadTopicsFile("testdata/test-cluster/topics/topic-test.yaml")
+	assert.Equal(t, 1, len(topicConfigs))
+	topicConfig := topicConfigs[0]
 	topicConfig.SetDefaults()
 	assert.Nil(t, err)
 	assert.Nil(t, topicConfig.Validate(3))
 
-	topicConfigNoMatch, err := LoadTopicFile(
+	topicConfigNoMatchs, err := LoadTopicsFile(
 		"testdata/test-cluster/topics/topic-test-no-match.yaml",
 	)
+	assert.Equal(t, 1, len(topicConfigNoMatchs))
+	topicConfigNoMatch := topicConfigNoMatchs[0]
 	topicConfigNoMatch.SetDefaults()
 	assert.Nil(t, err)
 	assert.Nil(t, topicConfig.Validate(3))

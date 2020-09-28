@@ -249,7 +249,7 @@ associated topic configs.
 
 ### Topics
 
-Each topic is configured in a single YAML file. The following is an
+Each topic is configured in a YAML file. The following is an
 annotated example:
 
 ```yaml
@@ -281,6 +281,9 @@ See the [Kafka documentation](https://kafka.apache.org/documentation/#topicconfi
 for more details on the parameters that can be set in the `settings` field. Note
 that retention time can be set in either this section or via `retentionMinutes` but
 not in both places. The latter is easier, so it's recommended.
+
+Multiple topics can be included in the same file, separated by `---` lines, provided
+that they reference the same cluster.
 
 #### Placement strategies
 
