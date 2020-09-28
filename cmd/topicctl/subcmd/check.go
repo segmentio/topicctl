@@ -86,7 +86,7 @@ func checkRun(cmd *cobra.Command, args []string) error {
 		for _, match := range matches {
 			matchCount++
 
-			ok, err := checkTopic(ctx, match, adminClients)
+			ok, err := checkTopicFile(ctx, match, adminClients)
 			if err != nil {
 				return err
 			}
@@ -110,7 +110,7 @@ func checkRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func checkTopic(
+func checkTopicFile(
 	ctx context.Context,
 	topicConfigPath string,
 	adminClients map[string]*admin.Client,
@@ -120,19 +120,12 @@ func checkTopic(
 		return false, err
 	}
 
-	log.Debugf(
-		"Processing topic config %s with cluster config %s",
-		topicConfigPath,
-		clusterConfigPath,
-	)
-
-	topicConfig, err := config.LoadTopicFile(topicConfigPath)
+	clusterConfig, err := config.LoadClusterFile(clusterConfigPath)
 	if err != nil {
 		return false, err
 	}
-	topicConfig.SetDefaults()
 
-	clusterConfig, err := config.LoadClusterFile(clusterConfigPath)
+	topicConfigs, err := config.LoadTopicsFile(topicConfigPath)
 	if err != nil {
 		return false, err
 	}
@@ -152,19 +145,35 @@ func checkTopic(
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
-	topicCheckConfig := check.CheckConfig{
-		AdminClient:   adminClient,
-		CheckLeaders:  checkConfig.checkLeaders,
-		ClusterConfig: clusterConfig,
-		// TODO: Add support for broker rack verification.
-		NumRacks:     -1,
-		TopicConfig:  topicConfig,
-		ValidateOnly: checkConfig.validateOnly,
+
+	for _, topicConfig := range topicConfigs {
+		topicConfig.SetDefaults()
+		log.Debugf(
+			"Processing topic %s in config %s with cluster config %s",
+			topicConfig.Meta.Name,
+			topicConfigPath,
+			clusterConfigPath,
+		)
+
+		topicCheckConfig := check.CheckConfig{
+			AdminClient:   adminClient,
+			CheckLeaders:  checkConfig.checkLeaders,
+			ClusterConfig: clusterConfig,
+			// TODO: Add support for broker rack verification.
+			NumRacks:     -1,
+			TopicConfig:  topicConfig,
+			ValidateOnly: checkConfig.validateOnly,
+		}
+		result, err := cliRunner.CheckTopic(
+			ctx,
+			topicCheckConfig,
+		)
+		if !result || err != nil {
+			return result, err
+		}
 	}
-	return cliRunner.CheckTopic(
-		ctx,
-		topicCheckConfig,
-	)
+
+	return true, nil
 }
 
 func clusterConfigForTopicCheck(topicConfigPath string) (string, error) {
