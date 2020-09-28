@@ -11,6 +11,7 @@ import (
 )
 
 var debug bool
+var noSpinner bool
 
 // RootCmd is the cobra CLI root command.
 var RootCmd = &cobra.Command{
@@ -31,7 +32,13 @@ func init() {
 		&debug,
 		"debug",
 		false,
-		"Enable debug logging",
+		"enable debug logging",
+	)
+	RootCmd.PersistentFlags().BoolVar(
+		&noSpinner,
+		"no-spinner",
+		false,
+		"disable all UI spinners",
 	)
 }
 
