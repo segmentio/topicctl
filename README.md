@@ -23,6 +23,12 @@ non-Kafka-related contexts.
 See [this blog post](https://segment.com/blog/easier-management-of-Kafka-topics-with-topicctl/) for
 more details.
 
+## Roadmap
+
+We are planning on making some changes to (optionally) remove the ZK dependency and also to support
+some additional security features like TLS. See
+[this page](https://github.com/segmentio/topicctl/wiki/v1-Plan) for the current plan.
+
 ## Getting started
 
 ### Installation
