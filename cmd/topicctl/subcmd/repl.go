@@ -68,7 +68,7 @@ func replRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	sess := session.Must(session.NewSession())
 
-	var adminClient *admin.Client
+	var adminClient admin.Client
 	var clientErr error
 
 	if replConfig.clusterConfig != "" {
@@ -78,9 +78,9 @@ func replRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else {
-		adminClient, clientErr = admin.NewClient(
+		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,
-			admin.ClientConfig{
+			admin.ZKAdminClientConfig{
 				ZKAddrs:  []string{replConfig.zkAddr},
 				ZKPrefix: replConfig.zkPrefix,
 				Sess:     sess,

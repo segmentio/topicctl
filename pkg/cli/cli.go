@@ -28,7 +28,7 @@ const (
 
 // CLIRunner is a utility that runs commands from either the command-line or the repl.
 type CLIRunner struct {
-	adminClient  *admin.Client
+	adminClient  admin.Client
 	groupsClient *groups.Client
 	printer      func(f string, a ...interface{})
 	spinnerObj   *spinner.Spinner
@@ -36,7 +36,7 @@ type CLIRunner struct {
 
 // NewCLIRunner creates and returns a new CLIRunner instance.
 func NewCLIRunner(
-	adminClient *admin.Client,
+	adminClient admin.Client,
 	printer func(f string, a ...interface{}),
 	showSpinner bool,
 ) *CLIRunner {

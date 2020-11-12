@@ -103,9 +103,9 @@ func runTestReader(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	adminClient, err := admin.NewClient(
+	adminClient, err := admin.NewZKAdminClient(
 		ctx,
-		admin.ClientConfig{
+		admin.ZKAdminClientConfig{
 			ZKAddrs: []string{testerConfig.zkAddr},
 		},
 	)
@@ -154,9 +154,9 @@ func runTestWriter(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	adminClient, err := admin.NewClient(
+	adminClient, err := admin.NewZKAdminClient(
 		ctx,
-		admin.ClientConfig{
+		admin.ZKAdminClientConfig{
 			ZKAddrs: []string{testerConfig.zkAddr},
 		},
 	)

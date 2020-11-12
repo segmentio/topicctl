@@ -85,7 +85,7 @@ type Repl struct {
 }
 
 // NewRepl initializes and returns a Repl instance.
-func NewRepl(ctx context.Context, adminClient *admin.Client) (*Repl, error) {
+func NewRepl(ctx context.Context, adminClient admin.Client) (*Repl, error) {
 	cliRunner := NewCLIRunner(
 		adminClient,
 		func(f string, a ...interface{}) {

@@ -128,10 +128,10 @@ func (c ClusterConfig) NewAdminClient(
 	ctx context.Context,
 	sess *session.Session,
 	readOnly bool,
-) (*admin.Client, error) {
-	return admin.NewClient(
+) (admin.Client, error) {
+	return admin.NewZKAdminClient(
 		ctx,
-		admin.ClientConfig{
+		admin.ZKAdminClientConfig{
 			ZKAddrs:           c.Spec.ZKAddrs,
 			ZKPrefix:          c.Spec.ZKPrefix,
 			BootstrapAddrs:    c.Spec.BootstrapAddrs,

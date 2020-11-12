@@ -134,7 +134,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Keep a cache of the admin clients with the cluster config path as the key
-	adminClients := map[string]*admin.Client{}
+	adminClients := map[string]admin.Client{}
 
 	defer func() {
 		for _, adminClient := range adminClients {
@@ -172,7 +172,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 func applyTopic(
 	ctx context.Context,
 	topicConfigPath string,
-	adminClients map[string]*admin.Client,
+	adminClients map[string]admin.Client,
 ) error {
 	clusterConfigPath, err := clusterConfigForTopicApply(topicConfigPath)
 	if err != nil {

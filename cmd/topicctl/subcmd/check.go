@@ -62,7 +62,7 @@ func checkRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	// Keep a cache of the admin clients with the cluster config path as the key
-	adminClients := map[string]*admin.Client{}
+	adminClients := map[string]admin.Client{}
 
 	defer func() {
 		for _, adminClient := range adminClients {
@@ -113,7 +113,7 @@ func checkRun(cmd *cobra.Command, args []string) error {
 func checkTopicFile(
 	ctx context.Context,
 	topicConfigPath string,
-	adminClients map[string]*admin.Client,
+	adminClients map[string]admin.Client,
 ) (bool, error) {
 	clusterConfigPath, err := clusterConfigForTopicCheck(topicConfigPath)
 	if err != nil {
@@ -130,7 +130,7 @@ func checkTopicFile(
 		return false, err
 	}
 
-	var adminClient *admin.Client
+	var adminClient admin.Client
 
 	if !checkConfig.validateOnly {
 		var ok bool

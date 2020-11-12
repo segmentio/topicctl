@@ -48,9 +48,9 @@ func TestGetClusterID(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:           []string{util.TestZKAddr()},
 			ZKPrefix:          clusterName,
 			BootstrapAddrs:    []string{util.TestKafkaAddr()},
@@ -64,9 +64,9 @@ func TestGetClusterID(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(t, "test-cluster-id", clusterID)
 
-	_, err = NewClient(
+	_, err = NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:           []string{util.TestZKAddr()},
 			ZKPrefix:          clusterName,
 			BootstrapAddrs:    []string{util.TestKafkaAddr()},
@@ -142,9 +142,9 @@ func TestGetBrokers(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -310,9 +310,9 @@ func TestGetTopics(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -424,9 +424,9 @@ func TestGetTopics(t *testing.T) {
 
 func TestGetBrokerPartitions(t *testing.T) {
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
@@ -520,9 +520,9 @@ func TestUpdateTopicConfig(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -652,9 +652,9 @@ func TestUpdateBrokerConfig(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -750,9 +750,9 @@ func TestUpdateBrokerConfig(t *testing.T) {
 
 func TestCreateTopic(t *testing.T) {
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       "",
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -805,9 +805,9 @@ func TestUpdateAssignments(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -817,7 +817,7 @@ func TestUpdateAssignments(t *testing.T) {
 	require.Nil(t, err)
 	defer adminClient.Close()
 
-	exists, err := adminClient.AssignmentInProgress(ctx)
+	exists, err := adminClient.assignmentInProgress(ctx)
 	assert.Nil(t, err)
 	assert.False(t, exists)
 
@@ -854,7 +854,7 @@ func TestUpdateAssignments(t *testing.T) {
 		string(reassignment),
 	)
 
-	exists, err = adminClient.AssignmentInProgress(ctx)
+	exists, err = adminClient.assignmentInProgress(ctx)
 	assert.Nil(t, err)
 	assert.True(t, exists)
 }
@@ -913,9 +913,9 @@ func TestAddPartitions(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -925,7 +925,7 @@ func TestAddPartitions(t *testing.T) {
 	require.Nil(t, err)
 	defer adminClient.Close()
 
-	exists, err := adminClient.AssignmentInProgress(ctx)
+	exists, err := adminClient.assignmentInProgress(ctx)
 	assert.Nil(t, err)
 	assert.False(t, exists)
 
@@ -1018,9 +1018,9 @@ func TestRunLeaderElection(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
@@ -1030,7 +1030,7 @@ func TestRunLeaderElection(t *testing.T) {
 	require.Nil(t, err)
 	defer adminClient.Close()
 
-	exists, err := adminClient.ElectionInProgress(ctx)
+	exists, err := adminClient.electionInProgress(ctx)
 	assert.Nil(t, err)
 	assert.False(t, exists)
 
@@ -1059,16 +1059,16 @@ func TestRunLeaderElection(t *testing.T) {
 		string(reassignment),
 	)
 
-	exists, err = adminClient.ElectionInProgress(ctx)
+	exists, err = adminClient.electionInProgress(ctx)
 	assert.Nil(t, err)
 	assert.True(t, exists)
 }
 
 func testLocking(t *testing.T) {
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 		},

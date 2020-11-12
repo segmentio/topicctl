@@ -85,7 +85,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var adminClient *admin.Client
+	var adminClient admin.Client
 	var clientErr error
 
 	if resetOffsetsConfig.clusterConfig != "" {
@@ -95,9 +95,9 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
 	} else {
-		adminClient, clientErr = admin.NewClient(
+		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,
-			admin.ClientConfig{
+			admin.ZKAdminClientConfig{
 				ZKAddrs:  []string{resetOffsetsConfig.zkAddr},
 				ZKPrefix: resetOffsetsConfig.zkPrefix,
 				ReadOnly: false,

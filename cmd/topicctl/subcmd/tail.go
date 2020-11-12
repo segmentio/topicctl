@@ -105,7 +105,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	var adminClient *admin.Client
+	var adminClient admin.Client
 	var clientErr error
 
 	if tailConfig.clusterConfig != "" {
@@ -115,9 +115,9 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
 	} else {
-		adminClient, clientErr = admin.NewClient(
+		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,
-			admin.ClientConfig{
+			admin.ZKAdminClientConfig{
 				ZKAddrs:  []string{tailConfig.zkAddr},
 				ZKPrefix: tailConfig.zkPrefix,
 				// Run in read-only mode to ensure that tailing doesn't make any changes

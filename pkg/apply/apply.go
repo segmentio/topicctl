@@ -41,7 +41,7 @@ type TopicApplierConfig struct {
 // align the two.
 type TopicApplier struct {
 	config      TopicApplierConfig
-	adminClient *admin.Client
+	adminClient admin.Client
 	brokers     []admin.BrokerInfo
 
 	// Pull out some fields for easier access
@@ -55,7 +55,7 @@ type TopicApplier struct {
 // NewTopicApplier creates and returns a new TopicApplier instance.
 func NewTopicApplier(
 	ctx context.Context,
-	adminClient *admin.Client,
+	adminClient admin.Client,
 	applierConfig TopicApplierConfig,
 ) (*TopicApplier, error) {
 	brokers, err := adminClient.GetBrokers(ctx, nil)
