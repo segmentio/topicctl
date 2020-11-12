@@ -139,6 +139,14 @@ github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da h1:p3Vo3i64TCL
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
 github.com/segmentio/kafka-go v0.3.8-0.20200715042841-ccc0d4b822f5 h1:kG9xUZXaDDyLlZKNKrG/ZFYtYfLbFtqb1xR+P2OkXhA=
 github.com/segmentio/kafka-go v0.3.8-0.20200715042841-ccc0d4b822f5/go.mod h1:U4oa/J1NezlJuvbe71x9cEn7KkD+sZnIk6hjLZIc+Uc=
+github.com/segmentio/kafka-go v0.4.9-0.20201112181019-9069f0e98752 h1:P9dcy335xr8u6HsuL2nREmbYcyl4y0MmRfgZyNkaXRI=
+github.com/segmentio/kafka-go v0.4.9-0.20201112181019-9069f0e98752/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
+github.com/segmentio/kafka-go v0.4.9-0.20201112204022-bc7cd5066513 h1:7XfiWSHwfplF6kvYTe+LAsN/h+k4Wih1PvIZ71IOpUI=
+github.com/segmentio/kafka-go v0.4.9-0.20201112204022-bc7cd5066513/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
+github.com/segmentio/kafka-go v0.4.9-0.20201112204205-697a8bc11849 h1:g9bcNz4cwwoMJbyaO6l4qQBMk3DD2+AXpyzsbQly9Xg=
+github.com/segmentio/kafka-go v0.4.9-0.20201112204205-697a8bc11849/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
+github.com/segmentio/kafka-go v0.4.9-0.20201112205445-c383fc9cc856 h1:FA3EMGLAf1EDuUJQG4HEXzzNSYWzDSrWmtaC5ZuIUzY=
+github.com/segmentio/kafka-go v0.4.9-0.20201112205445-c383fc9cc856/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.2.0 h1:juTguoYk5qI21pwyTXY3B3Y5cOTH3ZUyZCg1v/mihuo=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=

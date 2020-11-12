@@ -19,7 +19,7 @@ require (
 	github.com/pierrec/lz4 v2.4.1+incompatible // indirect
 	github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.3.8-0.20200715042841-ccc0d4b822f5
+	github.com/segmentio/kafka-go v0.4.9-0.20201112205445-c383fc9cc856
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1

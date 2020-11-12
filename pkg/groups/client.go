@@ -19,7 +19,9 @@ type Client struct {
 func NewClient(brokerAddr string) *Client {
 	return &Client{
 		brokerAddr: brokerAddr,
-		client:     kafka.NewClient(brokerAddr),
+		client: &kafka.Client{
+			Addr: kafka.TCP(brokerAddr),
+		},
 	}
 }
 
@@ -27,19 +29,19 @@ func NewClient(brokerAddr string) *Client {
 func (c *Client) GetGroups(
 	ctx context.Context,
 ) ([]GroupCoordinator, error) {
-	kafkaGroupObjs, err := c.client.ListGroups(ctx)
+	listGroupsResp, err := c.client.ListGroups(ctx, kafka.ListGroupsRequest{})
 
 	// Don't immediately fail if err is non-nil; instead, just process and return
 	// whatever results are returned.
 
 	groupCoordinators := []GroupCoordinator{}
 
-	for _, kafkaGroupInfo := range kafkaGroupObjs {
+	for _, kafkaGroupInfo := range listGroupsResp.Groups {
 		groupCoordinators = append(
 			groupCoordinators,
 			GroupCoordinator{
 				GroupID:     kafkaGroupInfo.GroupID,
-				Coordinator: kafkaGroupInfo.Coordinator,
+				Coordinator: int(kafkaGroupInfo.Coordinator),
 			},
 		)
 	}
@@ -56,17 +58,20 @@ func (c *Client) GetGroupDetails(
 	ctx context.Context,
 	groupID string,
 ) (*GroupDetails, error) {
-	kafkaGroupInfo, err := c.client.DescribeGroup(ctx, groupID)
+	describeGroupResponse, err := c.client.DescribeGroup(
+		ctx,
+		kafka.DescribeGroupRequest{GroupID: groupID},
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	groupDetails := GroupDetails{
-		GroupID: kafkaGroupInfo.GroupID,
-		State:   kafkaGroupInfo.State,
+		GroupID: describeGroupResponse.GroupID,
+		State:   describeGroupResponse.GroupState,
 		Members: []MemberInfo{},
 	}
-	for _, kafkaMember := range kafkaGroupInfo.Members {
+	for _, kafkaMember := range describeGroupResponse.Members {
 		member := MemberInfo{
 			MemberID:        kafkaMember.MemberID,
 			ClientID:        kafkaMember.ClientID,
