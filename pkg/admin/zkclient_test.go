@@ -3,7 +3,6 @@ package admin
 import (
 	"context"
 	"fmt"
-	"sort"
 	"testing"
 	"time"
 
@@ -420,59 +419,6 @@ func TestGetTopics(t *testing.T) {
 
 	_, err = adminClient.GetTopic(ctx, "non-existent-topic", true)
 	assert.NotNil(t, err)
-}
-
-func TestGetBrokerPartitions(t *testing.T) {
-	ctx := context.Background()
-	adminClient, err := NewZKAdminClient(
-		ctx,
-		ZKAdminClientConfig{
-			ZKAddrs:        []string{util.TestZKAddr()},
-			BootstrapAddrs: []string{util.TestKafkaAddr()},
-			ReadOnly:       false,
-		},
-	)
-	require.Nil(t, err)
-	defer adminClient.Close()
-
-	topicName := util.RandomString("topic-create-", 6)
-
-	config := kafka.TopicConfig{
-		Topic:             topicName,
-		NumPartitions:     2,
-		ReplicationFactor: 2,
-	}
-	err = adminClient.CreateTopic(ctx, config)
-	require.Nil(t, err)
-	time.Sleep(250 * time.Millisecond)
-
-	topicInfo, err := adminClient.getTopic(ctx, topicName, true)
-	require.Nil(t, err)
-	require.Equal(t, 2, len(topicInfo.Partitions))
-
-	partitions, err := adminClient.GetBrokerPartitions(ctx, []string{topicName})
-	require.Nil(t, err)
-	require.Equal(t, 2, len(partitions))
-
-	sort.Slice(partitions, func(a, b int) bool {
-		return partitions[a].ID < partitions[b].ID
-	})
-
-	for p, partition := range partitions {
-		assert.Equal(t, topicName, partition.Topic)
-		assert.Equal(t, p, partition.ID)
-		assert.Equal(t, topicInfo.Partitions[p].Leader, partition.Leader)
-		assert.True(
-			t,
-			// Order returned by broker might not match what zk returns
-			util.SameElements(partition.Replicas, topicInfo.Partitions[p].Replicas),
-		)
-		assert.True(
-			t,
-			// Order returned by broker might not match what zk returns
-			util.SameElements(partition.ISR, topicInfo.Partitions[p].ISR),
-		)
-	}
 }
 
 func TestUpdateTopicConfig(t *testing.T) {

@@ -2,6 +2,8 @@ package admin
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/zk"
@@ -10,27 +12,79 @@ import (
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
 // zookeeper access.
 type BrokerAdminClient struct {
+	brokerAddr string
+	client     *kafka.Client
+	readOnly   bool
 }
 
 var _ Client = (*BrokerAdminClient)(nil)
 
+func NewBrokerAdminClient(brokerAddr string, readOnly bool) *BrokerAdminClient {
+	return &BrokerAdminClient{
+		brokerAddr: brokerAddr,
+		client: &kafka.Client{
+			Addr: kafka.TCP(brokerAddr),
+		},
+		readOnly: readOnly,
+	}
+}
+
 func (c *BrokerAdminClient) GetClusterID(ctx context.Context) (string, error) {
-	return "", nil
+	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	if err != nil {
+		return "", err
+	}
+	return resp.ClusterID, nil
 }
 
 func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	[]BrokerInfo,
 	error,
 ) {
-	return nil, nil
+	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	brokerInfos := []BrokerInfo{}
+	idsMap := map[int]struct{}{}
+	for _, id := range ids {
+		idsMap[id] = struct{}{}
+	}
+
+	for _, broker := range resp.Brokers {
+		if _, ok := idsMap[broker.ID]; !ok && len(idsMap) > 0 {
+			continue
+		}
+
+		brokerInfos = append(
+			brokerInfos,
+			BrokerInfo{
+				ID:   broker.ID,
+				Host: broker.Host,
+				Port: int32(broker.Port),
+				Rack: broker.Rack,
+			},
+		)
+	}
+
+	return brokerInfos, nil
 }
 
 func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
-	return nil, nil
+	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	if err != nil {
+		return nil, err
+	}
+	brokerIDs := []int{}
+	for _, broker := range resp.Brokers {
+		brokerIDs = append(brokerIDs, broker.ID)
+	}
+	return brokerIDs, nil
 }
 
 func (c *BrokerAdminClient) GetBootstrapAddrs() []string {
-	return nil
+	return []string{c.brokerAddr}
 }
 
 func (c *BrokerAdminClient) GetTopics(
@@ -38,11 +92,52 @@ func (c *BrokerAdminClient) GetTopics(
 	names []string,
 	detailed bool,
 ) ([]TopicInfo, error) {
-	return nil, nil
+	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	topicInfos := []TopicInfo{}
+
+	for _, topic := range resp.Topics {
+		partitionInfos := []PartitionInfo{}
+
+		for _, partition := range topic.Partitions {
+			partitionInfos = append(
+				partitionInfos,
+				PartitionInfo{
+					Topic:    topic.Name,
+					ID:       partition.ID,
+					Leader:   partition.Leader.ID,
+					Replicas: brokerIDs(partition.Replicas),
+					ISR:      brokerIDs(partition.Isr),
+				},
+			)
+		}
+
+		topicInfos = append(
+			topicInfos,
+			TopicInfo{
+				Name:       topic.Name,
+				Partitions: partitionInfos,
+			},
+		)
+	}
+
+	return topicInfos, nil
 }
 
 func (c *BrokerAdminClient) GetTopicNames(ctx context.Context) ([]string, error) {
-	return nil, nil
+	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	topicNames := []string{}
+	for _, topic := range resp.Topics {
+		topicNames = append(topicNames, topic.Name)
+	}
+	return topicNames, nil
 }
 
 func (c *BrokerAdminClient) GetTopic(
@@ -50,7 +145,37 @@ func (c *BrokerAdminClient) GetTopic(
 	name string,
 	detailed bool,
 ) (TopicInfo, error) {
-	return TopicInfo{}, nil
+	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{Topics: []string{name}})
+	if err != nil {
+		return TopicInfo{}, err
+	}
+
+	if len(resp.Topics) != 1 {
+		return TopicInfo{},
+			fmt.Errorf("Unexpected topic length response: %d", len(resp.Topics))
+	}
+
+	topic := resp.Topics[0]
+
+	partitionInfos := []PartitionInfo{}
+
+	for _, partition := range topic.Partitions {
+		partitionInfos = append(
+			partitionInfos,
+			PartitionInfo{
+				Topic:    topic.Name,
+				ID:       partition.ID,
+				Leader:   partition.Leader.ID,
+				Replicas: brokerIDs(partition.Replicas),
+				ISR:      brokerIDs(partition.Isr),
+			},
+		)
+	}
+
+	return TopicInfo{
+		Name:       topic.Name,
+		Partitions: partitionInfos,
+	}, nil
 }
 
 func (c *BrokerAdminClient) GetBrokerPartitions(ctx context.Context, names []string) (
@@ -67,7 +192,6 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	overwrite bool,
 ) ([]string, error) {
 	return nil, nil
-
 }
 
 func (c *BrokerAdminClient) UpdateBrokerConfig(
@@ -79,15 +203,21 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	return nil, nil
 }
 
-func (c *BrokerAdminClient) GetControllerAddr(ctx context.Context) (string, error) {
-	return "", nil
-}
-
 func (c *BrokerAdminClient) CreateTopic(
 	ctx context.Context,
 	config kafka.TopicConfig,
 ) error {
-	return nil
+	if c.readOnly {
+		return errors.New("Cannot create topic in read-only mode")
+	}
+
+	_, err := c.client.CreateTopics(
+		ctx,
+		&kafka.CreateTopicsRequest{
+			Topics: []kafka.TopicConfig{config},
+		},
+	)
+	return err
 }
 
 func (c *BrokerAdminClient) AssignPartitions(
@@ -127,4 +257,12 @@ func (c *BrokerAdminClient) LockHeld(ctx context.Context, path string) (bool, er
 
 func (c *BrokerAdminClient) Close() error {
 	return nil
+}
+
+func brokerIDs(brokers []kafka.Broker) []int {
+	ids := []int{}
+	for _, broker := range brokers {
+		ids = append(ids, broker.ID)
+	}
+	return ids
 }

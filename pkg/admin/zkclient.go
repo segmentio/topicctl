@@ -417,70 +417,6 @@ func (c *ZKAdminClient) GetTopic(
 	return topics[0], nil
 }
 
-// GetBrokerPartitions gets partition information directly from a broker for one or more
-// topics. This is faster than using ZK to get this information (i.e., by calling GetTopics
-// with detailed=true), but it doesn't include higher-level topic information.
-func (c *ZKAdminClient) GetBrokerPartitions(
-	ctx context.Context,
-	names []string,
-) ([]PartitionInfo, error) {
-	var topicNames []string
-	var err error
-
-	if len(names) > 0 {
-		topicNames = names
-	} else {
-		zPath := c.zNode(topicsPath)
-
-		topicNames, _, err = c.zkClient.Children(ctx, zPath)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error getting children at path %s: %+v",
-				zPath,
-				err,
-			)
-		}
-	}
-
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", c.bootstrapAddrs[0])
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	zkPartitions, err := conn.ReadPartitions(topicNames...)
-	if err != nil {
-		return nil, err
-	}
-
-	partitions := []PartitionInfo{}
-	for _, zkPartition := range zkPartitions {
-		replicas := []int{}
-		isrs := []int{}
-
-		for _, replicaBroker := range zkPartition.Replicas {
-			replicas = append(replicas, replicaBroker.ID)
-		}
-
-		for _, isrBroker := range zkPartition.Isr {
-			isrs = append(isrs, isrBroker.ID)
-		}
-
-		// Convert to PartitionInfo format
-		partitions = append(
-			partitions,
-			PartitionInfo{
-				Topic:    zkPartition.Topic,
-				ID:       zkPartition.ID,
-				Leader:   zkPartition.Leader.ID,
-				Replicas: replicas,
-				ISR:      isrs,
-			},
-		)
-	}
-	return partitions, nil
-}
-
 // UpdateTopicConfig updates the config JSON for a topic and sets a change
 // notification so that the brokers are notified. If overwrite is true, then
 // it will overwrite existing config entries.
@@ -618,25 +554,6 @@ func (c *ZKAdminClient) UpdateBrokerConfig(
 		c.zkClient.CreateJSON(ctx, c.zNode(configChangesPath), changeObj, true)
 }
 
-// GetControllerAddr gets the address of the cluster controller. This is needed
-// for creating new topics and other operations.
-func (c *ZKAdminClient) GetControllerAddr(
-	ctx context.Context,
-) (string, error) {
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", c.bootstrapAddrs[0])
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	broker, err := conn.Controller()
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s:%d", broker.Host, broker.Port), nil
-}
-
 // CreateTopic creates a new topic with the argument config. It uses
 // the topic creation API exposed on the controller broker.
 func (c *ZKAdminClient) CreateTopic(
@@ -647,7 +564,7 @@ func (c *ZKAdminClient) CreateTopic(
 		return errors.New("Cannot create topic in read-only mode")
 	}
 
-	controllerAddr, err := c.GetControllerAddr(ctx)
+	controllerAddr, err := c.getControllerAddr(ctx)
 	if err != nil {
 		return err
 	}
@@ -835,6 +752,25 @@ func (c *ZKAdminClient) LockHeld(
 // Close closes the connections in the underlying zookeeper client.
 func (c *ZKAdminClient) Close() error {
 	return c.zkClient.Close()
+}
+
+// getControllerAddr gets the address of the cluster controller. This is needed
+// for creating new topics and other operations.
+func (c *ZKAdminClient) getControllerAddr(
+	ctx context.Context,
+) (string, error) {
+	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", c.bootstrapAddrs[0])
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	broker, err := conn.Controller()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s:%d", broker.Host, broker.Port), nil
 }
 
 func (c *ZKAdminClient) getTopic(

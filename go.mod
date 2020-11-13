@@ -2,6 +2,8 @@ module github.com/segmentio/topicctl
 
 go 1.14
 
+replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
+
 require (
 	github.com/aws/aws-sdk-go v1.20.6
 	github.com/briandowns/spinner v1.11.1
@@ -19,7 +21,7 @@ require (
 	github.com/pierrec/lz4 v2.4.1+incompatible // indirect
 	github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.4.9-0.20201112205445-c383fc9cc856
+	github.com/segmentio/kafka-go v0.4.9-0.20201112214534-cdabf46f2702
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1

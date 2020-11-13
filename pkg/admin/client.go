@@ -24,7 +24,6 @@ type Client interface {
 		name string,
 		detailed bool,
 	) (TopicInfo, error)
-	GetBrokerPartitions(ctx context.Context, names []string) ([]PartitionInfo, error)
 	UpdateTopicConfig(
 		ctx context.Context,
 		name string,
@@ -37,7 +36,6 @@ type Client interface {
 		configEntries []kafka.ConfigEntry,
 		overwrite bool,
 	) ([]string, error)
-	GetControllerAddr(ctx context.Context) (string, error)
 	CreateTopic(
 		ctx context.Context,
 		config kafka.TopicConfig,

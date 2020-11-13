@@ -40,7 +40,7 @@ func TestGetGroups(t *testing.T) {
 	require.Nil(t, err)
 
 	// There could be older groups in here, just ignore them
-	assert.GreaterOrEqual(t, len(groups), 1)
+	assert.GreaterOrEqual(t, len(groups), 5)
 
 	var match bool
 

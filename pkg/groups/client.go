@@ -33,7 +33,6 @@ func (c *Client) GetGroups(
 
 	// Don't immediately fail if err is non-nil; instead, just process and return
 	// whatever results are returned.
-
 	groupCoordinators := []GroupCoordinator{}
 
 	for _, kafkaGroupInfo := range listGroupsResp.Groups {
