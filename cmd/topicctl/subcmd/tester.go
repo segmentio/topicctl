@@ -17,12 +17,14 @@ import (
 )
 
 var testerCmd = &cobra.Command{
-	Use:   "tester",
-	Short: "tester reads or writes test events to a cluster",
-	RunE:  testerRun,
+	Use:     "tester",
+	Short:   "tester reads or writes test events to a cluster",
+	PreRunE: testerPreRun,
+	RunE:    testerRun,
 }
 
 type testerCmdConfig struct {
+	brokerAddr   string
 	mode         string
 	readConsumer string
 	topic        string
@@ -33,6 +35,12 @@ type testerCmdConfig struct {
 var testerConfig testerCmdConfig
 
 func init() {
+	testerCmd.Flags().StringVar(
+		&testerConfig.brokerAddr,
+		"broker-addr",
+		"",
+		"Broker address",
+	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.mode,
 		"mode",
@@ -69,6 +77,13 @@ func init() {
 	RootCmd.AddCommand(testerCmd)
 }
 
+func testerPreRun(cmd *cobra.Command, args []string) error {
+	if testerConfig.zkAddr == "" && tailConfig.brokerAddr == "" {
+		return errors.New("Must set either broker-addr or zk-addr")
+	}
+	return nil
+}
+
 func testerRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -91,10 +106,15 @@ func testerRun(cmd *cobra.Command, args []string) error {
 }
 
 func runTestReader(ctx context.Context) error {
+	brokerAddr, err := getBrokerAddr(ctx)
+	if err != nil {
+		return err
+	}
+
 	log.Infof(
 		"This will read test messages from the '%s' topic in %s using the consumer group ID '%s'",
 		testerConfig.topic,
-		testerConfig.zkAddr,
+		brokerAddr,
 		testerConfig.readConsumer,
 	)
 
@@ -103,19 +123,9 @@ func runTestReader(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	adminClient, err := admin.NewZKAdminClient(
-		ctx,
-		admin.ZKAdminClientConfig{
-			ZKAddrs: []string{testerConfig.zkAddr},
-		},
-	)
-	if err != nil {
-		return err
-	}
-
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:     adminClient.GetBootstrapAddrs(),
+			Brokers:     []string{brokerAddr},
 			GroupID:     testerConfig.readConsumer,
 			Topic:       testerConfig.topic,
 			MinBytes:    10e3, // 10KB
@@ -142,10 +152,15 @@ func runTestReader(ctx context.Context) error {
 }
 
 func runTestWriter(ctx context.Context) error {
+	brokerAddr, err := getBrokerAddr(ctx)
+	if err != nil {
+		return err
+	}
+
 	log.Infof(
 		"This will write test messages to the '%s' topic in %s at a rate of %d/sec.",
 		testerConfig.topic,
-		testerConfig.zkAddr,
+		brokerAddr,
 		testerConfig.writeRate,
 	)
 
@@ -154,19 +169,9 @@ func runTestWriter(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	adminClient, err := admin.NewZKAdminClient(
-		ctx,
-		admin.ZKAdminClientConfig{
-			ZKAddrs: []string{testerConfig.zkAddr},
-		},
-	)
-	if err != nil {
-		return err
-	}
-
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:       adminClient.GetBootstrapAddrs(),
+			Brokers:       []string{brokerAddr},
 			Topic:         testerConfig.topic,
 			Balancer:      &kafka.LeastBytes{},
 			Async:         true,
@@ -202,5 +207,22 @@ func runTestWriter(ctx context.Context) error {
 		case <-logTicker.C:
 			log.Infof("%d messages sent", index)
 		}
+	}
+}
+
+func getBrokerAddr(ctx context.Context) (string, error) {
+	if testerConfig.brokerAddr == "" {
+		adminClient, err := admin.NewZKAdminClient(
+			ctx,
+			admin.ZKAdminClientConfig{
+				ZKAddrs: []string{testerConfig.zkAddr},
+			},
+		)
+		if err != nil {
+			return "", err
+		}
+		return adminClient.GetBootstrapAddrs()[0], nil
+	} else {
+		return testerConfig.brokerAddr, nil
 	}
 }

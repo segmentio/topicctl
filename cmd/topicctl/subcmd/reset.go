@@ -24,6 +24,7 @@ var resetOffsetsCmd = &cobra.Command{
 }
 
 type resetOffsetsCmdConfig struct {
+	brokerAddr    string
 	clusterConfig string
 	offset        int64
 	partitions    []int
@@ -34,6 +35,12 @@ type resetOffsetsCmdConfig struct {
 var resetOffsetsConfig resetOffsetsCmdConfig
 
 func init() {
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.brokerAddr,
+		"broker-addr",
+		"",
+		"Broker address",
+	)
 	resetOffsetsCmd.Flags().StringVar(
 		&resetOffsetsConfig.clusterConfig,
 		"cluster-config",
@@ -70,12 +77,14 @@ func init() {
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	if resetOffsetsConfig.clusterConfig == "" && resetOffsetsConfig.zkAddr == "" {
-		return errors.New("Must set either cluster-config or zk address")
+	if resetOffsetsConfig.clusterConfig == "" && resetOffsetsConfig.zkAddr == "" &&
+		resetOffsetsConfig.brokerAddr == "" {
+		return errors.New("Must set either broker-addr, cluster-config, or zk-addr")
 	}
 	if resetOffsetsConfig.clusterConfig != "" &&
-		(resetOffsetsConfig.zkAddr != "" || resetOffsetsConfig.zkPrefix != "") {
-		log.Warn("zk-addr and zk-prefix flags are ignored when using cluster-config")
+		(resetOffsetsConfig.zkAddr != "" || resetOffsetsConfig.zkPrefix != "" ||
+			resetOffsetsConfig.brokerAddr != "") {
+		log.Warn("broker and zk flags are ignored when using cluster-config")
 	}
 
 	return nil
@@ -94,6 +103,8 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
+	} else if resetOffsetsConfig.brokerAddr != "" {
+		adminClient = admin.NewBrokerAdminClient(resetOffsetsConfig.brokerAddr, true)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,

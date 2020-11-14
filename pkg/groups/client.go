@@ -3,6 +3,7 @@ package groups
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/segmentio/kafka-go"
@@ -57,20 +58,25 @@ func (c *Client) GetGroupDetails(
 	ctx context.Context,
 	groupID string,
 ) (*GroupDetails, error) {
-	describeGroupResponse, err := c.client.DescribeGroup(
+	describeGroupsResponse, err := c.client.DescribeGroup(
 		ctx,
-		kafka.DescribeGroupRequest{GroupID: groupID},
+		kafka.DescribeGroupsRequest{GroupIDs: []string{groupID}},
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	if len(describeGroupsResponse.Groups) != 1 {
+		return nil, fmt.Errorf("Unexpected response length from describeGroups")
+	}
+	group := describeGroupsResponse.Groups[0]
+
 	groupDetails := GroupDetails{
-		GroupID: describeGroupResponse.GroupID,
-		State:   describeGroupResponse.GroupState,
+		GroupID: group.GroupID,
+		State:   group.GroupState,
 		Members: []MemberInfo{},
 	}
-	for _, kafkaMember := range describeGroupResponse.Members {
+	for _, kafkaMember := range group.Members {
 		member := MemberInfo{
 			MemberID:        kafkaMember.MemberID,
 			ClientID:        kafkaMember.ClientID,

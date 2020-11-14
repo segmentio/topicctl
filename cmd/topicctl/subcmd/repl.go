@@ -21,6 +21,7 @@ var replCmd = &cobra.Command{
 }
 
 type replCmdConfig struct {
+	brokerAddr    string
 	clusterConfig string
 	zkAddr        string
 	zkPrefix      string
@@ -29,6 +30,12 @@ type replCmdConfig struct {
 var replConfig replCmdConfig
 
 func init() {
+	replCmd.Flags().StringVar(
+		&replConfig.brokerAddr,
+		"broker-addr",
+		"",
+		"Broker address",
+	)
 	replCmd.Flags().StringVar(
 		&replConfig.clusterConfig,
 		"cluster-config",
@@ -53,12 +60,13 @@ func init() {
 }
 
 func replPreRun(cmd *cobra.Command, args []string) error {
-	if replConfig.clusterConfig == "" && replConfig.zkAddr == "" {
-		return errors.New("Must set either cluster-config or zk address")
+	if replConfig.clusterConfig == "" && replConfig.zkAddr == "" &&
+		replConfig.brokerAddr == "" {
+		return errors.New("Must set either broker-addr, cluster-config, or zk-addr")
 	}
 	if replConfig.clusterConfig != "" &&
-		(replConfig.zkAddr != "" || replConfig.zkPrefix != "") {
-		log.Warn("zk-addr and zk-prefix flags are ignored when using cluster-config")
+		(replConfig.zkAddr != "" || replConfig.zkPrefix != "" || replConfig.brokerAddr != "") {
+		log.Warn("broker and zk flags are ignored when using cluster-config")
 	}
 
 	return nil
@@ -77,6 +85,8 @@ func replRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
+	} else if replConfig.brokerAddr != "" {
+		adminClient = admin.NewBrokerAdminClient(replConfig.brokerAddr, true)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,

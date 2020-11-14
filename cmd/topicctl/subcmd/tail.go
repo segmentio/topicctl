@@ -25,6 +25,7 @@ var tailCmd = &cobra.Command{
 }
 
 type tailCmdConfig struct {
+	brokerAddr    string
 	clusterConfig string
 	offset        int64
 	partitions    []int
@@ -36,6 +37,12 @@ type tailCmdConfig struct {
 var tailConfig tailCmdConfig
 
 func init() {
+	tailCmd.Flags().StringVar(
+		&tailConfig.brokerAddr,
+		"broker-addr",
+		"",
+		"Broker address",
+	)
 	tailCmd.Flags().StringVar(
 		&tailConfig.clusterConfig,
 		"cluster-config",
@@ -83,12 +90,14 @@ func tailPreRun(cmd *cobra.Command, args []string) error {
 		log.SetLevel(log.ErrorLevel)
 	}
 
-	if tailConfig.clusterConfig == "" && tailConfig.zkAddr == "" {
-		return errors.New("Must set either cluster-config or zk address")
+	if tailConfig.clusterConfig == "" && tailConfig.zkAddr == "" &&
+		tailConfig.brokerAddr == "" {
+		return errors.New("Must set either broker-addr, cluster-config, or zk-addr")
 	}
 	if tailConfig.clusterConfig != "" &&
-		(tailConfig.zkAddr != "" || tailConfig.zkPrefix != "") {
-		log.Warn("zk-addr and zk-prefix flags are ignored when using cluster-config")
+		(tailConfig.zkAddr != "" || tailConfig.zkPrefix != "" ||
+			tailConfig.brokerAddr != "") {
+		log.Warn("broker and zk flags are ignored when using cluster-config")
 	}
 
 	return nil
@@ -114,6 +123,8 @@ func tailRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
+	} else if tailConfig.brokerAddr != "" {
+		adminClient = admin.NewBrokerAdminClient(tailConfig.brokerAddr, true)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,
