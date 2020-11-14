@@ -1,3 +1,9 @@
+# By default, this docker-compose setup uses Kafka 0.10.2. This version can
+# be overwritten by setting the KAFKA_IMAGE_TAG environment variable. For instance,
+# to bring up a 2.4.1 cluster, run:
+#
+# KAFKA_IMAGE_TAG="2.12-2.4.1" docker-compose up -d
+#
 version: '2.1'
 services:
   zookeeper:

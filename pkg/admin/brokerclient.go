@@ -41,7 +41,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	[]BrokerInfo,
 	error,
 ) {
-	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	metadataResp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,10 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 		idsMap[id] = struct{}{}
 	}
 
-	for _, broker := range resp.Brokers {
+	brokerIDs := []int{}
+	brokerIDIndices := map[int]int{}
+
+	for b, broker := range metadataResp.Brokers {
 		if _, ok := idsMap[broker.ID]; !ok && len(idsMap) > 0 {
 			continue
 		}
@@ -66,6 +69,23 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 				Rack: broker.Rack,
 			},
 		)
+		brokerIDs = append(brokerIDs, broker.ID)
+		brokerIDIndices[broker.ID] = b
+	}
+
+	configsResp, err := c.client.DescribeConfigs(
+		ctx,
+		kafka.DescribeConfigsRequest{
+			Brokers: brokerIDs,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, broker := range configsResp.Brokers {
+		index := brokerIDIndices[broker.BrokerID]
+		brokerInfos[index].Config = broker.Configs
 	}
 
 	return brokerInfos, nil
@@ -92,14 +112,27 @@ func (c *BrokerAdminClient) GetTopics(
 	names []string,
 	detailed bool,
 ) ([]TopicInfo, error) {
-	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	var topicNames []string
+
+	if len(names) > 0 {
+		topicNames = names
+	}
+
+	metadataResp, err := c.client.Metadata(
+		ctx,
+		&kafka.MetadataRequest{
+			Topics: topicNames,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	topicInfos := []TopicInfo{}
+	allTopicNames := []string{}
+	topicNameToIndex := map[string]int{}
 
-	for _, topic := range resp.Topics {
+	for t, topic := range metadataResp.Topics {
 		partitionInfos := []PartitionInfo{}
 
 		for _, partition := range topic.Partitions {
@@ -122,6 +155,23 @@ func (c *BrokerAdminClient) GetTopics(
 				Partitions: partitionInfos,
 			},
 		)
+		allTopicNames = append(allTopicNames, topic.Name)
+		topicNameToIndex[topic.Name] = t
+	}
+
+	configsResp, err := c.client.DescribeConfigs(
+		ctx,
+		kafka.DescribeConfigsRequest{
+			Topics: allTopicNames,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, topic := range configsResp.Topics {
+		index := topicNameToIndex[topic.Topic]
+		topicInfos[index].Config = topic.Configs
 	}
 
 	return topicInfos, nil
@@ -178,20 +228,29 @@ func (c *BrokerAdminClient) GetTopic(
 	}, nil
 }
 
-func (c *BrokerAdminClient) GetBrokerPartitions(ctx context.Context, names []string) (
-	[]PartitionInfo,
-	error,
-) {
-	return nil, nil
-}
-
 func (c *BrokerAdminClient) UpdateTopicConfig(
 	ctx context.Context,
 	name string,
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	return nil, nil
+	_, err := c.client.AlterTopicConfigs(
+		ctx,
+		kafka.AlterTopicConfigsRequest{
+			Topic:         name,
+			ConfigEntries: configEntries,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	updated := []string{}
+	for _, entry := range configEntries {
+		updated = append(updated, entry.ConfigName)
+	}
+
+	return updated, nil
 }
 
 func (c *BrokerAdminClient) UpdateBrokerConfig(
@@ -200,7 +259,23 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	return nil, nil
+	_, err := c.client.AlterBrokerConfigs(
+		ctx,
+		kafka.AlterBrokerConfigsRequest{
+			BrokerID:      id,
+			ConfigEntries: configEntries,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	updated := []string{}
+	for _, entry := range configEntries {
+		updated = append(updated, entry.ConfigName)
+	}
+
+	return updated, nil
 }
 
 func (c *BrokerAdminClient) CreateTopic(
@@ -241,7 +316,19 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	topic string,
 	partitions []int,
 ) error {
-	return nil
+	partitionsInt32 := []int32{}
+	for _, partition := range partitions {
+		partitionsInt32 = append(partitionsInt32, int32(partition))
+	}
+
+	_, err := c.client.ElectLeaders(
+		ctx,
+		kafka.ElectLeadersRequest{
+			Topic:      topic,
+			Partitions: partitionsInt32,
+		},
+	)
+	return err
 }
 
 func (c *BrokerAdminClient) AcquireLock(ctx context.Context, path string) (
