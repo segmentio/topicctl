@@ -217,9 +217,14 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 			},
 			{
 				ID:       4,
-				Replicas: []int{3, 5},
+				Replicas: []int{6, 1},
 			},
 		},
 	)
 	require.NoError(t, err)
+	time.Sleep(2 * time.Second)
+
+	topicInfo, err := client.GetTopic(ctx, topicName, true)
+	require.NoError(t, err)
+	require.Equal(t, 5, len(topicInfo.Partitions))
 }

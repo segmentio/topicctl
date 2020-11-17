@@ -7,6 +7,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/zk"
+	log "github.com/sirupsen/logrus"
 )
 
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
@@ -213,7 +214,6 @@ func (c *BrokerAdminClient) GetTopic(
 		return TopicInfo{},
 			fmt.Errorf("Unexpected topic length response: %d", len(resp.Topics))
 	}
-
 	topic := resp.Topics[0]
 
 	partitionInfos := []PartitionInfo{}
@@ -331,6 +331,11 @@ func (c *BrokerAdminClient) AddPartitions(
 	topic string,
 	newAssignments []PartitionAssignment,
 ) error {
+	topicInfo, err := c.GetTopic(ctx, topic, false)
+	if err != nil {
+		return err
+	}
+
 	partitions := []kafka.CreatePartitionsRequestPartition{}
 	for _, newAssignment := range newAssignments {
 		replicas := []int32{}
@@ -346,13 +351,16 @@ func (c *BrokerAdminClient) AddPartitions(
 		)
 	}
 
-	_, err := c.client.CreatePartitions(
+	resp, err := c.client.CreatePartitions(
 		ctx,
 		kafka.CreatePartitionsRequest{
 			Topic:         topic,
 			NewPartitions: partitions,
+			TotalCount:    int32(len(partitions) + len(topicInfo.Partitions)),
 		},
 	)
+	log.Infof("Create partitions response: %+v", resp)
+
 	return err
 }
 
