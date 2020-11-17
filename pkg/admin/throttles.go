@@ -247,7 +247,6 @@ func ParseBrokerThrottles(brokers []BrokerInfo) (
 				},
 			)
 		}
-
 	}
 
 	return leaderThrottles, followerThrottles, nil

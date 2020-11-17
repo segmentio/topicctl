@@ -41,7 +41,12 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	[]BrokerInfo,
 	error,
 ) {
-	metadataResp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	metadataResp, err := c.client.Metadata(
+		ctx,
+		&kafka.MetadataRequest{
+			Topics: []string{},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +97,11 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 }
 
 func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
-	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	resp, err := c.client.Metadata(
+		ctx, &kafka.MetadataRequest{
+			Topics: []string{},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -222,9 +231,23 @@ func (c *BrokerAdminClient) GetTopic(
 		)
 	}
 
+	configsResp, err := c.client.DescribeConfigs(
+		ctx,
+		kafka.DescribeConfigsRequest{
+			Topics: []string{name},
+		},
+	)
+	if err != nil {
+		return TopicInfo{}, err
+	}
+	if len(configsResp.Topics) != 1 {
+		return TopicInfo{}, fmt.Errorf("No config info found")
+	}
+
 	return TopicInfo{
 		Name:       topic.Name,
 		Partitions: partitionInfos,
+		Config:     configsResp.Topics[0].Configs,
 	}, nil
 }
 
@@ -308,7 +331,29 @@ func (c *BrokerAdminClient) AddPartitions(
 	topic string,
 	newAssignments []PartitionAssignment,
 ) error {
-	return nil
+	partitions := []kafka.CreatePartitionsRequestPartition{}
+	for _, newAssignment := range newAssignments {
+		replicas := []int32{}
+		for _, replica := range newAssignment.Replicas {
+			replicas = append(replicas, int32(replica))
+		}
+
+		partitions = append(
+			partitions,
+			kafka.CreatePartitionsRequestPartition{
+				BrokerIDs: replicas,
+			},
+		)
+	}
+
+	_, err := c.client.CreatePartitions(
+		ctx,
+		kafka.CreatePartitionsRequest{
+			Topic:         topic,
+			NewPartitions: partitions,
+		},
+	)
+	return err
 }
 
 func (c *BrokerAdminClient) RunLeaderElection(

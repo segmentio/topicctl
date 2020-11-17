@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetClusterID(t *testing.T) {
+func TestZkClientGetClusterID(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -76,7 +76,7 @@ func TestGetClusterID(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-func TestGetBrokers(t *testing.T) {
+func TestZkClientGetBrokers(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -184,7 +184,7 @@ func TestGetBrokers(t *testing.T) {
 	)
 }
 
-func TestGetTopics(t *testing.T) {
+func TestZkClientGetTopics(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -421,7 +421,7 @@ func TestGetTopics(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestUpdateTopicConfig(t *testing.T) {
+func TestZkClientUpdateTopicConfig(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -567,7 +567,7 @@ func TestUpdateTopicConfig(t *testing.T) {
 	)
 }
 
-func TestUpdateBrokerConfig(t *testing.T) {
+func TestZkClientUpdateBrokerConfig(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -694,7 +694,7 @@ func TestUpdateBrokerConfig(t *testing.T) {
 	)
 }
 
-func TestCreateTopic(t *testing.T) {
+func TestZkClientCreateTopic(t *testing.T) {
 	ctx := context.Background()
 	adminClient, err := NewZKAdminClient(
 		ctx,
@@ -725,7 +725,7 @@ func TestCreateTopic(t *testing.T) {
 	assert.Equal(t, topicName, topics[0].Name)
 }
 
-func TestUpdateAssignments(t *testing.T) {
+func TestZkClientUpdateAssignments(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -805,7 +805,7 @@ func TestUpdateAssignments(t *testing.T) {
 	assert.True(t, exists)
 }
 
-func TestAddPartitions(t *testing.T) {
+func TestZkClientAddPartitions(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -938,7 +938,7 @@ func TestAddPartitions(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-func TestRunLeaderElection(t *testing.T) {
+func TestZkClientRunLeaderElection(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
@@ -1010,7 +1010,7 @@ func TestRunLeaderElection(t *testing.T) {
 	assert.True(t, exists)
 }
 
-func testLocking(t *testing.T) {
+func TestZkClientLocking(t *testing.T) {
 	ctx := context.Background()
 	adminClient, err := NewZKAdminClient(
 		ctx,
