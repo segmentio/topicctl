@@ -35,7 +35,7 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 			ReplicaAssignments: []kafka.ReplicaAssignment{
 				{
 					Partition: 0,
-					Replicas:  []int{0, 1},
+					Replicas:  []int{1, 2},
 				},
 				{
 					Partition: 1,
@@ -271,4 +271,111 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 
 	assert.Equal(t, []int{3, 4}, topicInfo.Partitions[3].Replicas)
 	assert.Equal(t, []int{6, 1}, topicInfo.Partitions[4].Replicas)
+}
+
+func TestBrokerClientAlterAssignments(t *testing.T) {
+	ctx := context.Background()
+	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	topicName := util.RandomString("topic-alter-assignments-", 6)
+
+	err := client.CreateTopic(
+		ctx,
+		kafka.TopicConfig{
+			Topic:             topicName,
+			NumPartitions:     -1,
+			ReplicationFactor: -1,
+			ReplicaAssignments: []kafka.ReplicaAssignment{
+				{
+					Partition: 0,
+					Replicas:  []int{1, 2},
+				},
+				{
+					Partition: 1,
+					Replicas:  []int{2, 3},
+				},
+				{
+					Partition: 2,
+					Replicas:  []int{3, 4},
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+	util.RetryUntil(t, 5*time.Second, func() error {
+		_, err := client.GetTopic(ctx, topicName, true)
+		return err
+	})
+
+	err = client.AssignPartitions(
+		ctx,
+		topicName,
+		[]PartitionAssignment{
+			{
+				ID:       1,
+				Replicas: []int{2, 5},
+			},
+			{
+				ID:       2,
+				Replicas: []int{5, 1},
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	var topicInfo TopicInfo
+
+	util.RetryUntil(t, 5*time.Second, func() error {
+		topicInfo, err = client.GetTopic(ctx, topicName, true)
+		require.NoError(t, err)
+
+		if topicInfo.Partitions[2].Replicas[0] != 5 {
+			return fmt.Errorf("Assign partitions change not reflected yet")
+		}
+
+		return nil
+	})
+
+	assert.Equal(
+		t,
+		[]int{1, 2},
+		topicInfo.Partitions[0].Replicas,
+	)
+	assert.Equal(
+		t,
+		[]int{2, 5},
+		topicInfo.Partitions[1].Replicas,
+	)
+	assert.Equal(
+		t,
+		[]int{5, 1},
+		topicInfo.Partitions[2].Replicas,
+	)
+}
+
+func TestBrokerClientRunLeaderElection(t *testing.T) {
+	ctx := context.Background()
+	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	topicName := util.RandomString("topic-leader-election-", 6)
+
+	err := client.CreateTopic(
+		ctx,
+		kafka.TopicConfig{
+			Topic:             topicName,
+			NumPartitions:     3,
+			ReplicationFactor: 2,
+		},
+	)
+	require.NoError(t, err)
+
+	util.RetryUntil(t, 5*time.Second, func() error {
+		_, err := client.GetTopic(ctx, topicName, true)
+		return err
+	})
+
+	err = client.RunLeaderElection(
+		ctx,
+		topicName,
+		[]int{1, 2},
+	)
+	require.NoError(t, err)
 }

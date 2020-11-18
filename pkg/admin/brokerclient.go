@@ -4,10 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/zk"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	defaultTimeout = 5 * time.Second
 )
 
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
@@ -31,7 +36,7 @@ func NewBrokerAdminClient(brokerAddr string, readOnly bool) *BrokerAdminClient {
 }
 
 func (c *BrokerAdminClient) GetClusterID(ctx context.Context) (string, error) {
-	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	resp, err := c.getMetadata(ctx, nil)
 	if err != nil {
 		return "", err
 	}
@@ -42,12 +47,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	[]BrokerInfo,
 	error,
 ) {
-	metadataResp, err := c.client.Metadata(
-		ctx,
-		&kafka.MetadataRequest{
-			Topics: []string{},
-		},
-	)
+	metadataResp, err := c.getMetadata(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -79,12 +79,14 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 		brokerIDIndices[broker.ID] = b
 	}
 
-	configsResp, err := c.client.DescribeConfigs(
-		ctx,
-		kafka.DescribeConfigsRequest{
-			Brokers: brokerIDs,
-		},
-	)
+	configsReq := kafka.DescribeConfigsRequest{
+		Brokers:         brokerIDs,
+		IncludeDefaults: false,
+	}
+	log.Debugf("DescribeConfigs request: %+v", configsReq)
+
+	configsResp, err := c.client.DescribeConfigs(ctx, configsReq)
+	log.Debugf("DescribeConfigs response: %+v (%+v)", configsResp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -98,14 +100,11 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 }
 
 func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
-	resp, err := c.client.Metadata(
-		ctx, &kafka.MetadataRequest{
-			Topics: []string{},
-		},
-	)
+	resp, err := c.getMetadata(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	brokerIDs := []int{}
 	for _, broker := range resp.Brokers {
 		brokerIDs = append(brokerIDs, broker.ID)
@@ -123,23 +122,17 @@ func (c *BrokerAdminClient) GetTopics(
 	detailed bool,
 ) ([]TopicInfo, error) {
 	var topicNames []string
-
 	if len(names) > 0 {
 		topicNames = names
 	}
 
-	metadataResp, err := c.client.Metadata(
-		ctx,
-		&kafka.MetadataRequest{
-			Topics: topicNames,
-		},
-	)
+	metadataResp, err := c.getMetadata(ctx, topicNames)
 	if err != nil {
 		return nil, err
 	}
 
 	topicInfos := []TopicInfo{}
-	allTopicNames := []string{}
+	topicInfoNames := []string{}
 	topicNameToIndex := map[string]int{}
 
 	for t, topic := range metadataResp.Topics {
@@ -165,16 +158,18 @@ func (c *BrokerAdminClient) GetTopics(
 				Partitions: partitionInfos,
 			},
 		)
-		allTopicNames = append(allTopicNames, topic.Name)
+		topicInfoNames = append(topicInfoNames, topic.Name)
 		topicNameToIndex[topic.Name] = t
 	}
 
-	configsResp, err := c.client.DescribeConfigs(
-		ctx,
-		kafka.DescribeConfigsRequest{
-			Topics: allTopicNames,
-		},
-	)
+	configsReq := kafka.DescribeConfigsRequest{
+		Topics:          topicInfoNames,
+		IncludeDefaults: false,
+	}
+	log.Debugf("DescribeConfigs request: %+v", configsReq)
+
+	configsResp, err := c.client.DescribeConfigs(ctx, configsReq)
+	log.Debugf("DescribeConfigs response: %+v (%+v)", configsResp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -188,14 +183,14 @@ func (c *BrokerAdminClient) GetTopics(
 }
 
 func (c *BrokerAdminClient) GetTopicNames(ctx context.Context) ([]string, error) {
-	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{})
+	topicInfos, err := c.GetTopics(ctx, nil, false)
 	if err != nil {
 		return nil, err
 	}
 
 	topicNames := []string{}
-	for _, topic := range resp.Topics {
-		topicNames = append(topicNames, topic.Name)
+	for _, topicInfo := range topicInfos {
+		topicNames = append(topicNames, topicInfo.Name)
 	}
 	return topicNames, nil
 }
@@ -205,50 +200,19 @@ func (c *BrokerAdminClient) GetTopic(
 	name string,
 	detailed bool,
 ) (TopicInfo, error) {
-	resp, err := c.client.Metadata(ctx, &kafka.MetadataRequest{Topics: []string{name}})
-	if err != nil {
-		return TopicInfo{}, err
-	}
-
-	if len(resp.Topics) != 1 {
-		return TopicInfo{},
-			fmt.Errorf("Unexpected topic length response: %d", len(resp.Topics))
-	}
-	topic := resp.Topics[0]
-
-	partitionInfos := []PartitionInfo{}
-
-	for _, partition := range topic.Partitions {
-		partitionInfos = append(
-			partitionInfos,
-			PartitionInfo{
-				Topic:    topic.Name,
-				ID:       partition.ID,
-				Leader:   partition.Leader.ID,
-				Replicas: brokerIDs(partition.Replicas),
-				ISR:      brokerIDs(partition.Isr),
-			},
-		)
-	}
-
-	configsResp, err := c.client.DescribeConfigs(
+	topicInfos, err := c.GetTopics(
 		ctx,
-		kafka.DescribeConfigsRequest{
-			Topics: []string{name},
-		},
+		[]string{name},
+		detailed,
 	)
 	if err != nil {
 		return TopicInfo{}, err
 	}
-	if len(configsResp.Topics) != 1 {
-		return TopicInfo{}, fmt.Errorf("No config info found")
+	if len(topicInfos) != 1 {
+		return TopicInfo{},
+			fmt.Errorf("Unexpected number of topics returned: %+v", len(topicInfos))
 	}
-
-	return TopicInfo{
-		Name:       topic.Name,
-		Partitions: partitionInfos,
-		Config:     configsResp.Topics[0].Configs,
-	}, nil
+	return topicInfos[0], nil
 }
 
 func (c *BrokerAdminClient) UpdateTopicConfig(
@@ -257,13 +221,19 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	_, err := c.client.AlterTopicConfigs(
-		ctx,
-		kafka.AlterTopicConfigsRequest{
-			Topic:         name,
-			ConfigEntries: configEntries,
-		},
-	)
+	if c.readOnly {
+		return nil, errors.New("Cannot update topic config read-only mode")
+	}
+
+	req := kafka.AlterTopicConfigsRequest{
+		Topic:         name,
+		ConfigEntries: configEntries,
+	}
+	log.Debugf("AlterTopicConfigs request: %+v", req)
+
+	// TODO: Handle case where overwrite is false.
+	resp, err := c.client.AlterTopicConfigs(ctx, req)
+	log.Debugf("AlterTopicConfigs response: %+v (%+v)", resp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -282,13 +252,19 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	_, err := c.client.AlterBrokerConfigs(
-		ctx,
-		kafka.AlterBrokerConfigsRequest{
-			BrokerID:      id,
-			ConfigEntries: configEntries,
-		},
-	)
+	if c.readOnly {
+		return nil, errors.New("Cannot update broker config read-only mode")
+	}
+
+	req := kafka.AlterBrokerConfigsRequest{
+		BrokerID:      id,
+		ConfigEntries: configEntries,
+	}
+	log.Debugf("AlterBrokerConfigs request: %+v", req)
+
+	// TODO: Handle case where overwrite is false.
+	resp, err := c.client.AlterBrokerConfigs(ctx, req)
+	log.Debugf("AlterBrokerConfigs response: %+v (%+v)", resp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -309,12 +285,13 @@ func (c *BrokerAdminClient) CreateTopic(
 		return errors.New("Cannot create topic in read-only mode")
 	}
 
-	_, err := c.client.CreateTopics(
-		ctx,
-		&kafka.CreateTopicsRequest{
-			Topics: []kafka.TopicConfig{config},
-		},
-	)
+	req := kafka.CreateTopicsRequest{
+		Topics: []kafka.TopicConfig{config},
+	}
+	log.Debugf("CreateTopics request: %+v", req)
+
+	resp, err := c.client.CreateTopics(ctx, &req)
+	log.Debugf("CreateTopics response: %+v (%+v)", resp, err)
 	return err
 }
 
@@ -323,7 +300,35 @@ func (c *BrokerAdminClient) AssignPartitions(
 	topic string,
 	assignments []PartitionAssignment,
 ) error {
-	return nil
+	if c.readOnly {
+		return errors.New("Cannot assign partitions in read-only mode")
+	}
+
+	apiAssignments := []kafka.AlterPartitionReassignmentsRequestAssignment{}
+	for _, assignment := range assignments {
+		replicas := []int32{}
+
+		for _, replica := range assignment.Replicas {
+			replicas = append(replicas, int32(replica))
+		}
+
+		apiAssignment := kafka.AlterPartitionReassignmentsRequestAssignment{
+			PartitionID: int32(assignment.ID),
+			BrokerIDs:   replicas,
+		}
+		apiAssignments = append(apiAssignments, apiAssignment)
+	}
+
+	req := kafka.AlterPartitionReassignmentsRequest{
+		Topic:       topic,
+		Assignments: apiAssignments,
+		Timeout:     defaultTimeout,
+	}
+	log.Debugf("AlterPartitionReassignments request: %+v", req)
+
+	resp, err := c.client.AlterPartitionReassignments(ctx, req)
+	log.Debugf("AlterPartitionReassignments response: %+v (%+v)", resp, err)
+	return err
 }
 
 func (c *BrokerAdminClient) AddPartitions(
@@ -331,6 +336,10 @@ func (c *BrokerAdminClient) AddPartitions(
 	topic string,
 	newAssignments []PartitionAssignment,
 ) error {
+	if c.readOnly {
+		return errors.New("Cannot add partitions in read-only mode")
+	}
+
 	topicInfo, err := c.GetTopic(ctx, topic, false)
 	if err != nil {
 		return err
@@ -351,15 +360,16 @@ func (c *BrokerAdminClient) AddPartitions(
 		)
 	}
 
-	resp, err := c.client.CreatePartitions(
-		ctx,
-		kafka.CreatePartitionsRequest{
-			Topic:         topic,
-			NewPartitions: partitions,
-			TotalCount:    int32(len(partitions) + len(topicInfo.Partitions)),
-		},
-	)
-	log.Infof("Create partitions response: %+v", resp)
+	req := kafka.CreatePartitionsRequest{
+		Topic:         topic,
+		NewPartitions: partitions,
+		TotalCount:    int32(len(partitions) + len(topicInfo.Partitions)),
+		Timeout:       defaultTimeout,
+	}
+	log.Debugf("CreatePartitions request: %+v", req)
+
+	resp, err := c.client.CreatePartitions(ctx, req)
+	log.Debugf("CreatePartitions response: %+v (%+v)", resp, err)
 
 	return err
 }
@@ -369,18 +379,25 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	topic string,
 	partitions []int,
 ) error {
+	if c.readOnly {
+		return errors.New("Cannot run leader election in read-only mode")
+	}
+
 	partitionsInt32 := []int32{}
 	for _, partition := range partitions {
 		partitionsInt32 = append(partitionsInt32, int32(partition))
 	}
 
-	_, err := c.client.ElectLeaders(
-		ctx,
-		kafka.ElectLeadersRequest{
-			Topic:      topic,
-			Partitions: partitionsInt32,
-		},
-	)
+	req := kafka.ElectLeadersRequest{
+		Topic:      topic,
+		Partitions: partitionsInt32,
+		Timeout:    defaultTimeout,
+	}
+	log.Debugf("ElectLeaders request: %+v", req)
+
+	resp, err := c.client.ElectLeaders(ctx, req)
+	log.Debugf("ElectLeaders response: %+v (%+v)", resp, err)
+
 	return err
 }
 
@@ -388,15 +405,31 @@ func (c *BrokerAdminClient) AcquireLock(ctx context.Context, path string) (
 	zk.Lock,
 	error,
 ) {
+	// Not implemented since we don't have access to zookeeper.
 	return nil, nil
 }
 
 func (c *BrokerAdminClient) LockHeld(ctx context.Context, path string) (bool, error) {
+	// Not implemented since we don't have access to zookeeper.
 	return false, nil
 }
 
 func (c *BrokerAdminClient) Close() error {
 	return nil
+}
+
+func (c *BrokerAdminClient) getMetadata(
+	ctx context.Context,
+	topics []string,
+) (*kafka.MetadataResponse, error) {
+	req := kafka.MetadataRequest{
+		Topics: topics,
+	}
+	log.Debugf("Metadata request: %+v", req)
+	resp, err := c.client.Metadata(ctx, &req)
+	log.Debugf("Metadata response: %+v (%+v)", resp, err)
+
+	return resp, err
 }
 
 func brokerIDs(brokers []kafka.Broker) []int {
