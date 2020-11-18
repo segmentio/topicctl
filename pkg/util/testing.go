@@ -78,3 +78,21 @@ func RandomString(prefix string, length int) string {
 	}
 	return fmt.Sprintf("%s-%s", prefix, string(b))
 }
+
+func RetryUntil(t *testing.T, timeout time.Duration, f func() error) {
+	sleepTime := 100 * time.Millisecond
+	end := time.Now().Add(timeout)
+	var err error
+
+	for time.Now().Before(end) {
+		time.Sleep(sleepTime)
+		sleepTime = sleepTime * 2
+
+		err = f()
+		if err == nil {
+			return
+		}
+	}
+
+	require.NoError(t, err)
+}

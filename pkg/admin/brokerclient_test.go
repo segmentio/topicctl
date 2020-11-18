@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestBrokerClientGetClusterID(t *testing.T) {
+	ctx := context.Background()
+	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+
+	clusterID, err := client.GetClusterID(ctx)
+	require.Nil(t, err)
+	require.NotEqual(t, "", clusterID)
+}
 
 func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 	ctx := context.Background()
@@ -49,6 +59,10 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
+	util.RetryUntil(t, 5*time.Second, func() error {
+		_, err := client.GetTopic(ctx, topicName, true)
+		return err
+	})
 
 	topicInfo, err := client.GetTopic(ctx, topicName, true)
 	require.NoError(t, err)
@@ -144,10 +158,16 @@ func TestBrokerClientBrokers(t *testing.T) {
 				ConfigName:  "leader.replication.throttled.rate",
 				ConfigValue: "21000000",
 			},
+			{
+				ConfigName:  "log.cleaner.io.buffer.load.factor",
+				ConfigValue: "0.7",
+			},
 		},
 		true,
 	)
 	require.NoError(t, err)
+
+	// TODO: Replace this with some sort of retry until.
 	time.Sleep(time.Second)
 
 	brokerInfos, err = client.GetBrokers(ctx, nil)
@@ -160,6 +180,7 @@ func TestBrokerClientBrokers(t *testing.T) {
 				t,
 				map[string]string{
 					"leader.replication.throttled.rate": "",
+					"log.cleaner.io.buffer.load.factor": "0.7",
 				},
 				brokerInfo.Config,
 			)
@@ -176,10 +197,16 @@ func TestBrokerClientBrokers(t *testing.T) {
 				ConfigName:  "leader.replication.throttled.rate",
 				ConfigValue: "",
 			},
+			{
+				ConfigName:  "log.cleaner.io.buffer.load.factor",
+				ConfigValue: "",
+			},
 		},
 		true,
 	)
 	require.NoError(t, err)
+
+	// TODO: Replace this with some sort of retry until.
 	time.Sleep(time.Second)
 
 	brokerInfos, err = client.GetBrokers(ctx, nil)
@@ -205,7 +232,10 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	time.Sleep(time.Second)
+	util.RetryUntil(t, 5*time.Second, func() error {
+		_, err := client.GetTopic(ctx, topicName, true)
+		return err
+	})
 
 	err = client.AddPartitions(
 		ctx,
@@ -222,9 +252,23 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	time.Sleep(2 * time.Second)
 
-	topicInfo, err := client.GetTopic(ctx, topicName, true)
-	require.NoError(t, err)
-	require.Equal(t, 5, len(topicInfo.Partitions))
+	var topicInfo TopicInfo
+
+	util.RetryUntil(t, 5*time.Second, func() error {
+		topicInfo, err = client.GetTopic(ctx, topicName, true)
+		require.NoError(t, err)
+
+		if len(topicInfo.Partitions) != 5 {
+			return fmt.Errorf(
+				"Expected 5 partitions, got %d",
+				len(topicInfo.Partitions),
+			)
+		}
+
+		return nil
+	})
+
+	assert.Equal(t, []int{3, 4}, topicInfo.Partitions[3].Replicas)
+	assert.Equal(t, []int{6, 1}, topicInfo.Partitions[4].Replicas)
 }
