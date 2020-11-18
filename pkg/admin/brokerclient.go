@@ -432,6 +432,18 @@ func (c *BrokerAdminClient) getMetadata(
 	return resp, err
 }
 
+func (c *BrokerAdminClient) getAPIVersions(ctx context.Context) (
+	*kafka.ApiVersionsResponse,
+	error,
+) {
+	req := kafka.ApiVersionsRequest{}
+	log.Debugf("API versions request: %+v", req)
+	resp, err := c.client.ApiVersions(ctx, req)
+	log.Debugf("API versions response: %+v (%+v)", resp, err)
+
+	return resp, err
+}
+
 func brokerIDs(brokers []kafka.Broker) []int {
 	ids := []int{}
 	for _, broker := range brokers {

@@ -379,3 +379,11 @@ func TestBrokerClientRunLeaderElection(t *testing.T) {
 	)
 	require.NoError(t, err)
 }
+
+func TestBrokerClientGetApiVersions(t *testing.T) {
+	ctx := context.Background()
+	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+
+	_, err := client.getAPIVersions(ctx)
+	require.NoError(t, err)
+}
