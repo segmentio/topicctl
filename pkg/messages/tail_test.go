@@ -27,7 +27,7 @@ func TestTailerGetMessages(t *testing.T) {
 			ReplicationFactor: 1,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	time.Sleep(200 * time.Millisecond)
 
 	writer := kafka.NewWriter(
@@ -52,7 +52,7 @@ func TestTailerGetMessages(t *testing.T) {
 	}
 
 	err = writer.WriteMessages(ctx, messages...)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	tailer := NewTopicTailer(
 		util.TestKafkaAddr(),

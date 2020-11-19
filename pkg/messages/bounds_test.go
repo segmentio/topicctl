@@ -26,7 +26,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 			ReplicationFactor: 1,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	time.Sleep(200 * time.Millisecond)
 
 	writer := kafka.NewWriter(
@@ -51,7 +51,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 	}
 
 	err = writer.WriteMessages(ctx, messages...)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	bounds, err := GetAllPartitionBounds(ctx, util.TestKafkaAddr(), topicName, nil)
 	assert.Nil(t, err)

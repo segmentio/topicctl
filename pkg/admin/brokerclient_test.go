@@ -17,7 +17,7 @@ func TestBrokerClientGetClusterID(t *testing.T) {
 	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
 
 	clusterID, err := client.GetClusterID(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEqual(t, "", clusterID)
 }
 
@@ -101,7 +101,7 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err = client.GetTopic(ctx, topicName, true)
 	require.NoError(t, err)

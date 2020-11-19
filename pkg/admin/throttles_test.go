@@ -293,7 +293,7 @@ func TestParseBrokerThrottles(t *testing.T) {
 		},
 	}
 	leaderThrottles, followerThrottles, err := ParseBrokerThrottles(brokers)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(
 		t,
 		[]BrokerThrottle{
@@ -340,7 +340,7 @@ func TestParsePartitionThrottles(t *testing.T) {
 		},
 	}
 	leaderThrottles, followerThrottles, err := ParsePartitionThrottles(topic)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(
 		t,
 		[]PartitionThrottle{

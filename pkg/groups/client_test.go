@@ -32,12 +32,12 @@ func TestGetGroups(t *testing.T) {
 
 	for i := 0; i < 8; i++ {
 		_, err := reader.ReadMessage(readerCtx)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	client := NewClient(util.TestKafkaAddr())
 	groups, err := client.GetGroups(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// There could be older groups in here, just ignore them
 	assert.GreaterOrEqual(t, len(groups), 1)
@@ -53,7 +53,7 @@ func TestGetGroups(t *testing.T) {
 	require.True(t, match)
 
 	groupDetails, err := client.GetGroupDetails(ctx, groupID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, groupID, groupDetails.GroupID)
 	assert.Equal(t, "Stable", groupDetails.State)
 	assert.Equal(t, 1, len(groupDetails.Members))
@@ -88,12 +88,12 @@ func TestGetLags(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, err := reader.ReadMessage(readerCtx)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	client := NewClient(util.TestKafkaAddr())
 	lags, err := client.GetMemberLags(ctx, topicName, groupID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 2, len(lags))
 
 	for l, lag := range lags {
@@ -123,7 +123,7 @@ func TestResetOffsets(t *testing.T) {
 
 	for i := 0; i < 8; i++ {
 		_, err := reader.ReadMessage(readerCtx)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	client := NewClient(util.TestKafkaAddr())
@@ -136,10 +136,10 @@ func TestResetOffsets(t *testing.T) {
 			1: 1,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	lags, err := client.GetMemberLags(ctx, topicName, groupID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, 2, len(lags))
 	assert.Equal(t, int64(2), lags[0].MemberOffset)
@@ -159,13 +159,14 @@ func createTestTopic(ctx context.Context, t *testing.T) string {
 			ReplicationFactor: 1,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	time.Sleep(200 * time.Millisecond)
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers: []string{util.TestKafkaAddr()},
-			Topic:   topicName,
+			Brokers:   []string{util.TestKafkaAddr()},
+			Topic:     topicName,
+			BatchSize: 10,
 		},
 	)
 	defer writer.Close()
@@ -183,7 +184,7 @@ func createTestTopic(ctx context.Context, t *testing.T) string {
 	}
 
 	err = writer.WriteMessages(ctx, messages...)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	return topicName
 }

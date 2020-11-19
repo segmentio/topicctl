@@ -43,7 +43,7 @@ func TestKafkaAddr() string {
 // TestKafkaConn returns a kafka-go connection for unit testing purposes.
 func TestKafkaConn(ctx context.Context, t *testing.T) *kafka.Conn {
 	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", TestKafkaAddr())
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return conn
 }
 
@@ -54,14 +54,15 @@ func TestKafkaContollerConn(ctx context.Context, t *testing.T) *kafka.Conn {
 	defer conn.Close()
 
 	broker, err := conn.Controller()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	controllerConn, err := kafka.DefaultDialer.DialContext(
 		ctx,
 		"tcp",
 		fmt.Sprintf("%s:%d", broker.Host, broker.Port),
 	)
-	require.Nil(t, err)
+
+	require.NoError(t, err)
 	return controllerConn
 }
 

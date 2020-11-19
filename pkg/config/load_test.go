@@ -44,7 +44,7 @@ func TestLoadTopicsFile(t *testing.T) {
 	topicConfigs, err := LoadTopicsFile("testdata/test-cluster/topics/topic-test.yaml")
 	assert.Equal(t, 1, len(topicConfigs))
 	topicConfig := topicConfigs[0]
-	require.Nil(t, err)
+	require.NoError(t, err)
 	topicConfig.SetDefaults()
 
 	assert.Equal(
@@ -85,7 +85,7 @@ func TestLoadTopicsFile(t *testing.T) {
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-invalid.yaml")
 	assert.Equal(t, 1, len(topicConfigs))
 	topicConfig = topicConfigs[0]
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, topicConfig.Validate(3))
 
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-multi.yaml")

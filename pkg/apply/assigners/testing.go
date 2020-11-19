@@ -29,7 +29,7 @@ func (a assignerTestCase) evaluate(t *testing.T, assigner Assigner) {
 		require.Nil(t, err, a.description)
 
 		replicas, err := admin.AssignmentsToReplicas(desired)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		assert.Nil(t, admin.CheckAssignments(desired), a.description)
 		assert.Equal(
