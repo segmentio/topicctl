@@ -7,7 +7,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/zk"
 )
 
-// Client is an interface for
+// Client is an interface for interacting with a cluster for administrative tasks.
 type Client interface {
 	GetClusterID(ctx context.Context) (string, error)
 	GetBrokers(ctx context.Context, ids []int) ([]BrokerInfo, error)

@@ -149,6 +149,8 @@ github.com/segmentio/kafka-go v0.4.9-0.20201112205445-c383fc9cc856 h1:FA3EMGLAf1
 github.com/segmentio/kafka-go v0.4.9-0.20201112205445-c383fc9cc856/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
 github.com/segmentio/kafka-go v0.4.9-0.20201112214534-cdabf46f2702 h1:yCkIHH1akxRVoJPWivYJ2NywVXTcV0NwKyprIISkmrQ=
 github.com/segmentio/kafka-go v0.4.9-0.20201112214534-cdabf46f2702/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
+github.com/segmentio/kafka-go v0.4.9-0.20201119185034-ed175e9082b6 h1:kkk2CI7olyb+pW4Z9Dj1/utV5tkkdvQkUDkST974niY=
+github.com/segmentio/kafka-go v0.4.9-0.20201119185034-ed175e9082b6/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.2.0 h1:juTguoYk5qI21pwyTXY3B3Y5cOTH3ZUyZCg1v/mihuo=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
