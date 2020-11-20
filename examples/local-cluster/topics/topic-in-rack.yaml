@@ -12,3 +12,4 @@ spec:
   retentionMinutes: 100
   placement:
     strategy: in-rack
+

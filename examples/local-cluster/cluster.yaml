@@ -12,3 +12,4 @@ spec:
   zkAddrs:
     - localhost:2181
   zkLockPath: /topicctl/locks
+  useBrokerAdmin: true
