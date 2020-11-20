@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -182,6 +183,16 @@ func (c *BrokerAdminClient) GetTopics(
 		return nil, err
 	}
 
+	for _, topic := range metadataResp.Topics {
+		if topic.Error != nil {
+			return nil, fmt.Errorf(
+				"Error getting metadata for topic %s: %+v",
+				topic.Name,
+				topic.Error,
+			)
+		}
+	}
+
 	topicInfos := []TopicInfo{}
 	topicInfoNames := []string{}
 	topicNameToIndex := map[string]int{}
@@ -257,7 +268,11 @@ func (c *BrokerAdminClient) GetTopic(
 		detailed,
 	)
 	if err != nil {
-		return TopicInfo{}, err
+		if strings.Contains(err.Error(), "does not exist") {
+			return TopicInfo{}, ErrTopicDoesNotExist
+		} else {
+			return TopicInfo{}, err
+		}
 	}
 	if len(topicInfos) != 1 {
 		return TopicInfo{},

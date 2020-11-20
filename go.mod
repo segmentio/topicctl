@@ -2,7 +2,7 @@ module github.com/segmentio/topicctl
 
 go 1.14
 
-// Use this to use a local kafka-go (useful for testing purposes).
+// Use something like this to use a local kafka-go (useful for testing purposes).
 //replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
 
 require (
@@ -22,7 +22,11 @@ require (
 	github.com/pierrec/lz4 v2.4.1+incompatible // indirect
 	github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
+
+	// This is a draft kafka-go version that is not merged into master of that
+	// repo yet.
 	github.com/segmentio/kafka-go v0.4.9-0.20201120053500-98b10c7c5631
+
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
