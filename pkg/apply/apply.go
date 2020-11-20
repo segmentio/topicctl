@@ -979,6 +979,8 @@ outerLoop:
 				log.Infof("Partition(s) %+v looks good, continuing", idsToUpdate)
 				break outerLoop
 			}
+			log.Infof(">>> Not ready: %+v", notReady)
+
 			log.Infof(
 				"%d/%d partitions have not picked up the update and/or have out-of-sync replicas:\n%s",
 				len(notReady),

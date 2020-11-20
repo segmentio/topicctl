@@ -83,7 +83,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 }
 
 func TestApplyPlacementUpdates(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
 
 	topicName := util.RandomString("apply-topic-", 6)
@@ -194,12 +194,14 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	require.NoError(t, err)
 
 	// No throttles on brokers or topic
-	assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	}
 	assert.False(t, topicInfo.IsThrottled())
 }
 
 func TestApplyRebalance(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
 
 	topicName := util.RandomString("apply-topic-", 6)
@@ -360,7 +362,9 @@ func TestApplyExtendPartitions(t *testing.T) {
 	require.NoError(t, err)
 
 	// No throttles on brokers or topic
-	assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	}
 	assert.False(t, topicInfo.IsThrottled())
 }
 
@@ -429,6 +433,14 @@ func TestApplyExistingThrottles(t *testing.T) {
 	defer applier2.adminClient.Close()
 	err = applier2.Apply(ctx)
 	require.NoError(t, err)
+
+	supported1 := applier1.adminClient.GetSupportedFeatures()
+	supported2 := applier1.adminClient.GetSupportedFeatures()
+	if !(supported1.Locks && supported1.DynamicBrokerConfigs &&
+		supported2.Locks && supported2.DynamicBrokerConfigs) {
+		// This test only works on zk-based clients for now
+		return
+	}
 
 	// Add some throttles
 	_, err = applier1.adminClient.UpdateTopicConfig(
@@ -904,6 +916,7 @@ func testApplier(
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKLockPath:     "/topicctl/locks",
+			UseBrokerAdmin: true,
 		},
 	}
 
