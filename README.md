@@ -23,6 +23,11 @@ non-Kafka-related contexts.
 See [this blog post](https://segment.com/blog/easier-management-of-Kafka-topics-with-topicctl/) for
 more details.
 
+## Related projects
+
+Check out the [data-digger](https://github.com/segmentio/data-digger) for a command-line tool
+that makes it easy to tail and summarize structured data in Kafka.
+
 ## Roadmap
 
 We are planning on making some changes to (optionally) remove the ZK dependency and also to support
