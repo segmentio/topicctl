@@ -17,11 +17,15 @@ install:
 
 .PHONY: vet
 vet:
-	$Qgo vet ./...
+	go vet ./...
 
 .PHONY: test
 test: vet
-	$Qgo test -count 1 -p 1 ./...
+	go test -count 1 -p 1 ./...
+
+.PHONY: test-v2
+test-v2: vet
+	KAFKA_TOPICS_TEST_BROKER_ADMIN=1 go test -count 1 -p 1 ./...
 
 .PHONY: clean
 clean:
