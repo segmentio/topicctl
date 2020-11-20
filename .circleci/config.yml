@@ -268,14 +268,18 @@ workflows:
               only: /.*/
       - publish-ecr:
           context: segmentio-org-global
-          requires: [test]
+          requires:
+            - test010
+            - test241
           filters:
             branches:
               only:
                 - master
       - publish-dockerhub:
           context: docker-publish
-          requires: [test]
+          requires:
+            - test010
+            - test241
           filters:
             # Never publish from a branch event
             branches:
