@@ -749,6 +749,16 @@ func (c *ZKAdminClient) LockHeld(
 	return len(children) > 0, nil
 }
 
+func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
+	// The zk-based client supports everything.
+	return SupportedFeatures{
+		Reads:                true,
+		Applies:              true,
+		Locks:                true,
+		DynamicBrokerConfigs: true,
+	}
+}
+
 // Close closes the connections in the underlying zookeeper client.
 func (c *ZKAdminClient) Close() error {
 	return c.zkClient.Close()

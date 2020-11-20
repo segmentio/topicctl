@@ -58,6 +58,13 @@ func NewTopicApplier(
 	adminClient admin.Client,
 	applierConfig TopicApplierConfig,
 ) (*TopicApplier, error) {
+	if !adminClient.GetSupportedFeatures().Applies {
+		return nil,
+			errors.New(
+				"Admin client does not support features needed for apply; please use zk-based client instead.",
+			)
+	}
+
 	brokers, err := adminClient.GetBrokers(ctx, nil)
 	if err != nil {
 		return nil, err

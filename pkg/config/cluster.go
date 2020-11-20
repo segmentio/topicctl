@@ -74,6 +74,10 @@ type ClusterSpec struct {
 	// DefaultRetentionDropStepDuration is the default amount of time that retention drops will be
 	// limited by. If unset, no retention drop limiting will be applied.
 	DefaultRetentionDropStepDurationStr string `json:"defaultRetentionDropStepDuration"`
+
+	// UseBrokerAdmin indicates whether we should use a broker-api-based admin (if true) or
+	// the old, zk-based admin (if false).
+	UseBrokerAdmin bool `json:"useBrokerAdmin"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -96,7 +100,7 @@ func (c ClusterConfig) Validate() error {
 			errors.New("At least one bootstrap broker address must be set"),
 		)
 	}
-	if len(c.Spec.ZKAddrs) == 0 {
+	if len(c.Spec.ZKAddrs) == 0 && !c.Spec.UseBrokerAdmin {
 		err = multierror.Append(err, errors.New("At least one zookeeper address must be set"))
 	}
 	if c.Spec.VersionMajor != KafkaVersionMajor010 &&
@@ -129,15 +133,25 @@ func (c ClusterConfig) NewAdminClient(
 	sess *session.Session,
 	readOnly bool,
 ) (admin.Client, error) {
-	return admin.NewZKAdminClient(
-		ctx,
-		admin.ZKAdminClientConfig{
-			ZKAddrs:           c.Spec.ZKAddrs,
-			ZKPrefix:          c.Spec.ZKPrefix,
-			BootstrapAddrs:    c.Spec.BootstrapAddrs,
-			ExpectedClusterID: c.Spec.ClusterID,
-			Sess:              sess,
-			ReadOnly:          readOnly,
-		},
-	)
+	if c.Spec.UseBrokerAdmin {
+		return admin.NewBrokerAdminClient(
+			ctx,
+			admin.BrokerAdminClientConfig{
+				BrokerAddr: c.Spec.BootstrapAddrs[0],
+				ReadOnly:   readOnly,
+			},
+		)
+	} else {
+		return admin.NewZKAdminClient(
+			ctx,
+			admin.ZKAdminClientConfig{
+				ZKAddrs:           c.Spec.ZKAddrs,
+				ZKPrefix:          c.Spec.ZKPrefix,
+				BootstrapAddrs:    c.Spec.BootstrapAddrs,
+				ExpectedClusterID: c.Spec.ClusterID,
+				Sess:              sess,
+				ReadOnly:          readOnly,
+			},
+		)
+	}
 }

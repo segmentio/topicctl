@@ -124,7 +124,13 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
 	} else if tailConfig.brokerAddr != "" {
-		adminClient = admin.NewBrokerAdminClient(tailConfig.brokerAddr, true)
+		adminClient, clientErr = admin.NewBrokerAdminClient(
+			ctx,
+			admin.BrokerAdminClientConfig{
+				BrokerAddr: tailConfig.brokerAddr,
+				ReadOnly:   true,
+			},
+		)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,

@@ -14,7 +14,11 @@ import (
 
 func TestBrokerClientGetClusterID(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
 
 	clusterID, err := client.GetClusterID(ctx)
 	require.NoError(t, err)
@@ -23,10 +27,15 @@ func TestBrokerClientGetClusterID(t *testing.T) {
 
 func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
+
 	topicName := util.RandomString("topic-create-", 6)
 
-	err := client.CreateTopic(
+	err = client.CreateTopic(
 		ctx,
 		kafka.TopicConfig{
 			Topic:             topicName,
@@ -116,7 +125,11 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 
 func TestBrokerClientBrokers(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
 
 	brokerIDs, err := client.GetBrokerIDs(ctx)
 	require.NoError(t, err)
@@ -174,12 +187,19 @@ func TestBrokerClientBrokers(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 6, len(brokerInfos))
 
+	var expectedThrottledRate string
+	if client.GetSupportedFeatures().DynamicBrokerConfigs {
+		expectedThrottledRate = "21000000"
+	} else {
+		expectedThrottledRate = ""
+	}
+
 	for _, brokerInfo := range brokerInfos {
 		if brokerInfo.ID == 2 {
 			assert.Equal(
 				t,
 				map[string]string{
-					"leader.replication.throttled.rate": "",
+					"leader.replication.throttled.rate": expectedThrottledRate,
 					"log.cleaner.io.buffer.load.factor": "0.7",
 				},
 				brokerInfo.Config,
@@ -220,10 +240,15 @@ func TestBrokerClientBrokers(t *testing.T) {
 
 func TestBrokerClientAddPartitions(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
+
 	topicName := util.RandomString("topic-add-partitions-", 6)
 
-	err := client.CreateTopic(
+	err = client.CreateTopic(
 		ctx,
 		kafka.TopicConfig{
 			Topic:             topicName,
@@ -275,10 +300,15 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 
 func TestBrokerClientAlterAssignments(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
+
 	topicName := util.RandomString("topic-alter-assignments-", 6)
 
-	err := client.CreateTopic(
+	err = client.CreateTopic(
 		ctx,
 		kafka.TopicConfig{
 			Topic:             topicName,
@@ -354,10 +384,15 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 
 func TestBrokerClientRunLeaderElection(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
+
 	topicName := util.RandomString("topic-leader-election-", 6)
 
-	err := client.CreateTopic(
+	err = client.CreateTopic(
 		ctx,
 		kafka.TopicConfig{
 			Topic:             topicName,
@@ -382,8 +417,12 @@ func TestBrokerClientRunLeaderElection(t *testing.T) {
 
 func TestBrokerClientGetApiVersions(t *testing.T) {
 	ctx := context.Background()
-	client := NewBrokerAdminClient(util.TestKafkaAddr(), false)
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+	)
+	require.NoError(t, err)
 
-	_, err := client.getAPIVersions(ctx)
+	_, err = client.getAPIVersions(ctx)
 	require.NoError(t, err)
 }

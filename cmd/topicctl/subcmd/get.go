@@ -104,7 +104,13 @@ func getRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else if getConfig.brokerAddr != "" {
-		adminClient = admin.NewBrokerAdminClient(getConfig.brokerAddr, true)
+		adminClient, clientErr = admin.NewBrokerAdminClient(
+			ctx,
+			admin.BrokerAdminClientConfig{
+				BrokerAddr: getConfig.brokerAddr,
+				ReadOnly:   true,
+			},
+		)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,

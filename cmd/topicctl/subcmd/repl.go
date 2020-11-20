@@ -86,7 +86,13 @@ func replRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else if replConfig.brokerAddr != "" {
-		adminClient = admin.NewBrokerAdminClient(replConfig.brokerAddr, true)
+		adminClient, clientErr = admin.NewBrokerAdminClient(
+			ctx,
+			admin.BrokerAdminClientConfig{
+				BrokerAddr: replConfig.brokerAddr,
+				ReadOnly:   true,
+			},
+		)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,

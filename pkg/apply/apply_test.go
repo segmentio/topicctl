@@ -786,16 +786,18 @@ func TestApplyThrottles(t *testing.T) {
 	assert.NotEqual(t, "", topicInfo.Config[admin.LeaderReplicasThrottledKey])
 	assert.NotEqual(t, "", topicInfo.Config[admin.FollowerReplicasThrottledKey])
 
-	brokers, err := applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
-	require.NoError(t, err)
-	for _, broker := range brokers {
-		if broker.ID == 5 {
-			// Existing values are kept in-place
-			assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
-		} else {
-			assert.Equal(t, "20000000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "20000000", broker.Config[admin.FollowerThrottledKey])
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		brokers, err := applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
+		require.NoError(t, err)
+		for _, broker := range brokers {
+			if broker.ID == 5 {
+				// Existing values are kept in-place
+				assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
+			} else {
+				assert.Equal(t, "20000000", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "20000000", broker.Config[admin.FollowerThrottledKey])
+			}
 		}
 	}
 
@@ -807,16 +809,18 @@ func TestApplyThrottles(t *testing.T) {
 	assert.Equal(t, "", topicInfo.Config[admin.LeaderReplicasThrottledKey])
 	assert.Equal(t, "", topicInfo.Config[admin.FollowerReplicasThrottledKey])
 
-	brokers, err = applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
-	require.NoError(t, err)
-	for _, broker := range brokers {
-		if broker.ID == 5 {
-			// Existing values are kept in place
-			assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
-		} else {
-			assert.Equal(t, "", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "", broker.Config[admin.FollowerThrottledKey])
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		brokers, err := applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
+		require.NoError(t, err)
+		for _, broker := range brokers {
+			if broker.ID == 5 {
+				// Existing values are kept in place
+				assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
+			} else {
+				assert.Equal(t, "", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "", broker.Config[admin.FollowerThrottledKey])
+			}
 		}
 	}
 }

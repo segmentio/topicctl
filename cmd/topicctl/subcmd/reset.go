@@ -104,7 +104,13 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
 	} else if resetOffsetsConfig.brokerAddr != "" {
-		adminClient = admin.NewBrokerAdminClient(resetOffsetsConfig.brokerAddr, true)
+		adminClient, clientErr = admin.NewBrokerAdminClient(
+			ctx,
+			admin.BrokerAdminClientConfig{
+				BrokerAddr: resetOffsetsConfig.brokerAddr,
+				ReadOnly:   true,
+			},
+		)
 	} else {
 		adminClient, clientErr = admin.NewZKAdminClient(
 			ctx,

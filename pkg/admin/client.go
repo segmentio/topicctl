@@ -57,5 +57,6 @@ type Client interface {
 	) error
 	AcquireLock(ctx context.Context, path string) (zk.Lock, error)
 	LockHeld(ctx context.Context, path string) (bool, error)
+	GetSupportedFeatures() SupportedFeatures
 	Close() error
 }

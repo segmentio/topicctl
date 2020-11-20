@@ -18,21 +18,72 @@ const (
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
 // zookeeper access.
 type BrokerAdminClient struct {
-	brokerAddr string
-	client     *kafka.Client
-	readOnly   bool
+	brokerAddr        string
+	client            *kafka.Client
+	readOnly          bool
+	supportedFeatures SupportedFeatures
 }
 
 var _ Client = (*BrokerAdminClient)(nil)
 
-func NewBrokerAdminClient(brokerAddr string, readOnly bool) *BrokerAdminClient {
-	return &BrokerAdminClient{
-		brokerAddr: brokerAddr,
-		client: &kafka.Client{
-			Addr: kafka.TCP(brokerAddr),
-		},
-		readOnly: readOnly,
+type BrokerAdminClientConfig struct {
+	BrokerAddr string
+	ReadOnly   bool
+}
+
+func NewBrokerAdminClient(
+	ctx context.Context,
+	config BrokerAdminClientConfig,
+) (*BrokerAdminClient, error) {
+	client := &kafka.Client{
+		Addr: kafka.TCP(config.BrokerAddr),
 	}
+
+	apiVersions, err := client.ApiVersions(ctx, kafka.ApiVersionsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Supported API versions: %+v", apiVersions)
+	maxVersions := map[string]int16{}
+	for _, apiKey := range apiVersions.ApiKeys {
+		maxVersions[apiKey.ApiName] = apiKey.MaxVersion
+	}
+
+	supportedFeatures := SupportedFeatures{
+		// Broker-based client does not support locking yet
+		Locks: false,
+	}
+
+	// If we have DescribeConfigs support, then we're good for reading (other needed APIs are
+	// older).
+	if _, ok := maxVersions["DescribeConfigs"]; ok {
+		supportedFeatures.Reads = true
+	} else {
+		// Don't let users create client without basic read functionality.
+		return nil, errors.New(
+			"Kafka version too limited to support basic broker admin functionality; please use zk-based client.",
+		)
+	}
+
+	// If we have AlterPartitionReassignments support, then we're good for applying (other needed
+	// APIs are older). This should be satisfied by versions >= 2.4.
+	if _, ok := maxVersions["AlterPartitionReassignments"]; ok {
+		supportedFeatures.Applies = true
+	}
+
+	// If we have AlterClientQuotas support, then we're running a newer version of Kafka (>= 2.6),
+	// that will provide the correct values for dynamic broker configs.
+	if _, ok := maxVersions["AlterClientQuotas"]; ok {
+		supportedFeatures.DynamicBrokerConfigs = true
+	}
+	log.Debugf("Supported features: %+v", supportedFeatures)
+
+	return &BrokerAdminClient{
+		brokerAddr:        config.BrokerAddr,
+		client:            client,
+		readOnly:          config.ReadOnly,
+		supportedFeatures: supportedFeatures,
+	}, nil
 }
 
 func (c *BrokerAdminClient) GetClusterID(ctx context.Context) (string, error) {
@@ -412,6 +463,10 @@ func (c *BrokerAdminClient) AcquireLock(ctx context.Context, path string) (
 func (c *BrokerAdminClient) LockHeld(ctx context.Context, path string) (bool, error) {
 	// Not implemented since we don't have access to zookeeper.
 	return false, nil
+}
+
+func (c *BrokerAdminClient) GetSupportedFeatures() SupportedFeatures {
+	return c.supportedFeatures
 }
 
 func (c *BrokerAdminClient) Close() error {
