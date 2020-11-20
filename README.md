@@ -391,7 +391,7 @@ the following depend on broker APIs:
 5. `apply` with topic creation
 
 In the future, we may shift more functionality away from ZooKeeper, at least for newer cluster
-versions; see the "Feature roadmap" section below for more details.
+versions; see the "Roadmap" section above for more details.
 
 ## Development
 
