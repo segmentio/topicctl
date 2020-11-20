@@ -183,21 +183,21 @@ func (c *BrokerAdminClient) GetTopics(
 		return nil, err
 	}
 
-	for _, topic := range metadataResp.Topics {
-		if topic.Error != nil {
-			return nil, fmt.Errorf(
-				"Error getting metadata for topic %s: %+v",
-				topic.Name,
-				topic.Error,
-			)
-		}
-	}
-
 	topicInfos := []TopicInfo{}
 	topicInfoNames := []string{}
 	topicNameToIndex := map[string]int{}
 
 	for t, topic := range metadataResp.Topics {
+		if topic.Error != nil {
+			if strings.Contains(topic.Error.Error(), "does not exist") {
+				log.Debugf("Skipping over topic %s because it does not exist", topic.Name)
+				continue
+			}
+			// Some other error
+			return nil,
+				fmt.Errorf("Error getting metadata for topic %s: %+v", topic.Name, topic.Error)
+		}
+
 		partitionInfos := []PartitionInfo{}
 
 		for _, partition := range topic.Partitions {
@@ -268,15 +268,11 @@ func (c *BrokerAdminClient) GetTopic(
 		detailed,
 	)
 	if err != nil {
-		if strings.Contains(err.Error(), "does not exist") {
-			return TopicInfo{}, ErrTopicDoesNotExist
-		} else {
-			return TopicInfo{}, err
-		}
+		return TopicInfo{}, err
+
 	}
-	if len(topicInfos) != 1 {
-		return TopicInfo{},
-			fmt.Errorf("Unexpected number of topics returned: %+v", len(topicInfos))
+	if len(topicInfos) == 0 {
+		return TopicInfo{}, ErrTopicDoesNotExist
 	}
 	return topicInfos[0], nil
 }

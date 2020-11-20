@@ -66,6 +66,15 @@ func TestKafkaContollerConn(ctx context.Context, t *testing.T) *kafka.Conn {
 	return controllerConn
 }
 
+func CanTestBrokerAdmin() bool {
+	value, ok := os.LookupEnv("KAFKA_TOPICS_TEST_BROKER_ADMIN")
+	if ok && value != "" {
+		return true
+	}
+
+	return false
+}
+
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // RandomString returns a random string with the argument length.

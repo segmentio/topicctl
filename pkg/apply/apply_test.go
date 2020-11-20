@@ -791,7 +791,10 @@ func TestApplyThrottles(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.True(t, throttledTopic)
-	assert.Equal(t, 4, len(throttledBrokers))
+
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		assert.Equal(t, 4, len(throttledBrokers))
+	}
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, false)
 	require.NoError(t, err)
@@ -916,7 +919,6 @@ func testApplier(
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKLockPath:     "/topicctl/locks",
-			UseBrokerAdmin: true,
 		},
 	}
 

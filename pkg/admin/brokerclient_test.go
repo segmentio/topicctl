@@ -13,6 +13,10 @@ import (
 )
 
 func TestBrokerClientGetClusterID(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
@@ -26,6 +30,10 @@ func TestBrokerClientGetClusterID(t *testing.T) {
 }
 
 func TestBrokerClientUpdateTopicConfig(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
@@ -124,6 +132,10 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 }
 
 func TestBrokerClientBrokers(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
@@ -239,6 +251,10 @@ func TestBrokerClientBrokers(t *testing.T) {
 }
 
 func TestBrokerClientAddPartitions(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
@@ -299,6 +315,10 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 }
 
 func TestBrokerClientAlterAssignments(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
@@ -383,6 +403,10 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 }
 
 func TestBrokerClientRunLeaderElection(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
@@ -416,6 +440,10 @@ func TestBrokerClientRunLeaderElection(t *testing.T) {
 }
 
 func TestBrokerClientGetApiVersions(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
