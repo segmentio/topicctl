@@ -107,8 +107,10 @@ func getRun(cmd *cobra.Command, args []string) error {
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
-				BrokerAddr: getConfig.brokerAddr,
-				ReadOnly:   true,
+				BrokerClientConfig: admin.BrokerClientConfig{
+					BrokerAddr: getConfig.brokerAddr,
+				},
+				ReadOnly: true,
 			},
 		)
 	} else {

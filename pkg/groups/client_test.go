@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,13 @@ func TestGetGroups(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client := NewClient(util.TestKafkaAddr())
+	client, err := NewClient(
+		admin.BrokerClientConfig{
+			BrokerAddr: util.TestKafkaAddr(),
+		},
+	)
+	require.NoError(t, err)
+
 	groups, err := client.GetGroups(ctx)
 	require.NoError(t, err)
 
@@ -91,7 +98,13 @@ func TestGetLags(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client := NewClient(util.TestKafkaAddr())
+	client, err := NewClient(
+		admin.BrokerClientConfig{
+			BrokerAddr: util.TestKafkaAddr(),
+		},
+	)
+	require.NoError(t, err)
+
 	lags, err := client.GetMemberLags(ctx, topicName, groupID)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(lags))
@@ -126,8 +139,13 @@ func TestResetOffsets(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client := NewClient(util.TestKafkaAddr())
-	err := client.ResetOffsets(
+	client, err := NewClient(
+		admin.BrokerClientConfig{
+			BrokerAddr: util.TestKafkaAddr(),
+		},
+	)
+	require.NoError(t, err)
+	err = client.ResetOffsets(
 		ctx,
 		topicName,
 		groupID,

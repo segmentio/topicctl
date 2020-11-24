@@ -19,26 +19,28 @@ const (
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
 // zookeeper access.
 type BrokerAdminClient struct {
-	brokerAddr        string
 	client            *kafka.Client
-	readOnly          bool
+	connector         *BrokerConnector
+	config            BrokerAdminClientConfig
 	supportedFeatures SupportedFeatures
 }
 
 var _ Client = (*BrokerAdminClient)(nil)
 
 type BrokerAdminClientConfig struct {
-	BrokerAddr string
-	ReadOnly   bool
+	BrokerConnectorConfig
+	ReadOnly bool
 }
 
 func NewBrokerAdminClient(
 	ctx context.Context,
 	config BrokerAdminClientConfig,
 ) (*BrokerAdminClient, error) {
-	client := &kafka.Client{
-		Addr: kafka.TCP(config.BrokerAddr),
+	brokerConnector, err := NewBrokerConnector(config.BrokerConnectorConfig)
+	if err != nil {
+		return nil, err
 	}
+	client := brokerConnector.KafkaClient
 
 	apiVersions, err := client.ApiVersions(ctx, kafka.ApiVersionsRequest{})
 	if err != nil {
@@ -80,9 +82,9 @@ func NewBrokerAdminClient(
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
 	return &BrokerAdminClient{
-		brokerAddr:        config.BrokerAddr,
 		client:            client,
-		readOnly:          config.ReadOnly,
+		connector:         brokerConnector,
+		config:            config,
 		supportedFeatures: supportedFeatures,
 	}, nil
 }
@@ -165,7 +167,7 @@ func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 }
 
 func (c *BrokerAdminClient) GetBootstrapAddrs() []string {
-	return []string{c.brokerAddr}
+	return []string{c.config.BrokerAddr}
 }
 
 func (c *BrokerAdminClient) GetTopics(
@@ -283,7 +285,7 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return nil, errors.New("Cannot update topic config read-only mode")
 	}
 
@@ -314,7 +316,7 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return nil, errors.New("Cannot update broker config read-only mode")
 	}
 
@@ -343,7 +345,7 @@ func (c *BrokerAdminClient) CreateTopic(
 	ctx context.Context,
 	config kafka.TopicConfig,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot create topic in read-only mode")
 	}
 
@@ -362,7 +364,7 @@ func (c *BrokerAdminClient) AssignPartitions(
 	topic string,
 	assignments []PartitionAssignment,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot assign partitions in read-only mode")
 	}
 
@@ -398,7 +400,7 @@ func (c *BrokerAdminClient) AddPartitions(
 	topic string,
 	newAssignments []PartitionAssignment,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot add partitions in read-only mode")
 	}
 
@@ -441,7 +443,7 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	topic string,
 	partitions []int,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot run leader election in read-only mode")
 	}
 

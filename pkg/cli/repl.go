@@ -85,9 +85,14 @@ type Repl struct {
 }
 
 // NewRepl initializes and returns a Repl instance.
-func NewRepl(ctx context.Context, adminClient admin.Client) (*Repl, error) {
+func NewRepl(
+	ctx context.Context,
+	adminClient admin.Client,
+	brokerClientConfig admin.BrokerClientConfig,
+) (*Repl, error) {
 	cliRunner := NewCLIRunner(
 		adminClient,
+		brokerClientConfig,
 		func(f string, a ...interface{}) {
 			fmt.Printf("> ")
 			fmt.Printf(f, a...)
@@ -149,7 +154,11 @@ func NewRepl(ctx context.Context, adminClient admin.Client) (*Repl, error) {
 	}
 
 	log.Debug("Loading consumer groups for auto-complete")
-	groupsClient := groups.NewClient(adminClient.GetBootstrapAddrs()[0])
+	groupsClient, err := groups.NewClient(brokerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	groupCoordinators, err := groupsClient.GetGroups(ctx)
 	if err != nil {
 		log.Warnf(

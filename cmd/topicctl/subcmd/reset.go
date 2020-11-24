@@ -107,8 +107,10 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
-				BrokerAddr: resetOffsetsConfig.brokerAddr,
-				ReadOnly:   true,
+				BrokerClientConfig: admin.BrokerClientConfig{
+					BrokerAddr: resetOffsetsConfig.brokerAddr,
+				},
+				ReadOnly: true,
 			},
 		)
 	} else {

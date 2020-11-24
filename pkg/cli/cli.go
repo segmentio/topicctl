@@ -28,19 +28,22 @@ const (
 
 // CLIRunner is a utility that runs commands from either the command-line or the repl.
 type CLIRunner struct {
-	adminClient  admin.Client
-	groupsClient *groups.Client
-	printer      func(f string, a ...interface{})
-	spinnerObj   *spinner.Spinner
+	adminClient        admin.Client
+	groupsClient       *groups.Client
+	brokerClientConfig admin.BrokerClientConfig
+	printer            func(f string, a ...interface{})
+	spinnerObj         *spinner.Spinner
 }
 
 // NewCLIRunner creates and returns a new CLIRunner instance.
 func NewCLIRunner(
 	adminClient admin.Client,
+	brokerClientConfig admin.BrokerClientConfig,
 	printer func(f string, a ...interface{}),
 	showSpinner bool,
 ) *CLIRunner {
 	var spinnerObj *spinner.Spinner
+	var err error
 
 	if showSpinner {
 		spinnerObj = spinner.New(
@@ -53,12 +56,16 @@ func NewCLIRunner(
 	}
 
 	cliRunner := &CLIRunner{
-		adminClient: adminClient,
-		printer:     printer,
-		spinnerObj:  spinnerObj,
+		adminClient:        adminClient,
+		brokerClientConfig: brokerClientConfig,
+		printer:            printer,
+		spinnerObj:         spinnerObj,
 	}
 	if adminClient != nil {
-		cliRunner.groupsClient = groups.NewClient(adminClient.GetBootstrapAddrs()[0])
+		cliRunner.groupsClient, err = groups.NewClient(brokerClientConfig)
+		if err != nil {
+			log.Warnf("Could not create groups client: %+v", err)
+		}
 	}
 
 	return cliRunner
@@ -420,7 +427,7 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 
 	bounds, err := messages.GetAllPartitionBounds(
 		ctx,
-		c.adminClient.GetBootstrapAddrs()[0],
+		c.brokerClientConfig,
 		topic,
 		nil,
 	)
