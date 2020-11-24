@@ -44,12 +44,12 @@ var (
 // zookeeper access. Most interactions are done via the latter, but a few (e.g., creating topics or
 // getting the controller address) are done via the broker API instead.
 type ZKAdminClient struct {
-	zkClient        zk.Client
-	zkPrefix        string
-	bootstrapAddrs  []string
-	brokerConnector *BrokerConnector
-	sess            *session.Session
-	readOnly        bool
+	zkClient       zk.Client
+	zkPrefix       string
+	bootstrapAddrs []string
+	Connector      *Connector
+	sess           *session.Session
+	readOnly       bool
 }
 
 var _ Client = (*ZKAdminClient)(nil)
@@ -133,8 +133,8 @@ func NewZKAdminClient(
 	}
 
 	client.bootstrapAddrs = bootstrapAddrs
-	client.brokerConnector, err = NewBrokerConnector(
-		BrokerConnectorConfig{
+	client.Connector, err = NewConnector(
+		ConnectorConfig{
 			BrokerAddr: bootstrapAddrs[0],
 		},
 	)
@@ -293,8 +293,8 @@ func (c *ZKAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
-func (c *ZKAdminClient) GetBrokerConnector() *BrokerConnector {
-	return c.brokerConnector
+func (c *ZKAdminClient) GetConnector() *Connector {
+	return c.Connector
 }
 
 // GetTopics gets information about one or more cluster topics from zookeeper.
@@ -568,20 +568,13 @@ func (c *ZKAdminClient) CreateTopic(
 		return errors.New("Cannot create topic in read-only mode")
 	}
 
-	controllerAddr, err := c.getControllerAddr(ctx)
-	if err != nil {
-		return err
+	req := kafka.CreateTopicsRequest{
+		Topics: []kafka.TopicConfig{config},
 	}
-
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", controllerAddr)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	log.Debugf("Creating topic with config %+v", config)
 
-	return conn.CreateTopics(config)
+	_, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	return err
 }
 
 // AssignPartitions notifies the cluster to begin a partition reassignment.

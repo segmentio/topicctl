@@ -312,7 +312,7 @@ func (c *CLIRunner) GetConfig(ctx context.Context, brokerOrTopic string) error {
 func (c *CLIRunner) GetGroups(ctx context.Context) error {
 	c.startSpinner()
 
-	groupCoordinators, err := groups.GetGroups(ctx, c.adminClient.GetBrokerConnector())
+	groupCoordinators, err := groups.GetGroups(ctx, c.adminClient.GetConnector())
 	c.stopSpinner()
 	if err != nil {
 		return err
@@ -328,7 +328,7 @@ func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bo
 
 	groupDetails, err := groups.GetGroupDetails(
 		ctx,
-		c.adminClient.GetBrokerConnector(),
+		c.adminClient.GetConnector(),
 		groupID,
 	)
 	c.stopSpinner()
@@ -370,7 +370,7 @@ func (c *CLIRunner) GetMemberLags(
 
 	memberLags, err := groups.GetMemberLags(
 		ctx,
-		c.adminClient.GetBrokerConnector(),
+		c.adminClient.GetConnector(),
 		topic,
 		groupID,
 	)
@@ -425,7 +425,7 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 
 	bounds, err := messages.GetAllPartitionBounds(
 		ctx,
-		c.adminClient.GetBrokerConnector(),
+		c.adminClient.GetConnector(),
 		topic,
 		nil,
 	)
@@ -483,7 +483,7 @@ func (c *CLIRunner) ResetOffsets(
 	c.startSpinner()
 	err := groups.ResetOffsets(
 		ctx,
-		c.adminClient.GetBrokerConnector(),
+		c.adminClient.GetConnector(),
 		topic,
 		groupID,
 		partitionOffsets,
@@ -520,7 +520,7 @@ func (c *CLIRunner) Tail(
 	log.Debugf("Tailing partitions %+v", partitions)
 
 	tailer := messages.NewTopicTailer(
-		c.adminClient.GetBrokerConnector(),
+		c.adminClient.GetConnector(),
 		topic,
 		partitions,
 		offset,

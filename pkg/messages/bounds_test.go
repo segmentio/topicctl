@@ -15,16 +15,22 @@ import (
 
 func TestGetAllPartitionBounds(t *testing.T) {
 	ctx := context.Background()
-	controllerConn := util.TestKafkaContollerConn(ctx, t)
-	defer controllerConn.Close()
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
 
 	topicName := util.RandomString("topic-bounds-", 6)
-
-	err := controllerConn.CreateTopics(
-		kafka.TopicConfig{
-			Topic:             topicName,
-			NumPartitions:     4,
-			ReplicationFactor: 1,
+	_, err = connector.KafkaClient.CreateTopics(
+		ctx,
+		&kafka.CreateTopicsRequest{
+			Topics: []kafka.TopicConfig{
+				{
+					Topic:             topicName,
+					NumPartitions:     4,
+					ReplicationFactor: 1,
+				},
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -32,7 +38,8 @@ func TestGetAllPartitionBounds(t *testing.T) {
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:  []string{util.TestKafkaAddr()},
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
 			Topic:    topicName,
 			Balancer: &kafka.RoundRobin{},
 		},
@@ -54,14 +61,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 	err = writer.WriteMessages(ctx, messages...)
 	require.NoError(t, err)
 
-	brokerConnector, err := admin.NewBrokerConnector(
-		admin.BrokerConnectorConfig{
-			BrokerAddr: util.TestKafkaAddr(),
-		},
-	)
-	require.NoError(t, err)
-
-	bounds, err := GetAllPartitionBounds(ctx, brokerConnector, topicName, nil)
+	bounds, err := GetAllPartitionBounds(ctx, connector, topicName, nil)
 	assert.Nil(t, err)
 
 	// The first partition gets 3 messages
@@ -77,7 +77,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 
 	boundsWithOffsets, err := GetAllPartitionBounds(
 		ctx,
-		brokerConnector,
+		connector,
 		topicName,
 		map[int]int64{
 			0: 1,

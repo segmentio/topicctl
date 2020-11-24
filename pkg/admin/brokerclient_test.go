@@ -21,7 +21,7 @@ func TestBrokerClientGetClusterID(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},
@@ -42,7 +42,7 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},
@@ -148,7 +148,7 @@ func TestBrokerClientBrokers(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},
@@ -271,7 +271,7 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},
@@ -339,7 +339,7 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},
@@ -431,7 +431,7 @@ func TestBrokerClientRunLeaderElection(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},
@@ -472,7 +472,7 @@ func TestBrokerClientGetApiVersions(t *testing.T) {
 	client, err := NewBrokerAdminClient(
 		ctx,
 		BrokerAdminClientConfig{
-			BrokerConnectorConfig: BrokerConnectorConfig{
+			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
 		},

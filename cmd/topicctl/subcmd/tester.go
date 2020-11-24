@@ -106,7 +106,7 @@ func testerRun(cmd *cobra.Command, args []string) error {
 }
 
 func runTestReader(ctx context.Context) error {
-	brokerConnector, err := getBrokerConnector(ctx)
+	connector, err := getConnector(ctx)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func runTestReader(ctx context.Context) error {
 	log.Infof(
 		"This will read test messages from the '%s' topic in %s using the consumer group ID '%s'",
 		testerConfig.topic,
-		brokerConnector.Config.BrokerAddr,
+		connector.Config.BrokerAddr,
 		testerConfig.readConsumer,
 	)
 
@@ -125,9 +125,9 @@ func runTestReader(ctx context.Context) error {
 
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:     []string{brokerConnector.Config.BrokerAddr},
+			Brokers:     []string{connector.Config.BrokerAddr},
 			GroupID:     testerConfig.readConsumer,
-			Dialer:      brokerConnector.Dialer,
+			Dialer:      connector.Dialer,
 			Topic:       testerConfig.topic,
 			MinBytes:    10e3, // 10KB
 			MaxBytes:    10e6, // 10MB
@@ -153,7 +153,7 @@ func runTestReader(ctx context.Context) error {
 }
 
 func runTestWriter(ctx context.Context) error {
-	brokerConnector, err := getBrokerConnector(ctx)
+	connector, err := getConnector(ctx)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func runTestWriter(ctx context.Context) error {
 	log.Infof(
 		"This will write test messages to the '%s' topic in %s at a rate of %d/sec.",
 		testerConfig.topic,
-		brokerConnector.Config.BrokerAddr,
+		connector.Config.BrokerAddr,
 		testerConfig.writeRate,
 	)
 
@@ -172,8 +172,8 @@ func runTestWriter(ctx context.Context) error {
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:       []string{brokerConnector.Config.BrokerAddr},
-			Dialer:        brokerConnector.Dialer,
+			Brokers:       []string{connector.Config.BrokerAddr},
+			Dialer:        connector.Dialer,
 			Topic:         testerConfig.topic,
 			Balancer:      &kafka.LeastBytes{},
 			Async:         true,
@@ -212,7 +212,7 @@ func runTestWriter(ctx context.Context) error {
 	}
 }
 
-func getBrokerConnector(ctx context.Context) (*admin.BrokerConnector, error) {
+func getConnector(ctx context.Context) (*admin.Connector, error) {
 	if testerConfig.brokerAddr == "" {
 		adminClient, err := admin.NewZKAdminClient(
 			ctx,
@@ -223,10 +223,10 @@ func getBrokerConnector(ctx context.Context) (*admin.BrokerConnector, error) {
 		if err != nil {
 			return nil, err
 		}
-		return adminClient.GetBrokerConnector(), nil
+		return adminClient.GetConnector(), nil
 	} else {
-		return admin.NewBrokerConnector(
-			admin.BrokerConnectorConfig{
+		return admin.NewConnector(
+			admin.ConnectorConfig{
 				BrokerAddr: testerConfig.brokerAddr,
 			},
 		)

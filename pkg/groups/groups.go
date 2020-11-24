@@ -14,9 +14,12 @@ import (
 // GetGroups fetches and returns information about all consumer groups in the cluster.
 func GetGroups(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 ) ([]GroupCoordinator, error) {
-	listGroupsResp, err := connector.KafkaClient.ListGroups(ctx, kafka.ListGroupsRequest{})
+	listGroupsResp, err := connector.KafkaClient.ListGroups(
+		ctx,
+		kafka.ListGroupsRequest{},
+	)
 
 	// Don't immediately fail if err is non-nil; instead, just process and return
 	// whatever results are returned.
@@ -42,7 +45,7 @@ func GetGroups(
 // GetGroupDetails returns the details (membership, etc.) for a single consumer group.
 func GetGroupDetails(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 	groupID string,
 ) (*GroupDetails, error) {
 	describeGroupsResponse, err := connector.KafkaClient.DescribeGroup(
@@ -102,7 +105,7 @@ func GetGroupDetails(
 // argument topic.
 func GetMemberLags(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 	topic string,
 	groupID string,
 ) ([]MemberPartitionLag, error) {
@@ -157,7 +160,7 @@ func GetMemberLags(
 // ResetOffsets updates the offsets for a given topic / group combination.
 func ResetOffsets(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 	topic string,
 	groupID string,
 	partitionOffsets map[int]int64,

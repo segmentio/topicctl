@@ -152,7 +152,7 @@ func NewRepl(
 	}
 
 	log.Debug("Loading consumer groups for auto-complete")
-	groupCoordinators, err := groups.GetGroups(ctx, adminClient.GetBrokerConnector())
+	groupCoordinators, err := groups.GetGroups(ctx, adminClient.GetConnector())
 	if err != nil {
 		log.Warnf(
 			"Error getting groups for auto-complete: %+v; auto-complete might not be fully functional",

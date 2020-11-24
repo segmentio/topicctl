@@ -23,17 +23,17 @@ import (
 
 // TopicTailer fetches a stream of messages from a topic.
 type TopicTailer struct {
-	brokerConnector *admin.BrokerConnector
-	topic           string
-	partitions      []int
-	offset          int64
-	minBytes        int
-	maxBytes        int
+	Connector  *admin.Connector
+	topic      string
+	partitions []int
+	offset     int64
+	minBytes   int
+	maxBytes   int
 }
 
 // NewTopicTailer returns a new TopicTailer instance.
 func NewTopicTailer(
-	brokerConnector *admin.BrokerConnector,
+	Connector *admin.Connector,
 	topic string,
 	partitions []int,
 	offset int64,
@@ -41,12 +41,12 @@ func NewTopicTailer(
 	maxBytes int,
 ) *TopicTailer {
 	return &TopicTailer{
-		brokerConnector: brokerConnector,
-		topic:           topic,
-		partitions:      partitions,
-		offset:          offset,
-		minBytes:        minBytes,
-		maxBytes:        maxBytes,
+		Connector:  Connector,
+		topic:      topic,
+		partitions: partitions,
+		offset:     offset,
+		minBytes:   minBytes,
+		maxBytes:   maxBytes,
 	}
 }
 
@@ -87,8 +87,8 @@ func (t *TopicTailer) GetMessages(
 	for _, partition := range t.partitions {
 		reader := kafka.NewReader(
 			kafka.ReaderConfig{
-				Brokers:        []string{t.brokerConnector.Config.BrokerAddr},
-				Dialer:         t.brokerConnector.Dialer,
+				Brokers:        []string{t.Connector.Config.BrokerAddr},
+				Dialer:         t.Connector.Dialer,
 				Topic:          t.topic,
 				Partition:      partition,
 				MinBytes:       t.minBytes,

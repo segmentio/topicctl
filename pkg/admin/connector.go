@@ -10,7 +10,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-type BrokerConnectorConfig struct {
+type ConnectorConfig struct {
 	BrokerAddr string
 	UseTLS     bool
 	CertPath   string
@@ -18,14 +18,14 @@ type BrokerConnectorConfig struct {
 	CACertPath string
 }
 
-type BrokerConnector struct {
-	Config      BrokerConnectorConfig
+type Connector struct {
+	Config      ConnectorConfig
 	Dialer      *kafka.Dialer
 	KafkaClient *kafka.Client
 }
 
-func NewBrokerConnector(config BrokerConnectorConfig) (*BrokerConnector, error) {
-	connector := &BrokerConnector{
+func NewConnector(config ConnectorConfig) (*Connector, error) {
+	connector := &Connector{
 		Config: config,
 	}
 

@@ -46,7 +46,7 @@ type Bounds struct {
 // is nil, the starting offset in each topic partition.
 func GetAllPartitionBounds(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 	topic string,
 	baseOffsets map[int]int64,
 ) ([]Bounds, error) {
@@ -132,7 +132,7 @@ func GetAllPartitionBounds(
 // this is used instead of the actual first offset.
 func GetPartitionBounds(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 	topic string,
 	partition int,
 	minOffset int64,
@@ -244,7 +244,7 @@ func GetPartitionBounds(
 
 func dialLeaderRetries(
 	ctx context.Context,
-	connector *admin.BrokerConnector,
+	connector *admin.Connector,
 	topic string,
 	partition int,
 ) (*kafka.Conn, error) {
