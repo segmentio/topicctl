@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,14 @@ func TestGetAllPartitionBounds(t *testing.T) {
 	err = writer.WriteMessages(ctx, messages...)
 	require.NoError(t, err)
 
-	bounds, err := GetAllPartitionBounds(ctx, util.TestKafkaAddr(), topicName, nil)
+	brokerConnector, err := admin.NewBrokerConnector(
+		admin.BrokerConnectorConfig{
+			BrokerAddr: util.TestKafkaAddr(),
+		},
+	)
+	require.NoError(t, err)
+
+	bounds, err := GetAllPartitionBounds(ctx, brokerConnector, topicName, nil)
 	assert.Nil(t, err)
 
 	// The first partition gets 3 messages
@@ -69,7 +77,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 
 	boundsWithOffsets, err := GetAllPartitionBounds(
 		ctx,
-		util.TestKafkaAddr(),
+		brokerConnector,
 		topicName,
 		map[int]int64{
 			0: 1,

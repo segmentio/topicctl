@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,8 +55,15 @@ func TestTailerGetMessages(t *testing.T) {
 	err = writer.WriteMessages(ctx, messages...)
 	require.NoError(t, err)
 
+	brokerConnector, err := admin.NewBrokerConnector(
+		admin.BrokerConnectorConfig{
+			BrokerAddr: util.TestKafkaAddr(),
+		},
+	)
+	require.NoError(t, err)
+
 	tailer := NewTopicTailer(
-		util.TestKafkaAddr(),
+		brokerConnector,
 		topicName,
 		[]int{0, 1, 2, 3},
 		kafka.FirstOffset,

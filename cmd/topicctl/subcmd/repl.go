@@ -89,7 +89,7 @@ func replRun(cmd *cobra.Command, args []string) error {
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
-				BrokerClientConfig: admin.BrokerClientConfig{
+				BrokerConnectorConfig: admin.BrokerConnectorConfig{
 					BrokerAddr: replConfig.brokerAddr,
 				},
 				ReadOnly: true,

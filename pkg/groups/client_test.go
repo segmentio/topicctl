@@ -36,14 +36,14 @@ func TestGetGroups(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client, err := NewClient(
-		admin.BrokerClientConfig{
+	brokerConnector, err := admin.NewBrokerConnector(
+		admin.BrokerConnectorConfig{
 			BrokerAddr: util.TestKafkaAddr(),
 		},
 	)
 	require.NoError(t, err)
 
-	groups, err := client.GetGroups(ctx)
+	groups, err := GetGroups(ctx, brokerConnector)
 	require.NoError(t, err)
 
 	// There could be older groups in here, just ignore them
@@ -59,7 +59,7 @@ func TestGetGroups(t *testing.T) {
 	}
 	require.True(t, match)
 
-	groupDetails, err := client.GetGroupDetails(ctx, groupID)
+	groupDetails, err := GetGroupDetails(ctx, brokerConnector, groupID)
 	require.NoError(t, err)
 	assert.Equal(t, groupID, groupDetails.GroupID)
 	assert.Equal(t, "Stable", groupDetails.State)
@@ -98,14 +98,14 @@ func TestGetLags(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client, err := NewClient(
-		admin.BrokerClientConfig{
+	brokerConnector, err := admin.NewBrokerConnector(
+		admin.BrokerConnectorConfig{
 			BrokerAddr: util.TestKafkaAddr(),
 		},
 	)
 	require.NoError(t, err)
 
-	lags, err := client.GetMemberLags(ctx, topicName, groupID)
+	lags, err := GetMemberLags(ctx, brokerConnector, topicName, groupID)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(lags))
 
@@ -139,14 +139,17 @@ func TestResetOffsets(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client, err := NewClient(
-		admin.BrokerClientConfig{
+	brokerConnector, err := admin.NewBrokerConnector(
+		admin.BrokerConnectorConfig{
 			BrokerAddr: util.TestKafkaAddr(),
 		},
 	)
 	require.NoError(t, err)
-	err = client.ResetOffsets(
+
+	require.NoError(t, err)
+	err = ResetOffsets(
 		ctx,
+		brokerConnector,
 		topicName,
 		groupID,
 		map[int]int64{
@@ -156,7 +159,7 @@ func TestResetOffsets(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	lags, err := client.GetMemberLags(ctx, topicName, groupID)
+	lags, err := GetMemberLags(ctx, brokerConnector, topicName, groupID)
 	require.NoError(t, err)
 
 	require.Equal(t, 2, len(lags))

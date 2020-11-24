@@ -137,7 +137,7 @@ func (c ClusterConfig) NewAdminClient(
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
-				BrokerClientConfig: admin.BrokerClientConfig{
+				BrokerConnectorConfig: admin.BrokerConnectorConfig{
 					BrokerAddr: c.Spec.BootstrapAddrs[0],
 				},
 				ReadOnly: readOnly,

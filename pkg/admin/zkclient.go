@@ -44,11 +44,12 @@ var (
 // zookeeper access. Most interactions are done via the latter, but a few (e.g., creating topics or
 // getting the controller address) are done via the broker API instead.
 type ZKAdminClient struct {
-	zkClient       zk.Client
-	zkPrefix       string
-	bootstrapAddrs []string
-	sess           *session.Session
-	readOnly       bool
+	zkClient        zk.Client
+	zkPrefix        string
+	bootstrapAddrs  []string
+	brokerConnector *BrokerConnector
+	sess            *session.Session
+	readOnly        bool
 }
 
 var _ Client = (*ZKAdminClient)(nil)
@@ -132,6 +133,11 @@ func NewZKAdminClient(
 	}
 
 	client.bootstrapAddrs = bootstrapAddrs
+	client.brokerConnector, err = NewBrokerConnector(
+		BrokerConnectorConfig{
+			BrokerAddr: bootstrapAddrs[0],
+		},
+	)
 
 	return client, nil
 }
@@ -287,10 +293,8 @@ func (c *ZKAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
-// GetBootstrapAddrs returns the stored value of the bootstrapAddrs
-// parameter so it can be used by the messages package.
-func (c *ZKAdminClient) GetBootstrapAddrs() []string {
-	return c.bootstrapAddrs
+func (c *ZKAdminClient) GetBrokerConnector() *BrokerConnector {
+	return c.brokerConnector
 }
 
 // GetTopics gets information about one or more cluster topics from zookeeper.

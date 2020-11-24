@@ -88,11 +88,9 @@ type Repl struct {
 func NewRepl(
 	ctx context.Context,
 	adminClient admin.Client,
-	brokerClientConfig admin.BrokerClientConfig,
 ) (*Repl, error) {
 	cliRunner := NewCLIRunner(
 		adminClient,
-		brokerClientConfig,
 		func(f string, a ...interface{}) {
 			fmt.Printf("> ")
 			fmt.Printf(f, a...)
@@ -154,12 +152,7 @@ func NewRepl(
 	}
 
 	log.Debug("Loading consumer groups for auto-complete")
-	groupsClient, err := groups.NewClient(brokerClientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	groupCoordinators, err := groupsClient.GetGroups(ctx)
+	groupCoordinators, err := groups.GetGroups(ctx, adminClient.GetBrokerConnector())
 	if err != nil {
 		log.Warnf(
 			"Error getting groups for auto-complete: %+v; auto-complete might not be fully functional",

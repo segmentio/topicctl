@@ -20,7 +20,7 @@ const (
 // zookeeper access.
 type BrokerAdminClient struct {
 	client            *kafka.Client
-	connector         *BrokerConnector
+	brokerConnector   *BrokerConnector
 	config            BrokerAdminClientConfig
 	supportedFeatures SupportedFeatures
 }
@@ -83,7 +83,7 @@ func NewBrokerAdminClient(
 
 	return &BrokerAdminClient{
 		client:            client,
-		connector:         brokerConnector,
+		brokerConnector:   brokerConnector,
 		config:            config,
 		supportedFeatures: supportedFeatures,
 	}, nil
@@ -166,8 +166,8 @@ func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
-func (c *BrokerAdminClient) GetBootstrapAddrs() []string {
-	return []string{c.config.BrokerAddr}
+func (c *BrokerAdminClient) GetBrokerConnector() *BrokerConnector {
+	return c.brokerConnector
 }
 
 func (c *BrokerAdminClient) GetTopics(
