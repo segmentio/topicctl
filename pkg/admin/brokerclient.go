@@ -47,7 +47,7 @@ func NewBrokerAdminClient(
 		return nil, err
 	}
 	log.Debugf("Supported API versions: %+v", apiVersions)
-	maxVersions := map[string]int16{}
+	maxVersions := map[string]int{}
 	for _, apiKey := range apiVersions.ApiKeys {
 		maxVersions[apiKey.ApiName] = apiKey.MaxVersion
 	}
@@ -370,15 +370,9 @@ func (c *BrokerAdminClient) AssignPartitions(
 
 	apiAssignments := []kafka.AlterPartitionReassignmentsRequestAssignment{}
 	for _, assignment := range assignments {
-		replicas := []int32{}
-
-		for _, replica := range assignment.Replicas {
-			replicas = append(replicas, int32(replica))
-		}
-
 		apiAssignment := kafka.AlterPartitionReassignmentsRequestAssignment{
-			PartitionID: int32(assignment.ID),
-			BrokerIDs:   replicas,
+			PartitionID: assignment.ID,
+			BrokerIDs:   assignment.Replicas,
 		}
 		apiAssignments = append(apiAssignments, apiAssignment)
 	}
@@ -411,15 +405,10 @@ func (c *BrokerAdminClient) AddPartitions(
 
 	partitions := []kafka.CreatePartitionsRequestPartition{}
 	for _, newAssignment := range newAssignments {
-		replicas := []int32{}
-		for _, replica := range newAssignment.Replicas {
-			replicas = append(replicas, int32(replica))
-		}
-
 		partitions = append(
 			partitions,
 			kafka.CreatePartitionsRequestPartition{
-				BrokerIDs: replicas,
+				BrokerIDs: newAssignment.Replicas,
 			},
 		)
 	}
@@ -427,7 +416,7 @@ func (c *BrokerAdminClient) AddPartitions(
 	req := kafka.CreatePartitionsRequest{
 		Topic:         topic,
 		NewPartitions: partitions,
-		TotalCount:    int32(len(partitions) + len(topicInfo.Partitions)),
+		TotalCount:    len(partitions) + len(topicInfo.Partitions),
 		Timeout:       defaultTimeout,
 	}
 	log.Debugf("CreatePartitions request: %+v", req)
@@ -447,14 +436,9 @@ func (c *BrokerAdminClient) RunLeaderElection(
 		return errors.New("Cannot run leader election in read-only mode")
 	}
 
-	partitionsInt32 := []int32{}
-	for _, partition := range partitions {
-		partitionsInt32 = append(partitionsInt32, int32(partition))
-	}
-
 	req := kafka.ElectLeadersRequest{
 		Topic:      topic,
-		Partitions: partitionsInt32,
+		Partitions: partitions,
 		Timeout:    defaultTimeout,
 	}
 	log.Debugf("ElectLeaders request: %+v", req)

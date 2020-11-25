@@ -10,6 +10,10 @@ import (
 func TestLoadCluster(t *testing.T) {
 	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml")
 	assert.Nil(t, err)
+
+	// Empty RootDir since this will vary based on where test is run.
+	clusterConfig.RootDir = ""
+
 	assert.Equal(
 		t,
 		ClusterConfig{

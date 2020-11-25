@@ -77,7 +77,7 @@ func TestClusterValidate(t *testing.T) {
 					VersionMajor:   "v2",
 				},
 			},
-			expError: true,
+			expError: false,
 		},
 		{
 			description: "bad retention drop format",

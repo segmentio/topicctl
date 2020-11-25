@@ -9,8 +9,8 @@ spec:
   versionMajor: v2
   bootstrapAddrs:
     - localhost:9093
-  clientAuth:
-    useTLS: true
+  tls:
+    enabled: true
     caCertPath: certs/ca.crt
     certPath: certs/client.crt
     keyPath: certs/client.key

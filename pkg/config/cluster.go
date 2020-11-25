@@ -80,13 +80,13 @@ type ClusterSpec struct {
 	// limited by. If unset, no retention drop limiting will be applied.
 	DefaultRetentionDropStepDurationStr string `json:"defaultRetentionDropStepDuration"`
 
-	// ClientAuth stores how we should authenticate broker connections, if appropriate. Only
+	// TLS stores how we should use TLS with broker connections, if appropriate. Only
 	// applies if using the broker admin.
-	ClientAuth ClientAuth `json:"clientAuth"`
+	TLS TLSConfig `json:"tls"`
 }
 
-type ClientAuth struct {
-	TLSEnabled bool   `json:"tlsEnabled"`
+type TLSConfig struct {
+	Enabled    bool   `json:"enabled"`
 	CACertPath string `json:"caCertPath"`
 	CertPath   string `json:"certPath"`
 	KeyPath    string `json:"keyPath"`
@@ -127,7 +127,7 @@ func (c ClusterConfig) Validate() error {
 		)
 	}
 
-	if c.Spec.ClientAuth.TLSEnabled && len(c.Spec.ZKAddrs) > 0 {
+	if c.Spec.TLS.Enabled && len(c.Spec.ZKAddrs) > 0 {
 		err = multierror.Append(
 			err,
 			errors.New("TLS not supported with zk access mode; omit zk addresses to fix"),
@@ -158,12 +158,12 @@ func (c ClusterConfig) NewAdminClient(
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: c.Spec.BootstrapAddrs[0],
-					TLSEnabled: c.Spec.ClientAuth.TLSEnabled,
-					CACertPath: c.absPath(c.Spec.ClientAuth.CACertPath),
-					CertPath:   c.absPath(c.Spec.ClientAuth.CertPath),
-					KeyPath:    c.absPath(c.Spec.ClientAuth.KeyPath),
-					ServerName: c.Spec.ClientAuth.ServerName,
-					SkipVerify: c.Spec.ClientAuth.SkipVerify,
+					TLSEnabled: c.Spec.TLS.Enabled,
+					CACertPath: c.absPath(c.Spec.TLS.CACertPath),
+					CertPath:   c.absPath(c.Spec.TLS.CertPath),
+					KeyPath:    c.absPath(c.Spec.TLS.KeyPath),
+					ServerName: c.Spec.TLS.ServerName,
+					SkipVerify: c.Spec.TLS.SkipVerify,
 				},
 				ReadOnly: readOnly,
 			},

@@ -36,4 +36,4 @@ services:
       KAFKA_SECURITY_INTER_BROKER_PROTOCOL: 'SSL'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./examples/tls/certs:/certs
+      - ./examples/auth/certs:/certs
