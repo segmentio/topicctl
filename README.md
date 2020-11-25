@@ -200,12 +200,12 @@ only.
 
 ### Specifying the target cluster
 
-There are two patterns for specifying a target cluster in the `topicctl` subcommands:
+There are three ways to specify a target cluster in the `topicctl` subcommands:
 
 1. `--cluster-config=[path]`, where the refererenced path is a cluster configuration
-  in the format expected by the `apply` command described above *or*
-2. `--zk-addr=[zookeeper address]` and `--zk-prefix=[optional prefix for cluster in zookeeper]`
-3. `--broker-addr=[broker address]`
+  in the format expected by the `apply` command described above,
+2. `--zk-addr=[zookeeper address]` and `--zk-prefix=[optional prefix for cluster in zookeeper]`, *or*
+3. `--broker-addr=[bootstrap broker address]`
 
 All subcommands support the `cluster-config` pattern. The last two are also supported
 by the `get`, `repl`, `reset-offsets`, and `tail` subcommands since these can be run
@@ -241,8 +241,9 @@ spec:
   versionMajor: v0.10                   # Version
   bootstrapAddrs:                       # One or more broker bootstrap addresses
     - my-cluster.example.com:9092
-  zkAddrs:                              # One or more cluster zookeeper addresses
-    - zk.example.com:2181
+  zkAddrs:                              # One or more cluster zookeeper addresses; if these are
+    - zk.example.com:2181               #   omitted, then the cluster will only be accessed via broker APIs;
+                                        #   see the section below on cluster access for more details.
   zkPrefix: my-cluster                  # Prefix for zookeeper nodes
   zkLockPath: /topicctl/locks           # Path used for apply locks (optional)
   clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as
