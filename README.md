@@ -402,19 +402,17 @@ operations, >= 2.4 for applies).
 
 ### TLS
 
-TLS is supported when running `topicctl` in the exclusive broker API mode. To use this, you'll
-need the following, each in PEM format:
+TLS is supported when running `topicctl` in the exclusive broker API mode. To use this, either
+set `--tls-enabled` in the command-line or, if using a cluster config, set `tlsEnabled: true`
+in the `clientAuth` section of the latter.
 
-1. Client certificate
-2. Client private key
-3. CA certificate(s)
+In addition to standard TLS, the tool also supports mutual TLS using custom certs, keys, and CA
+certs (in PEM format). As with the enabling of TLS, these can be configured either on the
+command-line or in a cluster config. See [this config](examples/tls/cluster.yaml) for an example.
 
-These can be extracted from Java keystores (like the ones used by the brokers) using the `keytool`
-command.
+### SASL
 
-You can then specify the paths to these via either the `--tls-*` args on the command line or
-via the `clientAuth` section in a cluster config spec. See [this config](examples/tls/cluster.yaml)
-for an example of the latter.
+Coming soon.
 
 ## Development
 
