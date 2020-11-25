@@ -25,9 +25,9 @@ more details.
 
 ## Roadmap
 
-We are planning on making some changes to (optionally) remove the ZK dependency and also to support
-some additional security features like TLS. See
-[this page](https://github.com/segmentio/topicctl/wiki/v1-Plan) for the current plan.
+We are in the process of making some changes to (optionally) remove the ZK dependency and also to
+support some additional security features like TLS. See
+[this page](https://github.com/segmentio/topicctl/wiki/v1-Plan) for the current plan and status.
 
 ## Getting started
 
@@ -205,8 +205,9 @@ There are two patterns for specifying a target cluster in the `topicctl` subcomm
 1. `--cluster-config=[path]`, where the refererenced path is a cluster configuration
   in the format expected by the `apply` command described above *or*
 2. `--zk-addr=[zookeeper address]` and `--zk-prefix=[optional prefix for cluster in zookeeper]`
+3. `--broker-addr=[broker address]`
 
-All subcommands support the `cluster-config` pattern. The second is also supported
+All subcommands support the `cluster-config` pattern. The last two are also supported
 by the `get`, `repl`, `reset-offsets`, and `tail` subcommands since these can be run
 independently of an `apply` workflow.
 
@@ -376,8 +377,19 @@ the process should continue from where it left off.
 
 ## Cluster access details
 
-Most `topicctl` functionality interacts with the cluster through ZooKeeper. Currently, only
-the following depend on broker APIs:
+### zk vs. broker APIs
+
+`topicctl` can interact with a cluster through either ZooKeeper or by hitting broker APIs
+directly.
+
+Broker APIs are used exclusively if the tool is run with either:
+
+1. `--broker-addr` *or*
+2. `--cluster-config` and the cluster config doesn't specify any ZK addresses
+
+In all other cases, i.e. if `--zk-addr` is specified or the cluster config has ZK addresses, then
+ZooKeeper will be used for most interactions. A few operations that are not possible via ZK
+will still use broker APIs, including:
 
 1. Group-related `get` commands: `get groups`, `get lags`, `get members`
 2. `get offsets`
@@ -385,21 +397,24 @@ the following depend on broker APIs:
 4. `tail`
 5. `apply` with topic creation
 
-In the future, we may shift more functionality away from ZooKeeper, at least for newer cluster
-versions; see the "Feature roadmap" section below for more details.
+Note that the broker-only mode is only possible with newer Kafka versions (>= 2 for read-only
+operations, >= 2.4 for applies).
 
-## Feature roadmap
+### TLS
 
-The following are in the medium-term roadmap:
+TLS is supported when running `topicctl` in the exclusive broker API mode. To use this, you'll
+need the following, each in PEM format:
 
-1. **Use broker APIs exclusively for newer cluster versions:** This is needed for a
-  [future world](https://www.confluent.io/blog/removing-zookeeper-dependency-in-kafka/)
-  where Kafka doesn't use ZooKeeper at all. Even before that happens, though, doing everything
-  through broker APIs simplifies the configuration and is also needed to run `topicctl` in
-  environments where users aren't given direct ZK access.
-2. **Support TLS for communication with cluster:** This is fairly straightforward assuming
-  that (1) is done. It allows `topicctl` to be run in environments that don't permit insecure
-  cluster access.
+1. Client certificate
+2. Client private key
+3. CA certificate(s)
+
+These can be extracted from Java keystores (like the ones used by the brokers) using the `keytool`
+command.
+
+You can then specify the paths to these via either the `--tls-*` args on the command line or
+via the `clientAuth` section in a cluster config spec. See [this config](examples/tls/cluster.yaml)
+for an example of the latter.
 
 ## Development
 

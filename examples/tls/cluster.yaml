@@ -9,7 +9,6 @@ spec:
   versionMajor: v2
   bootstrapAddrs:
     - localhost:9093
-  useBrokerAdmin: true
   clientAuth:
     useTLS: true
     caCertPath: certs/ca.crt

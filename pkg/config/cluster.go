@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/topicctl/pkg/admin"
+	log "github.com/sirupsen/logrus"
 )
 
 // KafkaVersionMajor is a string type for storing Kafka versions.
@@ -50,7 +51,7 @@ type ClusterSpec struct {
 	BootstrapAddrs []string `json:"bootstrapAddrs"`
 
 	// ZKAddrs is a list of one or more zookeeper addresses. These can use IPs
-	// or DNS names.
+	// or DNS names. If these are omitted, then the tool will use broker APIs exclusively.
 	ZKAddrs []string `json:"zkAddrs"`
 
 	// ZKPrefix is the prefix under which all zk nodes for the cluster are stored. If blank,
@@ -78,10 +79,6 @@ type ClusterSpec struct {
 	// DefaultRetentionDropStepDuration is the default amount of time that retention drops will be
 	// limited by. If unset, no retention drop limiting will be applied.
 	DefaultRetentionDropStepDurationStr string `json:"defaultRetentionDropStepDuration"`
-
-	// UseBrokerAdmin indicates whether we should use a broker-api-based admin (if true) or
-	// the old, zk-based admin (if false).
-	UseBrokerAdmin bool `json:"useBrokerAdmin"`
 
 	// ClientAuth stores how we should authenticate broker connections, if appropriate. Only
 	// applies if using the broker admin.
@@ -117,9 +114,6 @@ func (c ClusterConfig) Validate() error {
 			errors.New("At least one bootstrap broker address must be set"),
 		)
 	}
-	if len(c.Spec.ZKAddrs) == 0 && !c.Spec.UseBrokerAdmin {
-		err = multierror.Append(err, errors.New("At least one zookeeper address must be set"))
-	}
 	if c.Spec.VersionMajor != KafkaVersionMajor010 &&
 		c.Spec.VersionMajor != KafkaVersionMajor2 {
 		multierror.Append(err, errors.New("MajorVersion must be v0.10 or v2"))
@@ -133,10 +127,10 @@ func (c ClusterConfig) Validate() error {
 		)
 	}
 
-	if c.Spec.ClientAuth.UseTLS && !c.Spec.UseBrokerAdmin {
+	if c.Spec.ClientAuth.UseTLS && len(c.Spec.ZKAddrs) > 0 {
 		err = multierror.Append(
 			err,
-			errors.New("TLS not supported unless also using broker admin"),
+			errors.New("TLS not supported with zk access mode; omit zk addresses to fix"),
 		)
 	}
 
@@ -157,7 +151,8 @@ func (c ClusterConfig) NewAdminClient(
 	sess *session.Session,
 	readOnly bool,
 ) (admin.Client, error) {
-	if c.Spec.UseBrokerAdmin {
+	if len(c.Spec.ZKAddrs) == 0 {
+		log.Debug("No ZK addresses provided, using broker admin client")
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
@@ -174,6 +169,7 @@ func (c ClusterConfig) NewAdminClient(
 			},
 		)
 	} else {
+		log.Debug("ZK addresses provided, using zk admin client")
 		return admin.NewZKAdminClient(
 			ctx,
 			admin.ZKAdminClientConfig{
