@@ -25,6 +25,9 @@ var testerCmd = &cobra.Command{
 
 type testerCmdConfig struct {
 	brokerAddr   string
+	brokerCACert string
+	brokerCert   string
+	brokerKey    string
 	mode         string
 	readConsumer string
 	topic        string
@@ -40,6 +43,24 @@ func init() {
 		"broker-addr",
 		"",
 		"Broker address",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.brokerCACert,
+		"broker-ca-cert",
+		"",
+		"Path to broker client CA cert PEM file if using TLS",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.brokerCert,
+		"broker-cert",
+		"",
+		"Path to broker client cert PEM file if using TLS",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.brokerKey,
+		"broker-key",
+		"",
+		"Path to broker client private key PEM file if using TLS",
 	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.mode,
@@ -225,9 +246,16 @@ func getConnector(ctx context.Context) (*admin.Connector, error) {
 		}
 		return adminClient.GetConnector(), nil
 	} else {
+		useTLS := (testerConfig.brokerCACert != "" ||
+			testerConfig.brokerCert != "" ||
+			resetOffsetsConfig.brokerKey != "")
 		return admin.NewConnector(
 			admin.ConnectorConfig{
 				BrokerAddr: testerConfig.brokerAddr,
+				UseTLS:     useTLS,
+				CACertPath: testerConfig.brokerCACert,
+				CertPath:   testerConfig.brokerCert,
+				KeyPath:    testerConfig.brokerKey,
 			},
 		)
 	}

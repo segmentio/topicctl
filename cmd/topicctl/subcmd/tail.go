@@ -26,6 +26,9 @@ var tailCmd = &cobra.Command{
 
 type tailCmdConfig struct {
 	brokerAddr    string
+	brokerCACert  string
+	brokerCert    string
+	brokerKey     string
 	clusterConfig string
 	offset        int64
 	partitions    []int
@@ -37,11 +40,30 @@ type tailCmdConfig struct {
 var tailConfig tailCmdConfig
 
 func init() {
-	tailCmd.Flags().StringVar(
+	tailCmd.Flags().StringVarP(
 		&tailConfig.brokerAddr,
 		"broker-addr",
+		"b",
 		"",
 		"Broker address",
+	)
+	tailCmd.Flags().StringVar(
+		&tailConfig.brokerCACert,
+		"broker-ca-cert",
+		"",
+		"Path to broker client CA cert PEM file if using TLS",
+	)
+	tailCmd.Flags().StringVar(
+		&tailConfig.brokerCert,
+		"broker-cert",
+		"",
+		"Path to broker client cert PEM file if using TLS",
+	)
+	tailCmd.Flags().StringVar(
+		&tailConfig.brokerKey,
+		"broker-key",
+		"",
+		"Path to broker client private key PEM file if using TLS",
 	)
 	tailCmd.Flags().StringVar(
 		&tailConfig.clusterConfig,
@@ -124,11 +146,19 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
 	} else if tailConfig.brokerAddr != "" {
+		useTLS := (resetOffsetsConfig.brokerCACert != "" ||
+			resetOffsetsConfig.brokerCert != "" ||
+			resetOffsetsConfig.brokerKey != "")
+
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: tailConfig.brokerAddr,
+					UseTLS:     useTLS,
+					CACertPath: tailConfig.brokerCACert,
+					CertPath:   tailConfig.brokerCert,
+					KeyPath:    tailConfig.brokerKey,
 				},
 				ReadOnly: true,
 			},

@@ -25,6 +25,9 @@ var resetOffsetsCmd = &cobra.Command{
 
 type resetOffsetsCmdConfig struct {
 	brokerAddr    string
+	brokerCACert  string
+	brokerCert    string
+	brokerKey     string
 	clusterConfig string
 	offset        int64
 	partitions    []int
@@ -40,6 +43,24 @@ func init() {
 		"broker-addr",
 		"",
 		"Broker address",
+	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.brokerCACert,
+		"broker-ca-cert",
+		"",
+		"Path to broker client CA cert PEM file if using TLS",
+	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.brokerCert,
+		"broker-cert",
+		"",
+		"Path to broker client cert PEM file if using TLS",
+	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.brokerKey,
+		"broker-key",
+		"",
+		"Path to broker client private key PEM file if using TLS",
 	)
 	resetOffsetsCmd.Flags().StringVar(
 		&resetOffsetsConfig.clusterConfig,
@@ -104,11 +125,18 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
 	} else if resetOffsetsConfig.brokerAddr != "" {
+		useTLS := (resetOffsetsConfig.brokerCACert != "" ||
+			resetOffsetsConfig.brokerCert != "" ||
+			resetOffsetsConfig.brokerKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: resetOffsetsConfig.brokerAddr,
+					UseTLS:     useTLS,
+					CACertPath: resetOffsetsConfig.brokerCACert,
+					CertPath:   resetOffsetsConfig.brokerCert,
+					KeyPath:    resetOffsetsConfig.brokerKey,
 				},
 				ReadOnly: true,
 			},

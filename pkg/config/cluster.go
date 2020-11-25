@@ -78,6 +78,17 @@ type ClusterSpec struct {
 	// UseBrokerAdmin indicates whether we should use a broker-api-based admin (if true) or
 	// the old, zk-based admin (if false).
 	UseBrokerAdmin bool `json:"useBrokerAdmin"`
+
+	// BrokerAuth stores how we should authenticate broker connections, if appropriate. Only
+	// applies if using the broker admin.
+	BrokerAuth BrokerAuth `json:"brokerAuth"`
+}
+
+type BrokerAuth struct {
+	UseTLS     bool   `json:"useTLS"`
+	CACertPath string `json:"caCertPath"`
+	CertPath   string `json:"certPath"`
+	KeyPath    string `json:"keyPath"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -113,6 +124,13 @@ func (c ClusterConfig) Validate() error {
 		err = multierror.Append(
 			err,
 			fmt.Errorf("Error parsing retention drop step retention: %+v", parseErr),
+		)
+	}
+
+	if c.Spec.BrokerAuth.UseTLS && !c.Spec.UseBrokerAdmin {
+		err = multierror.Append(
+			err,
+			errors.New("TLS not supported unless also using broker admin"),
 		)
 	}
 

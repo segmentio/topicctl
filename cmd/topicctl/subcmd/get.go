@@ -34,6 +34,9 @@ var getCmd = &cobra.Command{
 
 type getCmdConfig struct {
 	brokerAddr    string
+	brokerCACert  string
+	brokerCert    string
+	brokerKey     string
 	clusterConfig string
 	full          bool
 	zkAddr        string
@@ -48,6 +51,24 @@ func init() {
 		"broker-addr",
 		"",
 		"Broker address",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.brokerCACert,
+		"broker-ca-cert",
+		"",
+		"Path to broker client CA cert PEM file if using TLS",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.brokerCert,
+		"broker-cert",
+		"",
+		"Path to broker client cert PEM file if using TLS",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.brokerKey,
+		"broker-key",
+		"",
+		"Path to broker client private key PEM file if using TLS",
 	)
 	getCmd.Flags().StringVar(
 		&getConfig.clusterConfig,
@@ -104,11 +125,18 @@ func getRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else if getConfig.brokerAddr != "" {
+		useTLS := (getConfig.brokerCACert != "" ||
+			getConfig.brokerCert != "" ||
+			getConfig.brokerKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: getConfig.brokerAddr,
+					UseTLS:     useTLS,
+					CACertPath: getConfig.brokerCACert,
+					CertPath:   getConfig.brokerCert,
+					KeyPath:    getConfig.brokerKey,
 				},
 				ReadOnly: true,
 			},
