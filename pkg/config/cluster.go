@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -28,6 +29,9 @@ const (
 type ClusterConfig struct {
 	Meta ClusterMeta `json:"meta"`
 	Spec ClusterSpec `json:"spec"`
+
+	// RootDir is the root relative to which paths are evaluated. Set by loader.
+	RootDir string `json:"-"`
 }
 
 // ClusterMeta contains (mostly immutable) metadata about the cluster. Inspired
@@ -79,12 +83,12 @@ type ClusterSpec struct {
 	// the old, zk-based admin (if false).
 	UseBrokerAdmin bool `json:"useBrokerAdmin"`
 
-	// BrokerAuth stores how we should authenticate broker connections, if appropriate. Only
+	// ClientAuth stores how we should authenticate broker connections, if appropriate. Only
 	// applies if using the broker admin.
-	BrokerAuth BrokerAuth `json:"brokerAuth"`
+	ClientAuth ClientAuth `json:"clientAuth"`
 }
 
-type BrokerAuth struct {
+type ClientAuth struct {
 	UseTLS     bool   `json:"useTLS"`
 	CACertPath string `json:"caCertPath"`
 	CertPath   string `json:"certPath"`
@@ -129,7 +133,7 @@ func (c ClusterConfig) Validate() error {
 		)
 	}
 
-	if c.Spec.BrokerAuth.UseTLS && !c.Spec.UseBrokerAdmin {
+	if c.Spec.ClientAuth.UseTLS && !c.Spec.UseBrokerAdmin {
 		err = multierror.Append(
 			err,
 			errors.New("TLS not supported unless also using broker admin"),
@@ -159,12 +163,12 @@ func (c ClusterConfig) NewAdminClient(
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: c.Spec.BootstrapAddrs[0],
-					UseTLS:     c.Spec.BrokerAuth.UseTLS,
-					CACertPath: c.Spec.BrokerAuth.CACertPath,
-					CertPath:   c.Spec.BrokerAuth.CertPath,
-					KeyPath:    c.Spec.BrokerAuth.KeyPath,
-					ServerName: c.Spec.BrokerAuth.ServerName,
-					SkipVerify: c.Spec.BrokerAuth.SkipVerify,
+					UseTLS:     c.Spec.ClientAuth.UseTLS,
+					CACertPath: c.absPath(c.Spec.ClientAuth.CACertPath),
+					CertPath:   c.absPath(c.Spec.ClientAuth.CertPath),
+					KeyPath:    c.absPath(c.Spec.ClientAuth.KeyPath),
+					ServerName: c.Spec.ClientAuth.ServerName,
+					SkipVerify: c.Spec.ClientAuth.SkipVerify,
 				},
 				ReadOnly: readOnly,
 			},
@@ -182,4 +186,12 @@ func (c ClusterConfig) NewAdminClient(
 			},
 		)
 	}
+}
+
+func (c ClusterConfig) absPath(relPath string) string {
+	if relPath == "" || c.RootDir == "" || filepath.IsAbs(relPath) {
+		return relPath
+	}
+
+	return filepath.Join(c.RootDir, relPath)
 }

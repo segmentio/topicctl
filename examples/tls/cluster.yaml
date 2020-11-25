@@ -1,0 +1,18 @@
+meta:
+  name: local-cluster-tls
+  environment: local-env
+  region: local-region
+  description: |
+    Test cluster
+
+spec:
+  versionMajor: v2
+  bootstrapAddrs:
+    - localhost:9093
+  useBrokerAdmin: true
+  clientAuth:
+    useTLS: true
+    caCertPath: certs/ca.crt
+    certPath: certs/client.crt
+    keyPath: certs/client.key
+    skipVerify: true
