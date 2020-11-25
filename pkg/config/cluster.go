@@ -86,7 +86,7 @@ type ClusterSpec struct {
 }
 
 type ClientAuth struct {
-	UseTLS     bool   `json:"useTLS"`
+	TLSEnabled bool   `json:"tlsEnabled"`
 	CACertPath string `json:"caCertPath"`
 	CertPath   string `json:"certPath"`
 	KeyPath    string `json:"keyPath"`
@@ -127,7 +127,7 @@ func (c ClusterConfig) Validate() error {
 		)
 	}
 
-	if c.Spec.ClientAuth.UseTLS && len(c.Spec.ZKAddrs) > 0 {
+	if c.Spec.ClientAuth.TLSEnabled && len(c.Spec.ZKAddrs) > 0 {
 		err = multierror.Append(
 			err,
 			errors.New("TLS not supported with zk access mode; omit zk addresses to fix"),
@@ -158,7 +158,7 @@ func (c ClusterConfig) NewAdminClient(
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: c.Spec.BootstrapAddrs[0],
-					UseTLS:     c.Spec.ClientAuth.UseTLS,
+					TLSEnabled: c.Spec.ClientAuth.TLSEnabled,
 					CACertPath: c.absPath(c.Spec.ClientAuth.CACertPath),
 					CertPath:   c.absPath(c.Spec.ClientAuth.CertPath),
 					KeyPath:    c.absPath(c.Spec.ClientAuth.KeyPath),

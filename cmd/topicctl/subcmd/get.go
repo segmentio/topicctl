@@ -37,6 +37,7 @@ type getCmdConfig struct {
 	full          bool
 	tlsCACert     string
 	tlsCert       string
+	tlsEnabled    bool
 	tlsKey        string
 	tlsSkipVerify bool
 	tlsServerName string
@@ -77,6 +78,12 @@ func init() {
 		"tls-cert",
 		"",
 		"Path to client cert PEM file if using TLS",
+	)
+	getCmd.Flags().BoolVar(
+		&getConfig.tlsEnabled,
+		"tls-enabled",
+		false,
+		"Use TLS for communication with brokers",
 	)
 	getCmd.Flags().StringVar(
 		&getConfig.tlsKey,
@@ -139,7 +146,8 @@ func getRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else if getConfig.brokerAddr != "" {
-		useTLS := (getConfig.tlsCACert != "" ||
+		tlsEnabled := (getConfig.tlsEnabled ||
+			getConfig.tlsCACert != "" ||
 			getConfig.tlsCert != "" ||
 			getConfig.tlsKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
@@ -147,7 +155,7 @@ func getRun(cmd *cobra.Command, args []string) error {
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: getConfig.brokerAddr,
-					UseTLS:     useTLS,
+					TLSEnabled: tlsEnabled,
 					CACertPath: getConfig.tlsCACert,
 					CertPath:   getConfig.tlsCert,
 					KeyPath:    getConfig.tlsKey,

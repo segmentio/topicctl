@@ -29,6 +29,7 @@ type testerCmdConfig struct {
 	readConsumer  string
 	tlsCACert     string
 	tlsCert       string
+	tlsEnabled    bool
 	tlsKey        string
 	tlsSkipVerify bool
 	tlsServerName string
@@ -70,6 +71,12 @@ func init() {
 		"tls-cert",
 		"",
 		"Path to client cert PEM file if using TLS",
+	)
+	testerCmd.Flags().BoolVar(
+		&testerConfig.tlsEnabled,
+		"tls-enabled",
+		false,
+		"Use TLS for communication with brokers",
 	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.tlsKey,
@@ -262,13 +269,14 @@ func getConnector(ctx context.Context) (*admin.Connector, error) {
 		}
 		return adminClient.GetConnector(), nil
 	} else {
-		useTLS := (testerConfig.tlsCACert != "" ||
+		tlsEnabled := (testerConfig.tlsEnabled ||
+			testerConfig.tlsCACert != "" ||
 			testerConfig.tlsCert != "" ||
 			testerConfig.tlsKey != "")
 		return admin.NewConnector(
 			admin.ConnectorConfig{
 				BrokerAddr: testerConfig.brokerAddr,
-				UseTLS:     useTLS,
+				TLSEnabled: tlsEnabled,
 				CACertPath: testerConfig.tlsCACert,
 				CertPath:   testerConfig.tlsCert,
 				KeyPath:    testerConfig.tlsKey,

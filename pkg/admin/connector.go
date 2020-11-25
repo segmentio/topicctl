@@ -13,7 +13,7 @@ import (
 
 type ConnectorConfig struct {
 	BrokerAddr string
-	UseTLS     bool
+	TLSEnabled bool
 	CertPath   string
 	KeyPath    string
 	CACertPath string
@@ -34,28 +34,35 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 
 	var tlsConfig *tls.Config
 
-	if !config.UseTLS {
+	if !config.TLSEnabled {
 		connector.Dialer = kafka.DefaultDialer
 	} else {
-		log.Debugf("Loading key pair from %s and %s", config.CertPath, config.KeyPath)
-		cert, err := tls.LoadX509KeyPair(config.CertPath, config.KeyPath)
-		if err != nil {
-			return nil, err
+		var certs []tls.Certificate
+		var caCertPool *x509.CertPool
+
+		if config.CertPath != "" && config.KeyPath != "" {
+			log.Debugf("Loading key pair from %s and %s", config.CertPath, config.KeyPath)
+			cert, err := tls.LoadX509KeyPair(config.CertPath, config.KeyPath)
+			if err != nil {
+				return nil, err
+			}
+			certs = append(certs, cert)
 		}
 
-		log.Debugf("Adding CA certs from %s", config.CACertPath)
-		caCertPool := x509.NewCertPool()
-		caCertContents, err := ioutil.ReadFile(config.CACertPath)
-		if err != nil {
-			return nil, err
-		}
-
-		if ok := caCertPool.AppendCertsFromPEM(caCertContents); !ok {
-			return nil, fmt.Errorf("Could not append CA certs from %s", config.CACertPath)
+		if config.CACertPath != "" {
+			log.Debugf("Adding CA certs from %s", config.CACertPath)
+			caCertPool = x509.NewCertPool()
+			caCertContents, err := ioutil.ReadFile(config.CACertPath)
+			if err != nil {
+				return nil, err
+			}
+			if ok := caCertPool.AppendCertsFromPEM(caCertContents); !ok {
+				return nil, fmt.Errorf("Could not append CA certs from %s", config.CACertPath)
+			}
 		}
 
 		tlsConfig = &tls.Config{
-			Certificates:       []tls.Certificate{cert},
+			Certificates:       certs,
 			RootCAs:            caCertPool,
 			InsecureSkipVerify: config.SkipVerify,
 			ServerName:         config.ServerName,

@@ -30,6 +30,7 @@ type resetOffsetsCmdConfig struct {
 	partitions    []int
 	tlsCACert     string
 	tlsCert       string
+	tlsEnabled    bool
 	tlsKey        string
 	tlsSkipVerify bool
 	tlsServerName string
@@ -76,6 +77,12 @@ func init() {
 		"tls-cert",
 		"",
 		"Path to client cert PEM file if using TLS",
+	)
+	resetOffsetsCmd.Flags().BoolVar(
+		&resetOffsetsConfig.tlsEnabled,
+		"tls-enabled",
+		false,
+		"Use TLS for communication with brokers",
 	)
 	resetOffsetsCmd.Flags().StringVar(
 		&resetOffsetsConfig.tlsKey,
@@ -138,7 +145,8 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
 	} else if resetOffsetsConfig.brokerAddr != "" {
-		useTLS := (resetOffsetsConfig.tlsCACert != "" ||
+		tlsEnabled := (resetOffsetsConfig.tlsEnabled ||
+			resetOffsetsConfig.tlsCACert != "" ||
 			resetOffsetsConfig.tlsCert != "" ||
 			resetOffsetsConfig.tlsKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
@@ -146,7 +154,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: resetOffsetsConfig.brokerAddr,
-					UseTLS:     useTLS,
+					TLSEnabled: tlsEnabled,
 					CACertPath: resetOffsetsConfig.tlsCACert,
 					CertPath:   resetOffsetsConfig.tlsCert,
 					KeyPath:    resetOffsetsConfig.tlsKey,
