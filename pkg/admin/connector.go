@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	log "github.com/sirupsen/logrus"
 )
 
 type ConnectorConfig struct {
@@ -16,6 +17,8 @@ type ConnectorConfig struct {
 	CertPath   string
 	KeyPath    string
 	CACertPath string
+	ServerName string
+	SkipVerify bool
 }
 
 type Connector struct {
@@ -29,14 +32,18 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		Config: config,
 	}
 
+	var tlsConfig *tls.Config
+
 	if !config.UseTLS {
 		connector.Dialer = kafka.DefaultDialer
 	} else {
+		log.Debugf("Loading key pair from %s and %s", config.CertPath, config.KeyPath)
 		cert, err := tls.LoadX509KeyPair(config.CertPath, config.KeyPath)
 		if err != nil {
 			return nil, err
 		}
 
+		log.Debugf("Adding CA certs from %s", config.CACertPath)
 		caCertPool := x509.NewCertPool()
 		caCertContents, err := ioutil.ReadFile(config.CACertPath)
 		if err != nil {
@@ -47,9 +54,11 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 			return nil, fmt.Errorf("Could not append CA certs from %s", config.CACertPath)
 		}
 
-		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			RootCAs:      caCertPool,
+		tlsConfig = &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			RootCAs:            caCertPool,
+			InsecureSkipVerify: config.SkipVerify,
+			ServerName:         config.ServerName,
 		}
 		connector.Dialer = &kafka.Dialer{
 			Timeout: 10 * time.Second,
@@ -61,6 +70,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		Addr: kafka.TCP(config.BrokerAddr),
 		Transport: &kafka.Transport{
 			Dial: connector.Dialer.DialFunc,
+			TLS:  tlsConfig,
 		},
 	}
 

@@ -2,7 +2,6 @@ package subcmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -34,11 +33,13 @@ var getCmd = &cobra.Command{
 
 type getCmdConfig struct {
 	brokerAddr    string
-	brokerCACert  string
-	brokerCert    string
-	brokerKey     string
 	clusterConfig string
 	full          bool
+	tlsCACert     string
+	tlsCert       string
+	tlsKey        string
+	tlsSkipVerify bool
+	tlsServerName string
 	zkAddr        string
 	zkPrefix      string
 }
@@ -46,29 +47,12 @@ type getCmdConfig struct {
 var getConfig getCmdConfig
 
 func init() {
-	getCmd.Flags().StringVar(
+	getCmd.Flags().StringVarP(
 		&getConfig.brokerAddr,
 		"broker-addr",
+		"b",
 		"",
 		"Broker address",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.brokerCACert,
-		"broker-ca-cert",
-		"",
-		"Path to broker client CA cert PEM file if using TLS",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.brokerCert,
-		"broker-cert",
-		"",
-		"Path to broker client cert PEM file if using TLS",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.brokerKey,
-		"broker-key",
-		"",
-		"Path to broker client private key PEM file if using TLS",
 	)
 	getCmd.Flags().StringVar(
 		&getConfig.clusterConfig,
@@ -81,6 +65,36 @@ func init() {
 		"full",
 		false,
 		"Show more full information for resources",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.tlsCACert,
+		"tls-ca-cert",
+		"",
+		"Path to client CA cert PEM file if using TLS",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.tlsCert,
+		"tls-cert",
+		"",
+		"Path to client cert PEM file if using TLS",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.tlsKey,
+		"tls-key",
+		"",
+		"Path to client private key PEM file if using TLS",
+	)
+	getCmd.Flags().StringVar(
+		&getConfig.tlsServerName,
+		"tls-server-name",
+		"",
+		"Server name to use for TLS cert verification",
+	)
+	getCmd.Flags().BoolVar(
+		&getConfig.tlsSkipVerify,
+		"tls-skip-verify",
+		false,
+		"Skip hostname verification when using TLS",
 	)
 	getCmd.Flags().StringVarP(
 		&getConfig.zkAddr,
@@ -100,15 +114,15 @@ func init() {
 }
 
 func getPreRun(cmd *cobra.Command, args []string) error {
-	if getConfig.clusterConfig == "" && getConfig.zkAddr == "" && getConfig.brokerAddr == "" {
-		return errors.New("Must set either broker-addr, cluster-config, zk address")
-	}
-	if getConfig.clusterConfig != "" &&
-		(getConfig.zkAddr != "" || getConfig.zkPrefix != "" || getConfig.brokerAddr != "") {
-		log.Warn("broker and zk flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return validateCommonFlags(
+		getConfig.clusterConfig,
+		getConfig.zkAddr,
+		getConfig.zkPrefix,
+		getConfig.brokerAddr,
+		getConfig.tlsCACert,
+		getConfig.tlsCert,
+		getConfig.tlsKey,
+	)
 }
 
 func getRun(cmd *cobra.Command, args []string) error {
@@ -125,18 +139,20 @@ func getRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else if getConfig.brokerAddr != "" {
-		useTLS := (getConfig.brokerCACert != "" ||
-			getConfig.brokerCert != "" ||
-			getConfig.brokerKey != "")
+		useTLS := (getConfig.tlsCACert != "" ||
+			getConfig.tlsCert != "" ||
+			getConfig.tlsKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: getConfig.brokerAddr,
 					UseTLS:     useTLS,
-					CACertPath: getConfig.brokerCACert,
-					CertPath:   getConfig.brokerCert,
-					KeyPath:    getConfig.brokerKey,
+					CACertPath: getConfig.tlsCACert,
+					CertPath:   getConfig.tlsCert,
+					KeyPath:    getConfig.tlsKey,
+					ServerName: getConfig.tlsServerName,
+					SkipVerify: getConfig.tlsSkipVerify,
 				},
 				ReadOnly: true,
 			},

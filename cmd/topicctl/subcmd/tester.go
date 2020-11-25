@@ -24,43 +24,28 @@ var testerCmd = &cobra.Command{
 }
 
 type testerCmdConfig struct {
-	brokerAddr   string
-	brokerCACert string
-	brokerCert   string
-	brokerKey    string
-	mode         string
-	readConsumer string
-	topic        string
-	writeRate    int
-	zkAddr       string
+	brokerAddr    string
+	mode          string
+	readConsumer  string
+	tlsCACert     string
+	tlsCert       string
+	tlsKey        string
+	tlsSkipVerify bool
+	tlsServerName string
+	topic         string
+	writeRate     int
+	zkAddr        string
 }
 
 var testerConfig testerCmdConfig
 
 func init() {
-	testerCmd.Flags().StringVar(
+	testerCmd.Flags().StringVarP(
 		&testerConfig.brokerAddr,
 		"broker-addr",
+		"b",
 		"",
 		"Broker address",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.brokerCACert,
-		"broker-ca-cert",
-		"",
-		"Path to broker client CA cert PEM file if using TLS",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.brokerCert,
-		"broker-cert",
-		"",
-		"Path to broker client cert PEM file if using TLS",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.brokerKey,
-		"broker-key",
-		"",
-		"Path to broker client private key PEM file if using TLS",
 	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.mode,
@@ -75,6 +60,36 @@ func init() {
 		"Consumer group ID for reads; if blank, no consumer group is set",
 	)
 	testerCmd.Flags().StringVar(
+		&testerConfig.tlsCACert,
+		"tls-ca-cert",
+		"",
+		"Path to client CA cert PEM file if using TLS",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.tlsCert,
+		"tls-cert",
+		"",
+		"Path to client cert PEM file if using TLS",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.tlsKey,
+		"tls-key",
+		"",
+		"Path to client private key PEM file if using TLS",
+	)
+	testerCmd.Flags().StringVar(
+		&testerConfig.tlsServerName,
+		"tls-server-name",
+		"",
+		"Server name to use for TLS cert verification",
+	)
+	testerCmd.Flags().BoolVar(
+		&testerConfig.tlsSkipVerify,
+		"tls-skip-verify",
+		false,
+		"Skip hostname verification when using TLS",
+	)
+	testerCmd.Flags().StringVar(
 		&testerConfig.topic,
 		"topic",
 		"",
@@ -86,9 +101,10 @@ func init() {
 		5,
 		"Approximate number of messages to write per sec",
 	)
-	testerCmd.Flags().StringVar(
+	testerCmd.Flags().StringVarP(
 		&testerConfig.zkAddr,
 		"zk-addr",
+		"z",
 		"localhost:2181",
 		"Zookeeper address",
 	)
@@ -246,16 +262,18 @@ func getConnector(ctx context.Context) (*admin.Connector, error) {
 		}
 		return adminClient.GetConnector(), nil
 	} else {
-		useTLS := (testerConfig.brokerCACert != "" ||
-			testerConfig.brokerCert != "" ||
-			resetOffsetsConfig.brokerKey != "")
+		useTLS := (testerConfig.tlsCACert != "" ||
+			testerConfig.tlsCert != "" ||
+			testerConfig.tlsKey != "")
 		return admin.NewConnector(
 			admin.ConnectorConfig{
 				BrokerAddr: testerConfig.brokerAddr,
 				UseTLS:     useTLS,
-				CACertPath: testerConfig.brokerCACert,
-				CertPath:   testerConfig.brokerCert,
-				KeyPath:    testerConfig.brokerKey,
+				CACertPath: testerConfig.tlsCACert,
+				CertPath:   testerConfig.tlsCert,
+				KeyPath:    testerConfig.tlsKey,
+				ServerName: testerConfig.tlsServerName,
+				SkipVerify: testerConfig.tlsSkipVerify,
 			},
 		)
 	}

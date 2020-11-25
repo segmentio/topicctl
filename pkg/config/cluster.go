@@ -89,6 +89,8 @@ type BrokerAuth struct {
 	CACertPath string `json:"caCertPath"`
 	CertPath   string `json:"certPath"`
 	KeyPath    string `json:"keyPath"`
+	ServerName string `json:"serverName"`
+	SkipVerify bool   `json:"skipVerify"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -157,6 +159,12 @@ func (c ClusterConfig) NewAdminClient(
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: c.Spec.BootstrapAddrs[0],
+					UseTLS:     c.Spec.BrokerAuth.UseTLS,
+					CACertPath: c.Spec.BrokerAuth.CACertPath,
+					CertPath:   c.Spec.BrokerAuth.CertPath,
+					KeyPath:    c.Spec.BrokerAuth.KeyPath,
+					ServerName: c.Spec.BrokerAuth.ServerName,
+					SkipVerify: c.Spec.BrokerAuth.SkipVerify,
 				},
 				ReadOnly: readOnly,
 			},

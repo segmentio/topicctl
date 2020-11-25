@@ -25,12 +25,14 @@ var resetOffsetsCmd = &cobra.Command{
 
 type resetOffsetsCmdConfig struct {
 	brokerAddr    string
-	brokerCACert  string
-	brokerCert    string
-	brokerKey     string
 	clusterConfig string
 	offset        int64
 	partitions    []int
+	tlsCACert     string
+	tlsCert       string
+	tlsKey        string
+	tlsSkipVerify bool
+	tlsServerName string
 	zkAddr        string
 	zkPrefix      string
 }
@@ -38,29 +40,12 @@ type resetOffsetsCmdConfig struct {
 var resetOffsetsConfig resetOffsetsCmdConfig
 
 func init() {
-	resetOffsetsCmd.Flags().StringVar(
+	resetOffsetsCmd.Flags().StringVarP(
 		&resetOffsetsConfig.brokerAddr,
 		"broker-addr",
+		"b",
 		"",
 		"Broker address",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.brokerCACert,
-		"broker-ca-cert",
-		"",
-		"Path to broker client CA cert PEM file if using TLS",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.brokerCert,
-		"broker-cert",
-		"",
-		"Path to broker client cert PEM file if using TLS",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.brokerKey,
-		"broker-key",
-		"",
-		"Path to broker client private key PEM file if using TLS",
 	)
 	resetOffsetsCmd.Flags().StringVar(
 		&resetOffsetsConfig.clusterConfig,
@@ -80,6 +65,36 @@ func init() {
 		[]int{},
 		"Partition (defaults to all)",
 	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.tlsCACert,
+		"tls-ca-cert",
+		"",
+		"Path to client CA cert PEM file if using TLS",
+	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.tlsCert,
+		"tls-cert",
+		"",
+		"Path to client cert PEM file if using TLS",
+	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.tlsKey,
+		"tls-key",
+		"",
+		"Path to client private key PEM file if using TLS",
+	)
+	resetOffsetsCmd.Flags().StringVar(
+		&resetOffsetsConfig.tlsServerName,
+		"tls-server-name",
+		"",
+		"Server name to use for TLS cert verification",
+	)
+	resetOffsetsCmd.Flags().BoolVar(
+		&resetOffsetsConfig.tlsSkipVerify,
+		"tls-skip-verify",
+		false,
+		"Skip hostname verification when using TLS",
+	)
 	resetOffsetsCmd.Flags().StringVarP(
 		&resetOffsetsConfig.zkAddr,
 		"zk-addr",
@@ -98,17 +113,15 @@ func init() {
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	if resetOffsetsConfig.clusterConfig == "" && resetOffsetsConfig.zkAddr == "" &&
-		resetOffsetsConfig.brokerAddr == "" {
-		return errors.New("Must set either broker-addr, cluster-config, or zk-addr")
-	}
-	if resetOffsetsConfig.clusterConfig != "" &&
-		(resetOffsetsConfig.zkAddr != "" || resetOffsetsConfig.zkPrefix != "" ||
-			resetOffsetsConfig.brokerAddr != "") {
-		log.Warn("broker and zk flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return validateCommonFlags(
+		resetOffsetsConfig.clusterConfig,
+		resetOffsetsConfig.zkAddr,
+		resetOffsetsConfig.zkPrefix,
+		resetOffsetsConfig.brokerAddr,
+		resetOffsetsConfig.tlsCACert,
+		resetOffsetsConfig.tlsCert,
+		resetOffsetsConfig.tlsKey,
+	)
 }
 
 func resetOffsetsRun(cmd *cobra.Command, args []string) error {
@@ -125,18 +138,20 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
 	} else if resetOffsetsConfig.brokerAddr != "" {
-		useTLS := (resetOffsetsConfig.brokerCACert != "" ||
-			resetOffsetsConfig.brokerCert != "" ||
-			resetOffsetsConfig.brokerKey != "")
+		useTLS := (resetOffsetsConfig.tlsCACert != "" ||
+			resetOffsetsConfig.tlsCert != "" ||
+			resetOffsetsConfig.tlsKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: resetOffsetsConfig.brokerAddr,
 					UseTLS:     useTLS,
-					CACertPath: resetOffsetsConfig.brokerCACert,
-					CertPath:   resetOffsetsConfig.brokerCert,
-					KeyPath:    resetOffsetsConfig.brokerKey,
+					CACertPath: resetOffsetsConfig.tlsCACert,
+					CertPath:   resetOffsetsConfig.tlsCert,
+					KeyPath:    resetOffsetsConfig.tlsKey,
+					ServerName: resetOffsetsConfig.tlsServerName,
+					SkipVerify: resetOffsetsConfig.tlsSkipVerify,
 				},
 				ReadOnly: true,
 			},

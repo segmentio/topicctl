@@ -2,14 +2,12 @@ package subcmd
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/config"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -22,10 +20,12 @@ var replCmd = &cobra.Command{
 
 type replCmdConfig struct {
 	brokerAddr    string
-	brokerCACert  string
-	brokerCert    string
-	brokerKey     string
 	clusterConfig string
+	tlsCACert     string
+	tlsCert       string
+	tlsKey        string
+	tlsSkipVerify bool
+	tlsServerName string
 	zkAddr        string
 	zkPrefix      string
 }
@@ -33,35 +33,48 @@ type replCmdConfig struct {
 var replConfig replCmdConfig
 
 func init() {
-	replCmd.Flags().StringVar(
+	replCmd.Flags().StringVarP(
 		&replConfig.brokerAddr,
 		"broker-addr",
+		"b",
 		"",
 		"Broker address",
-	)
-	replCmd.Flags().StringVar(
-		&replConfig.brokerCACert,
-		"broker-ca-cert",
-		"",
-		"Path to broker client CA cert PEM file if using TLS",
-	)
-	replCmd.Flags().StringVar(
-		&replConfig.brokerCert,
-		"broker-cert",
-		"",
-		"Path to broker client cert PEM file if using TLS",
-	)
-	replCmd.Flags().StringVar(
-		&replConfig.brokerKey,
-		"broker-key",
-		"",
-		"Path to broker client private key PEM file if using TLS",
 	)
 	replCmd.Flags().StringVar(
 		&replConfig.clusterConfig,
 		"cluster-config",
 		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
 		"Cluster config",
+	)
+	replCmd.Flags().StringVar(
+		&replConfig.tlsCACert,
+		"tls-ca-cert",
+		"",
+		"Path to client CA cert PEM file if using TLS",
+	)
+	replCmd.Flags().StringVar(
+		&replConfig.tlsCert,
+		"tls-cert",
+		"",
+		"Path to client cert PEM file if using TLS",
+	)
+	replCmd.Flags().StringVar(
+		&replConfig.tlsKey,
+		"tls-key",
+		"",
+		"Path to client private key PEM file if using TLS",
+	)
+	replCmd.Flags().StringVar(
+		&replConfig.tlsServerName,
+		"tls-server-name",
+		"",
+		"Server name to use for TLS cert verification",
+	)
+	replCmd.Flags().BoolVar(
+		&replConfig.tlsSkipVerify,
+		"tls-skip-verify",
+		false,
+		"Skip hostname verification when using TLS",
 	)
 	replCmd.Flags().StringVarP(
 		&replConfig.zkAddr,
@@ -81,16 +94,15 @@ func init() {
 }
 
 func replPreRun(cmd *cobra.Command, args []string) error {
-	if replConfig.clusterConfig == "" && replConfig.zkAddr == "" &&
-		replConfig.brokerAddr == "" {
-		return errors.New("Must set either broker-addr, cluster-config, or zk-addr")
-	}
-	if replConfig.clusterConfig != "" &&
-		(replConfig.zkAddr != "" || replConfig.zkPrefix != "" || replConfig.brokerAddr != "") {
-		log.Warn("broker and zk flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return validateCommonFlags(
+		replConfig.clusterConfig,
+		replConfig.zkAddr,
+		replConfig.zkPrefix,
+		replConfig.brokerAddr,
+		replConfig.tlsCACert,
+		replConfig.tlsCert,
+		replConfig.tlsKey,
+	)
 }
 
 func replRun(cmd *cobra.Command, args []string) error {
@@ -107,18 +119,20 @@ func replRun(cmd *cobra.Command, args []string) error {
 		}
 		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
 	} else if replConfig.brokerAddr != "" {
-		useTLS := (replConfig.brokerCACert != "" ||
-			replConfig.brokerCert != "" ||
-			replConfig.brokerKey != "")
+		useTLS := (replConfig.tlsCACert != "" ||
+			replConfig.tlsCert != "" ||
+			replConfig.tlsKey != "")
 		adminClient, clientErr = admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: replConfig.brokerAddr,
 					UseTLS:     useTLS,
-					CACertPath: replConfig.brokerCACert,
-					CertPath:   replConfig.brokerCert,
-					KeyPath:    replConfig.brokerKey,
+					CACertPath: replConfig.tlsCACert,
+					CertPath:   replConfig.tlsCert,
+					KeyPath:    replConfig.tlsKey,
+					ServerName: replConfig.tlsServerName,
+					SkipVerify: replConfig.tlsSkipVerify,
 				},
 				ReadOnly: true,
 			},
