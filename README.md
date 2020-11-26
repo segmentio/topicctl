@@ -238,8 +238,8 @@ spec:
 
   # ZooKeeper access settings (required for pre-v2 clusters)
   zkAddrs:                              # One or more cluster zookeeper addresses; if these are
-    - zk.example.com:2181               #   omitted, then the cluster will only be accessed via broker APIs;
-                                        #   see the section below on cluster access for more details.
+    - zk.example.com:2181               # omitted, then the cluster will only be accessed via broker APIs;
+                                        # see the section below on cluster access for more details.
   zkPrefix: my-cluster                  # Prefix for zookeeper nodes if using zookeeper access
   zkLockPath: /topicctl/locks           # Path used for apply locks (optional)
 
