@@ -411,8 +411,8 @@ will still use broker APIs, however, including:
 There are a few limitations in the tool when using the broker APIs exclusively:
 
 1. Only newer versions of Kafka are supported. In particular:
-  a. v2.0 or greater is required for read-only operations (`get brokers`, `get topics`, etc.)
-  b. v2.4 or greater is required for applying topic changes
+  1. v2.0 or greater is required for read-only operations (`get brokers`, `get topics`, etc.)
+  2. v2.4 or greater is required for applying topic changes
 2. Apply locking is not yet implemented; please be careful when applying to ensure that someone
   else isn't applying changes in the same topic at the same time.
 3. The values of some dynamic broker properties, e.g. `leader.replication.throttled.rate`, are not
