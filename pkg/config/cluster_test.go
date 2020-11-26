@@ -26,7 +26,6 @@ func TestClusterValidate(t *testing.T) {
 				Spec: ClusterSpec{
 					BootstrapAddrs:                      []string{"broker-addr"},
 					ZKAddrs:                             []string{"zk-addr"},
-					VersionMajor:                        "v2",
 					DefaultRetentionDropStepDurationStr: "5m",
 				},
 			},
@@ -42,7 +41,6 @@ func TestClusterValidate(t *testing.T) {
 				Spec: ClusterSpec{
 					BootstrapAddrs: []string{"broker-addr"},
 					ZKAddrs:        []string{"zk-addr"},
-					VersionMajor:   "v2",
 				},
 			},
 			expError: true,
@@ -57,8 +55,7 @@ func TestClusterValidate(t *testing.T) {
 					Description: "test-description",
 				},
 				Spec: ClusterSpec{
-					ZKAddrs:      []string{"zk-addr"},
-					VersionMajor: "v2",
+					ZKAddrs: []string{"zk-addr"},
 				},
 			},
 			expError: true,
@@ -74,7 +71,6 @@ func TestClusterValidate(t *testing.T) {
 				},
 				Spec: ClusterSpec{
 					BootstrapAddrs: []string{"broker-addr"},
-					VersionMajor:   "v2",
 				},
 			},
 			expError: false,
@@ -91,7 +87,6 @@ func TestClusterValidate(t *testing.T) {
 				Spec: ClusterSpec{
 					BootstrapAddrs:                      []string{"broker-addr"},
 					ZKAddrs:                             []string{"zk-addr"},
-					VersionMajor:                        "v2",
 					DefaultRetentionDropStepDurationStr: "10xxx",
 				},
 			},

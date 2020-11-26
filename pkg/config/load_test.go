@@ -24,7 +24,6 @@ func TestLoadCluster(t *testing.T) {
 				Description: "Test cluster\n",
 			},
 			Spec: ClusterSpec{
-				VersionMajor: KafkaVersionMajor010,
 				BootstrapAddrs: []string{
 					"bootstrap-addr:9092",
 				},

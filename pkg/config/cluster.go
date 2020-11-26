@@ -13,17 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// KafkaVersionMajor is a string type for storing Kafka versions.
-type KafkaVersionMajor string
-
-const (
-	// KafkaVersionMajor010 represents kafka v0.10 and its associated minor versions.
-	KafkaVersionMajor010 KafkaVersionMajor = "v0.10"
-
-	// KafkaVersionMajor2 represents kafka v2 and its associated minor versions.
-	KafkaVersionMajor2 KafkaVersionMajor = "v2"
-)
-
 // ClusterConfig stores information about a cluster that's referred to by one
 // or more topic configs. These configs should reflect the reality of what's been
 // set up externally; there's no way to "apply" these at the moment.
@@ -66,11 +55,6 @@ type ClusterSpec struct {
 	// to validate that the cluster we're communicating with is the right one. If blank,
 	// this check isn't done.
 	ClusterID string `json:"clusterID"`
-
-	// VersionMajor stores the major version of the cluster. This isn't currently
-	// used for any logic in the tool, but it may be used in the future to adjust API calls
-	// and/or decide whether to use zk or brokers for certain information.
-	VersionMajor KafkaVersionMajor `json:"versionMajor"`
 
 	// DefaultThrottleMB is the default broker throttle used for migrations in this
 	// cluster. If unset, then a reasonable default is used instead.
@@ -124,10 +108,6 @@ func (c ClusterConfig) Validate() error {
 			err,
 			errors.New("At least one bootstrap broker address must be set"),
 		)
-	}
-	if c.Spec.VersionMajor != KafkaVersionMajor010 &&
-		c.Spec.VersionMajor != KafkaVersionMajor2 {
-		multierror.Append(err, errors.New("MajorVersion must be v0.10 or v2"))
 	}
 
 	_, parseErr := c.GetDefaultRetentionDropStepDuration()

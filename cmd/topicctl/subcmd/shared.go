@@ -154,6 +154,18 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"SASL mechanism if using SASL (choices: PLAIN, SCRAM-SHA-256, or SCRAM-SHA-512)",
 	)
 	cmd.Flags().StringVar(
+		&options.saslPassword,
+		"sasl-password",
+		os.Getenv("TOPICCTL_SASL_PASSWORD"),
+		"SASL password if using SASL; will override value set in cluster config",
+	)
+	cmd.Flags().StringVar(
+		&options.saslUsername,
+		"sasl-username",
+		os.Getenv("TOPICCTL_SASL_USERNAME"),
+		"SASL username if using SASL; will override value set in cluster config",
+	)
+	cmd.Flags().StringVar(
 		&options.tlsCACert,
 		"tls-ca-cert",
 		"",

@@ -6,7 +6,6 @@ meta:
     Test cluster
 
 spec:
-  versionMajor: v0.10
   bootstrapAddrs:
     - bootstrap-addr:9092
   zkAddrs:

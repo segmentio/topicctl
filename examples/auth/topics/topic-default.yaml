@@ -1,6 +1,6 @@
 meta:
   name: topic-default
-  cluster: local-cluster-tls
+  cluster: local-cluster-auth
   environment: local-env
   region: local-region
   description: |
