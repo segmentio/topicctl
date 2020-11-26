@@ -19,33 +19,36 @@ const (
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
 // zookeeper access.
 type BrokerAdminClient struct {
-	brokerAddr        string
 	client            *kafka.Client
-	readOnly          bool
+	connector         *Connector
+	config            BrokerAdminClientConfig
 	supportedFeatures SupportedFeatures
 }
 
 var _ Client = (*BrokerAdminClient)(nil)
 
 type BrokerAdminClientConfig struct {
-	BrokerAddr string
-	ReadOnly   bool
+	ConnectorConfig
+	ReadOnly bool
 }
 
 func NewBrokerAdminClient(
 	ctx context.Context,
 	config BrokerAdminClientConfig,
 ) (*BrokerAdminClient, error) {
-	client := &kafka.Client{
-		Addr: kafka.TCP(config.BrokerAddr),
+	connector, err := NewConnector(config.ConnectorConfig)
+	if err != nil {
+		return nil, err
 	}
+	client := connector.KafkaClient
 
+	log.Debugf("Getting supported API versions")
 	apiVersions, err := client.ApiVersions(ctx, kafka.ApiVersionsRequest{})
 	if err != nil {
 		return nil, err
 	}
 	log.Debugf("Supported API versions: %+v", apiVersions)
-	maxVersions := map[string]int16{}
+	maxVersions := map[string]int{}
 	for _, apiKey := range apiVersions.ApiKeys {
 		maxVersions[apiKey.ApiName] = apiKey.MaxVersion
 	}
@@ -80,9 +83,9 @@ func NewBrokerAdminClient(
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
 	return &BrokerAdminClient{
-		brokerAddr:        config.BrokerAddr,
 		client:            client,
-		readOnly:          config.ReadOnly,
+		connector:         connector,
+		config:            config,
 		supportedFeatures: supportedFeatures,
 	}, nil
 }
@@ -164,8 +167,8 @@ func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
-func (c *BrokerAdminClient) GetBootstrapAddrs() []string {
-	return []string{c.brokerAddr}
+func (c *BrokerAdminClient) GetConnector() *Connector {
+	return c.connector
 }
 
 func (c *BrokerAdminClient) GetTopics(
@@ -283,7 +286,7 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return nil, errors.New("Cannot update topic config read-only mode")
 	}
 
@@ -314,7 +317,7 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	configEntries []kafka.ConfigEntry,
 	overwrite bool,
 ) ([]string, error) {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return nil, errors.New("Cannot update broker config read-only mode")
 	}
 
@@ -343,7 +346,7 @@ func (c *BrokerAdminClient) CreateTopic(
 	ctx context.Context,
 	config kafka.TopicConfig,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot create topic in read-only mode")
 	}
 
@@ -362,21 +365,15 @@ func (c *BrokerAdminClient) AssignPartitions(
 	topic string,
 	assignments []PartitionAssignment,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot assign partitions in read-only mode")
 	}
 
 	apiAssignments := []kafka.AlterPartitionReassignmentsRequestAssignment{}
 	for _, assignment := range assignments {
-		replicas := []int32{}
-
-		for _, replica := range assignment.Replicas {
-			replicas = append(replicas, int32(replica))
-		}
-
 		apiAssignment := kafka.AlterPartitionReassignmentsRequestAssignment{
-			PartitionID: int32(assignment.ID),
-			BrokerIDs:   replicas,
+			PartitionID: assignment.ID,
+			BrokerIDs:   assignment.Replicas,
 		}
 		apiAssignments = append(apiAssignments, apiAssignment)
 	}
@@ -398,7 +395,7 @@ func (c *BrokerAdminClient) AddPartitions(
 	topic string,
 	newAssignments []PartitionAssignment,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot add partitions in read-only mode")
 	}
 
@@ -409,15 +406,10 @@ func (c *BrokerAdminClient) AddPartitions(
 
 	partitions := []kafka.CreatePartitionsRequestPartition{}
 	for _, newAssignment := range newAssignments {
-		replicas := []int32{}
-		for _, replica := range newAssignment.Replicas {
-			replicas = append(replicas, int32(replica))
-		}
-
 		partitions = append(
 			partitions,
 			kafka.CreatePartitionsRequestPartition{
-				BrokerIDs: replicas,
+				BrokerIDs: newAssignment.Replicas,
 			},
 		)
 	}
@@ -425,7 +417,7 @@ func (c *BrokerAdminClient) AddPartitions(
 	req := kafka.CreatePartitionsRequest{
 		Topic:         topic,
 		NewPartitions: partitions,
-		TotalCount:    int32(len(partitions) + len(topicInfo.Partitions)),
+		TotalCount:    len(partitions) + len(topicInfo.Partitions),
 		Timeout:       defaultTimeout,
 	}
 	log.Debugf("CreatePartitions request: %+v", req)
@@ -441,18 +433,13 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	topic string,
 	partitions []int,
 ) error {
-	if c.readOnly {
+	if c.config.ReadOnly {
 		return errors.New("Cannot run leader election in read-only mode")
-	}
-
-	partitionsInt32 := []int32{}
-	for _, partition := range partitions {
-		partitionsInt32 = append(partitionsInt32, int32(partition))
 	}
 
 	req := kafka.ElectLeadersRequest{
 		Topic:      topic,
-		Partitions: partitionsInt32,
+		Partitions: partitions,
 		Timeout:    defaultTimeout,
 	}
 	log.Debugf("ElectLeaders request: %+v", req)

@@ -1,14 +1,12 @@
 package util
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,32 +36,6 @@ func TestKafkaAddr() string {
 	}
 
 	return testKafkaAddr
-}
-
-// TestKafkaConn returns a kafka-go connection for unit testing purposes.
-func TestKafkaConn(ctx context.Context, t *testing.T) *kafka.Conn {
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", TestKafkaAddr())
-	require.NoError(t, err)
-	return conn
-}
-
-// TestKafkaContollerConn returns a kafka-go connection to the cluster controller
-// for unit testing purposes.
-func TestKafkaContollerConn(ctx context.Context, t *testing.T) *kafka.Conn {
-	conn := TestKafkaConn(ctx, t)
-	defer conn.Close()
-
-	broker, err := conn.Controller()
-	require.NoError(t, err)
-
-	controllerConn, err := kafka.DefaultDialer.DialContext(
-		ctx,
-		"tcp",
-		fmt.Sprintf("%s:%d", broker.Host, broker.Port),
-	)
-
-	require.NoError(t, err)
-	return controllerConn
 }
 
 func CanTestBrokerAdmin() bool {

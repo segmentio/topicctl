@@ -2,16 +2,13 @@ package subcmd
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -25,30 +22,16 @@ var tailCmd = &cobra.Command{
 }
 
 type tailCmdConfig struct {
-	brokerAddr    string
-	clusterConfig string
-	offset        int64
-	partitions    []int
-	raw           bool
-	zkAddr        string
-	zkPrefix      string
+	offset     int64
+	partitions []int
+	raw        bool
+
+	shared sharedOptions
 }
 
 var tailConfig tailCmdConfig
 
 func init() {
-	tailCmd.Flags().StringVar(
-		&tailConfig.brokerAddr,
-		"broker-addr",
-		"",
-		"Broker address",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	tailCmd.Flags().Int64Var(
 		&tailConfig.offset,
 		"offset",
@@ -67,20 +50,8 @@ func init() {
 		false,
 		"Output raw values only",
 	)
-	tailCmd.Flags().StringVarP(
-		&tailConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(tailCmd, &tailConfig.shared)
 	RootCmd.AddCommand(tailCmd)
 }
 
@@ -89,18 +60,7 @@ func tailPreRun(cmd *cobra.Command, args []string) error {
 		// In raw mode, only log out errors
 		log.SetLevel(log.ErrorLevel)
 	}
-
-	if tailConfig.clusterConfig == "" && tailConfig.zkAddr == "" &&
-		tailConfig.brokerAddr == "" {
-		return errors.New("Must set either broker-addr, cluster-config, or zk-addr")
-	}
-	if tailConfig.clusterConfig != "" &&
-		(tailConfig.zkAddr != "" || tailConfig.zkPrefix != "" ||
-			tailConfig.brokerAddr != "") {
-		log.Warn("broker and zk flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return tailConfig.shared.validate()
 }
 
 func tailRun(cmd *cobra.Command, args []string) error {
@@ -114,38 +74,9 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	var adminClient admin.Client
-	var clientErr error
-
-	if tailConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(tailConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
-	} else if tailConfig.brokerAddr != "" {
-		adminClient, clientErr = admin.NewBrokerAdminClient(
-			ctx,
-			admin.BrokerAdminClientConfig{
-				BrokerAddr: tailConfig.brokerAddr,
-				ReadOnly:   true,
-			},
-		)
-	} else {
-		adminClient, clientErr = admin.NewZKAdminClient(
-			ctx,
-			admin.ZKAdminClientConfig{
-				ZKAddrs:  []string{tailConfig.zkAddr},
-				ZKPrefix: tailConfig.zkPrefix,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
-				ReadOnly: true,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := tailConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

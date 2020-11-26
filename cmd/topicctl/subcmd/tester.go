@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,23 +23,17 @@ var testerCmd = &cobra.Command{
 }
 
 type testerCmdConfig struct {
-	brokerAddr   string
 	mode         string
 	readConsumer string
 	topic        string
 	writeRate    int
-	zkAddr       string
+
+	shared sharedOptions
 }
 
 var testerConfig testerCmdConfig
 
 func init() {
-	testerCmd.Flags().StringVar(
-		&testerConfig.brokerAddr,
-		"broker-addr",
-		"",
-		"Broker address",
-	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.mode,
 		"mode",
@@ -65,23 +58,14 @@ func init() {
 		5,
 		"Approximate number of messages to write per sec",
 	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.zkAddr,
-		"zk-addr",
-		"localhost:2181",
-		"Zookeeper address",
-	)
 
 	testerCmd.MarkFlagRequired("topic")
-
+	addSharedFlags(testerCmd, &testerConfig.shared)
 	RootCmd.AddCommand(testerCmd)
 }
 
 func testerPreRun(cmd *cobra.Command, args []string) error {
-	if testerConfig.zkAddr == "" && tailConfig.brokerAddr == "" {
-		return errors.New("Must set either broker-addr or zk-addr")
-	}
-	return nil
+	return testerConfig.shared.validate()
 }
 
 func testerRun(cmd *cobra.Command, args []string) error {
@@ -106,15 +90,17 @@ func testerRun(cmd *cobra.Command, args []string) error {
 }
 
 func runTestReader(ctx context.Context) error {
-	brokerAddr, err := getBrokerAddr(ctx)
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
 	if err != nil {
 		return err
 	}
+	defer adminClient.Close()
+	connector := adminClient.GetConnector()
 
 	log.Infof(
 		"This will read test messages from the '%s' topic in %s using the consumer group ID '%s'",
 		testerConfig.topic,
-		brokerAddr,
+		connector.Config.BrokerAddr,
 		testerConfig.readConsumer,
 	)
 
@@ -125,8 +111,9 @@ func runTestReader(ctx context.Context) error {
 
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:     []string{brokerAddr},
+			Brokers:     []string{connector.Config.BrokerAddr},
 			GroupID:     testerConfig.readConsumer,
+			Dialer:      connector.Dialer,
 			Topic:       testerConfig.topic,
 			MinBytes:    10e3, // 10KB
 			MaxBytes:    10e6, // 10MB
@@ -152,15 +139,17 @@ func runTestReader(ctx context.Context) error {
 }
 
 func runTestWriter(ctx context.Context) error {
-	brokerAddr, err := getBrokerAddr(ctx)
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
 	if err != nil {
 		return err
 	}
+	defer adminClient.Close()
+	connector := adminClient.GetConnector()
 
 	log.Infof(
 		"This will write test messages to the '%s' topic in %s at a rate of %d/sec.",
 		testerConfig.topic,
-		brokerAddr,
+		connector.Config.BrokerAddr,
 		testerConfig.writeRate,
 	)
 
@@ -171,7 +160,8 @@ func runTestWriter(ctx context.Context) error {
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:       []string{brokerAddr},
+			Brokers:       []string{connector.Config.BrokerAddr},
+			Dialer:        connector.Dialer,
 			Topic:         testerConfig.topic,
 			Balancer:      &kafka.LeastBytes{},
 			Async:         true,
@@ -207,22 +197,5 @@ func runTestWriter(ctx context.Context) error {
 		case <-logTicker.C:
 			log.Infof("%d messages sent", index)
 		}
-	}
-}
-
-func getBrokerAddr(ctx context.Context) (string, error) {
-	if testerConfig.brokerAddr == "" {
-		adminClient, err := admin.NewZKAdminClient(
-			ctx,
-			admin.ZKAdminClientConfig{
-				ZKAddrs: []string{testerConfig.zkAddr},
-			},
-		)
-		if err != nil {
-			return "", err
-		}
-		return adminClient.GetBootstrapAddrs()[0], nil
-	} else {
-		return testerConfig.brokerAddr, nil
 	}
 }

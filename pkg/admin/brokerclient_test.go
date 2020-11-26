@@ -20,7 +20,11 @@ func TestBrokerClientGetClusterID(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 
@@ -37,7 +41,11 @@ func TestBrokerClientUpdateTopicConfig(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 
@@ -139,7 +147,11 @@ func TestBrokerClientBrokers(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 
@@ -258,7 +270,11 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 
@@ -322,7 +338,11 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 
@@ -410,7 +430,11 @@ func TestBrokerClientRunLeaderElection(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 
@@ -447,7 +471,11 @@ func TestBrokerClientGetApiVersions(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
-		BrokerAdminClientConfig{BrokerAddr: util.TestKafkaAddr()},
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
 	)
 	require.NoError(t, err)
 

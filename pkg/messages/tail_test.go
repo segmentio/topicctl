@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,15 +17,22 @@ func TestTailerGetMessages(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	controllerConn := util.TestKafkaContollerConn(ctx, t)
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
 
 	topicName := util.RandomString("topic-tail-", 6)
-
-	err := controllerConn.CreateTopics(
-		kafka.TopicConfig{
-			Topic:             topicName,
-			NumPartitions:     4,
-			ReplicationFactor: 1,
+	_, err = connector.KafkaClient.CreateTopics(
+		ctx,
+		&kafka.CreateTopicsRequest{
+			Topics: []kafka.TopicConfig{
+				{
+					Topic:             topicName,
+					NumPartitions:     4,
+					ReplicationFactor: 1,
+				},
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -32,7 +40,8 @@ func TestTailerGetMessages(t *testing.T) {
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:  []string{util.TestKafkaAddr()},
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
 			Topic:    topicName,
 			Balancer: &kafka.RoundRobin{},
 		},
@@ -55,7 +64,7 @@ func TestTailerGetMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	tailer := NewTopicTailer(
-		util.TestKafkaAddr(),
+		connector,
 		topicName,
 		[]int{0, 1, 2, 3},
 		kafka.FirstOffset,

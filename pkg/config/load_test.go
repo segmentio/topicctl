@@ -10,6 +10,10 @@ import (
 func TestLoadCluster(t *testing.T) {
 	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml")
 	assert.Nil(t, err)
+
+	// Empty RootDir since this will vary based on where test is run.
+	clusterConfig.RootDir = ""
+
 	assert.Equal(
 		t,
 		ClusterConfig{
@@ -20,7 +24,6 @@ func TestLoadCluster(t *testing.T) {
 				Description: "Test cluster\n",
 			},
 			Spec: ClusterSpec{
-				VersionMajor: KafkaVersionMajor010,
 				BootstrapAddrs: []string{
 					"bootstrap-addr:9092",
 				},

@@ -47,6 +47,7 @@ type ZKAdminClient struct {
 	zkClient       zk.Client
 	zkPrefix       string
 	bootstrapAddrs []string
+	Connector      *Connector
 	sess           *session.Session
 	readOnly       bool
 }
@@ -132,6 +133,11 @@ func NewZKAdminClient(
 	}
 
 	client.bootstrapAddrs = bootstrapAddrs
+	client.Connector, err = NewConnector(
+		ConnectorConfig{
+			BrokerAddr: bootstrapAddrs[0],
+		},
+	)
 
 	return client, nil
 }
@@ -287,10 +293,8 @@ func (c *ZKAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
-// GetBootstrapAddrs returns the stored value of the bootstrapAddrs
-// parameter so it can be used by the messages package.
-func (c *ZKAdminClient) GetBootstrapAddrs() []string {
-	return c.bootstrapAddrs
+func (c *ZKAdminClient) GetConnector() *Connector {
+	return c.Connector
 }
 
 // GetTopics gets information about one or more cluster topics from zookeeper.
@@ -564,20 +568,13 @@ func (c *ZKAdminClient) CreateTopic(
 		return errors.New("Cannot create topic in read-only mode")
 	}
 
-	controllerAddr, err := c.getControllerAddr(ctx)
-	if err != nil {
-		return err
+	req := kafka.CreateTopicsRequest{
+		Topics: []kafka.TopicConfig{config},
 	}
-
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", controllerAddr)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	log.Debugf("Creating topic with config %+v", config)
 
-	return conn.CreateTopics(config)
+	_, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	return err
 }
 
 // AssignPartitions notifies the cluster to begin a partition reassignment.

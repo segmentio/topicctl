@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	log "github.com/sirupsen/logrus"
 
 	// Read snappy-compressed messages
@@ -45,11 +46,11 @@ type Bounds struct {
 // is nil, the starting offset in each topic partition.
 func GetAllPartitionBounds(
 	ctx context.Context,
-	brokerAddr string,
+	connector *admin.Connector,
 	topic string,
 	baseOffsets map[int]int64,
 ) ([]Bounds, error) {
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", brokerAddr)
+	conn, err := connector.Dialer.DialContext(ctx, "tcp", connector.Config.BrokerAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func GetAllPartitionBounds(
 
 				bounds, err := GetPartitionBounds(
 					ctx,
-					brokerAddr,
+					connector,
 					topic,
 					nextPartition.ID,
 					minOffset,
@@ -131,7 +132,7 @@ func GetAllPartitionBounds(
 // this is used instead of the actual first offset.
 func GetPartitionBounds(
 	ctx context.Context,
-	brokerAddr string,
+	connector *admin.Connector,
 	topic string,
 	partition int,
 	minOffset int64,
@@ -143,7 +144,7 @@ func GetPartitionBounds(
 		minOffset,
 	)
 
-	conn, err := dialLeaderRetries(ctx, brokerAddr, topic, partition)
+	conn, err := dialLeaderRetries(ctx, connector, topic, partition)
 	if err != nil {
 		return Bounds{}, err
 	}
@@ -205,7 +206,7 @@ func GetPartitionBounds(
 
 	// Use a separate connection for reading the last message. For whatever reason,
 	// reusing the same connection with kafka-go on newer kafka versions can lead to read errors.
-	conn2, err := dialLeaderRetries(ctx, brokerAddr, topic, partition)
+	conn2, err := dialLeaderRetries(ctx, connector, topic, partition)
 	if err != nil {
 		return Bounds{}, err
 	}
@@ -243,7 +244,7 @@ func GetPartitionBounds(
 
 func dialLeaderRetries(
 	ctx context.Context,
-	brokerAddr string,
+	connector *admin.Connector,
 	topic string,
 	partition int,
 ) (*kafka.Conn, error) {
@@ -253,7 +254,13 @@ func dialLeaderRetries(
 	sleepDuration := backoffInitSleepDuration
 
 	for i := 0; i < maxRetries; i++ {
-		conn, err = kafka.DialLeader(ctx, "tcp", brokerAddr, topic, partition)
+		conn, err = connector.Dialer.DialLeader(
+			ctx,
+			"tcp",
+			connector.Config.BrokerAddr,
+			topic,
+			partition,
+		)
 		if err == nil {
 			break
 		}

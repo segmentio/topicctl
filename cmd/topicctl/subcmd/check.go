@@ -21,21 +21,16 @@ var checkCmd = &cobra.Command{
 }
 
 type checkCmdConfig struct {
-	clusterConfig string
-	checkLeaders  bool
-	pathPrefix    string
-	validateOnly  bool
+	checkLeaders bool
+	pathPrefix   string
+	validateOnly bool
+
+	shared sharedOptions
 }
 
 var checkConfig checkCmdConfig
 
 func init() {
-	checkCmd.Flags().StringVar(
-		&checkConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	checkCmd.Flags().StringVar(
 		&checkConfig.pathPrefix,
 		"path-prefix",
@@ -55,6 +50,7 @@ func init() {
 		"Validate configs only, without connecting to cluster",
 	)
 
+	addSharedConfigOnlyFlags(checkCmd, &checkConfig.shared)
 	RootCmd.AddCommand(checkCmd)
 }
 
@@ -136,7 +132,13 @@ func checkTopicFile(
 		var ok bool
 		adminClient, ok = adminClients[clusterConfigPath]
 		if !ok {
-			adminClient, err = clusterConfig.NewAdminClient(ctx, nil, true)
+			adminClient, err = clusterConfig.NewAdminClient(
+				ctx,
+				nil,
+				true,
+				checkConfig.shared.saslUsername,
+				checkConfig.shared.saslPassword,
+			)
 			if err != nil {
 				return false, err
 			}
@@ -177,8 +179,8 @@ func checkTopicFile(
 }
 
 func clusterConfigForTopicCheck(topicConfigPath string) (string, error) {
-	if checkConfig.clusterConfig != "" {
-		return checkConfig.clusterConfig, nil
+	if checkConfig.shared.clusterConfig != "" {
+		return checkConfig.shared.clusterConfig, nil
 	}
 
 	return filepath.Abs(

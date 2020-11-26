@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,12 +15,18 @@ import (
 
 func TestGetGroups(t *testing.T) {
 	ctx := context.Background()
-	topicName := createTestTopic(ctx, t)
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
 	groupID := fmt.Sprintf("test-group-%s", topicName)
 
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:  []string{util.TestKafkaAddr()},
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
 			GroupID:  groupID,
 			Topic:    topicName,
 			MinBytes: 50,
@@ -35,8 +42,7 @@ func TestGetGroups(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client := NewClient(util.TestKafkaAddr())
-	groups, err := client.GetGroups(ctx)
+	groups, err := GetGroups(ctx, connector)
 	require.NoError(t, err)
 
 	// There could be older groups in here, just ignore them
@@ -52,7 +58,7 @@ func TestGetGroups(t *testing.T) {
 	}
 	require.True(t, match)
 
-	groupDetails, err := client.GetGroupDetails(ctx, groupID)
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
 	require.NoError(t, err)
 	assert.Equal(t, groupID, groupDetails.GroupID)
 	assert.Equal(t, "Stable", groupDetails.State)
@@ -70,12 +76,18 @@ func TestGetGroups(t *testing.T) {
 
 func TestGetLags(t *testing.T) {
 	ctx := context.Background()
-	topicName := createTestTopic(ctx, t)
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
 	groupID := fmt.Sprintf("test-group-%s", topicName)
 
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:  []string{util.TestKafkaAddr()},
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
 			GroupID:  groupID,
 			Topic:    topicName,
 			MinBytes: 50,
@@ -91,8 +103,7 @@ func TestGetLags(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client := NewClient(util.TestKafkaAddr())
-	lags, err := client.GetMemberLags(ctx, topicName, groupID)
+	lags, err := GetMemberLags(ctx, connector, topicName, groupID)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(lags))
 
@@ -105,12 +116,18 @@ func TestGetLags(t *testing.T) {
 
 func TestResetOffsets(t *testing.T) {
 	ctx := context.Background()
-	topicName := createTestTopic(ctx, t)
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
 	groupID := fmt.Sprintf("test-group-%s", topicName)
 
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:  []string{util.TestKafkaAddr()},
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
 			GroupID:  groupID,
 			Topic:    topicName,
 			MinBytes: 50,
@@ -126,9 +143,10 @@ func TestResetOffsets(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	client := NewClient(util.TestKafkaAddr())
-	err := client.ResetOffsets(
+	require.NoError(t, err)
+	err = ResetOffsets(
 		ctx,
+		connector,
 		topicName,
 		groupID,
 		map[int]int64{
@@ -138,7 +156,7 @@ func TestResetOffsets(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	lags, err := client.GetMemberLags(ctx, topicName, groupID)
+	lags, err := GetMemberLags(ctx, connector, topicName, groupID)
 	require.NoError(t, err)
 
 	require.Equal(t, 2, len(lags))
@@ -146,17 +164,22 @@ func TestResetOffsets(t *testing.T) {
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
 }
 
-func createTestTopic(ctx context.Context, t *testing.T) string {
-	controllerConn := util.TestKafkaContollerConn(ctx, t)
-	defer controllerConn.Close()
-
+func createTestTopic(
+	ctx context.Context,
+	t *testing.T,
+	connector *admin.Connector,
+) string {
 	topicName := util.RandomString("topic-groups-", 6)
-
-	err := controllerConn.CreateTopics(
-		kafka.TopicConfig{
-			Topic:             topicName,
-			NumPartitions:     2,
-			ReplicationFactor: 1,
+	_, err := connector.KafkaClient.CreateTopics(
+		ctx,
+		&kafka.CreateTopicsRequest{
+			Topics: []kafka.TopicConfig{
+				{
+					Topic:             topicName,
+					NumPartitions:     2,
+					ReplicationFactor: 1,
+				},
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -164,7 +187,8 @@ func createTestTopic(ctx context.Context, t *testing.T) string {
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:   []string{util.TestKafkaAddr()},
+			Brokers:   []string{connector.Config.BrokerAddr},
+			Dialer:    connector.Dialer,
 			Topic:     topicName,
 			BatchSize: 10,
 		},

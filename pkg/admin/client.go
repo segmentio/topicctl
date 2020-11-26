@@ -12,7 +12,7 @@ type Client interface {
 	GetClusterID(ctx context.Context) (string, error)
 	GetBrokers(ctx context.Context, ids []int) ([]BrokerInfo, error)
 	GetBrokerIDs(ctx context.Context) ([]int, error)
-	GetBootstrapAddrs() []string
+	GetConnector() *Connector
 	GetTopics(
 		ctx context.Context,
 		names []string,
