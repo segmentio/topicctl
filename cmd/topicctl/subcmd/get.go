@@ -3,13 +3,10 @@ package subcmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -32,155 +29,35 @@ var getCmd = &cobra.Command{
 }
 
 type getCmdConfig struct {
-	brokerAddr    string
-	clusterConfig string
-	full          bool
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	zkAddr        string
-	zkPrefix      string
+	full   bool
+	shared sharedOptions
 }
 
 var getConfig getCmdConfig
 
 func init() {
-	getCmd.Flags().StringVarP(
-		&getConfig.brokerAddr,
-		"broker-addr",
-		"b",
-		"",
-		"Broker address",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	getCmd.Flags().BoolVar(
 		&getConfig.full,
 		"full",
 		false,
 		"Show more full information for resources",
 	)
-	getCmd.Flags().StringVar(
-		&getConfig.tlsCACert,
-		"tls-ca-cert",
-		"",
-		"Path to client CA cert PEM file if using TLS",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.tlsCert,
-		"tls-cert",
-		"",
-		"Path to client cert PEM file if using TLS",
-	)
-	getCmd.Flags().BoolVar(
-		&getConfig.tlsEnabled,
-		"tls-enabled",
-		false,
-		"Use TLS for communication with brokers",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.tlsKey,
-		"tls-key",
-		"",
-		"Path to client private key PEM file if using TLS",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.tlsServerName,
-		"tls-server-name",
-		"",
-		"Server name to use for TLS cert verification",
-	)
-	getCmd.Flags().BoolVar(
-		&getConfig.tlsSkipVerify,
-		"tls-skip-verify",
-		false,
-		"Skip hostname verification when using TLS",
-	)
-	getCmd.Flags().StringVarP(
-		&getConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(getCmd, &getConfig.shared)
 	RootCmd.AddCommand(getCmd)
 }
 
 func getPreRun(cmd *cobra.Command, args []string) error {
-	return validateCommonFlags(
-		getConfig.clusterConfig,
-		getConfig.zkAddr,
-		getConfig.zkPrefix,
-		getConfig.brokerAddr,
-		getConfig.tlsCACert,
-		getConfig.tlsCert,
-		getConfig.tlsKey,
-	)
+	return getConfig.shared.validate()
 }
 
 func getRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	sess := session.Must(session.NewSession())
 
-	var adminClient admin.Client
-	var clientErr error
-
-	if getConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(getConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
-	} else if getConfig.brokerAddr != "" {
-		tlsEnabled := (getConfig.tlsEnabled ||
-			getConfig.tlsCACert != "" ||
-			getConfig.tlsCert != "" ||
-			getConfig.tlsKey != "")
-		adminClient, clientErr = admin.NewBrokerAdminClient(
-			ctx,
-			admin.BrokerAdminClientConfig{
-				ConnectorConfig: admin.ConnectorConfig{
-					BrokerAddr: getConfig.brokerAddr,
-					TLSEnabled: tlsEnabled,
-					CACertPath: getConfig.tlsCACert,
-					CertPath:   getConfig.tlsCert,
-					KeyPath:    getConfig.tlsKey,
-					ServerName: getConfig.tlsServerName,
-					SkipVerify: getConfig.tlsSkipVerify,
-				},
-				ReadOnly: true,
-			},
-		)
-	} else {
-		adminClient, clientErr = admin.NewZKAdminClient(
-			ctx,
-			admin.ZKAdminClientConfig{
-				ZKAddrs:  []string{getConfig.zkAddr},
-				ZKPrefix: getConfig.zkPrefix,
-				Sess:     sess,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
-				ReadOnly: true,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

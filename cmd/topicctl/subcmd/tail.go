@@ -8,9 +8,7 @@ import (
 	"syscall"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -24,37 +22,16 @@ var tailCmd = &cobra.Command{
 }
 
 type tailCmdConfig struct {
-	brokerAddr    string
-	clusterConfig string
-	offset        int64
-	partitions    []int
-	raw           bool
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	zkAddr        string
-	zkPrefix      string
+	offset     int64
+	partitions []int
+	raw        bool
+
+	shared sharedOptions
 }
 
 var tailConfig tailCmdConfig
 
 func init() {
-	tailCmd.Flags().StringVarP(
-		&tailConfig.brokerAddr,
-		"broker-addr",
-		"b",
-		"",
-		"Broker address",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	tailCmd.Flags().Int64Var(
 		&tailConfig.offset,
 		"offset",
@@ -73,56 +50,8 @@ func init() {
 		false,
 		"Output raw values only",
 	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.tlsCACert,
-		"tls-ca-cert",
-		"",
-		"Path to client CA cert PEM file if using TLS",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.tlsCert,
-		"tls-cert",
-		"",
-		"Path to client cert PEM file if using TLS",
-	)
-	tailCmd.Flags().BoolVar(
-		&tailConfig.tlsEnabled,
-		"tls-enabled",
-		false,
-		"Use TLS for communication with brokers",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.tlsKey,
-		"tls-key",
-		"",
-		"Path to client private key PEM file if using TLS",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.tlsServerName,
-		"tls-server-name",
-		"",
-		"Server name to use for TLS cert verification",
-	)
-	tailCmd.Flags().BoolVar(
-		&tailConfig.tlsSkipVerify,
-		"tls-skip-verify",
-		false,
-		"Skip hostname verification when using TLS",
-	)
-	tailCmd.Flags().StringVarP(
-		&tailConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(tailCmd, &tailConfig.shared)
 	RootCmd.AddCommand(tailCmd)
 }
 
@@ -131,16 +60,7 @@ func tailPreRun(cmd *cobra.Command, args []string) error {
 		// In raw mode, only log out errors
 		log.SetLevel(log.ErrorLevel)
 	}
-
-	return validateCommonFlags(
-		tailConfig.clusterConfig,
-		tailConfig.zkAddr,
-		tailConfig.zkPrefix,
-		tailConfig.brokerAddr,
-		tailConfig.tlsCACert,
-		tailConfig.tlsCert,
-		tailConfig.tlsKey,
-	)
+	return tailConfig.shared.validate()
 }
 
 func tailRun(cmd *cobra.Command, args []string) error {
@@ -154,50 +74,9 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	var adminClient admin.Client
-	var clientErr error
-
-	if tailConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(tailConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
-	} else if tailConfig.brokerAddr != "" {
-		tlsEnabled := (tailConfig.tlsEnabled ||
-			tailConfig.tlsCACert != "" ||
-			tailConfig.tlsCert != "" ||
-			tailConfig.tlsKey != "")
-		adminClient, clientErr = admin.NewBrokerAdminClient(
-			ctx,
-			admin.BrokerAdminClientConfig{
-				ConnectorConfig: admin.ConnectorConfig{
-					BrokerAddr: tailConfig.brokerAddr,
-					TLSEnabled: tlsEnabled,
-					CACertPath: tailConfig.tlsCACert,
-					CertPath:   tailConfig.tlsCert,
-					KeyPath:    tailConfig.tlsKey,
-					ServerName: tailConfig.tlsServerName,
-					SkipVerify: tailConfig.tlsSkipVerify,
-				},
-				ReadOnly: true,
-			},
-		)
-	} else {
-		adminClient, clientErr = admin.NewZKAdminClient(
-			ctx,
-			admin.ZKAdminClientConfig{
-				ZKAddrs:  []string{tailConfig.zkAddr},
-				ZKPrefix: tailConfig.zkPrefix,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
-				ReadOnly: true,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := tailConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

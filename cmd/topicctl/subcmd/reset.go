@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,36 +21,15 @@ var resetOffsetsCmd = &cobra.Command{
 }
 
 type resetOffsetsCmdConfig struct {
-	brokerAddr    string
-	clusterConfig string
-	offset        int64
-	partitions    []int
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	zkAddr        string
-	zkPrefix      string
+	offset     int64
+	partitions []int
+
+	shared sharedOptions
 }
 
 var resetOffsetsConfig resetOffsetsCmdConfig
 
 func init() {
-	resetOffsetsCmd.Flags().StringVarP(
-		&resetOffsetsConfig.brokerAddr,
-		"broker-addr",
-		"b",
-		"",
-		"Broker address",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	resetOffsetsCmd.Flags().Int64Var(
 		&resetOffsetsConfig.offset,
 		"offset",
@@ -66,117 +42,22 @@ func init() {
 		[]int{},
 		"Partition (defaults to all)",
 	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.tlsCACert,
-		"tls-ca-cert",
-		"",
-		"Path to client CA cert PEM file if using TLS",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.tlsCert,
-		"tls-cert",
-		"",
-		"Path to client cert PEM file if using TLS",
-	)
-	resetOffsetsCmd.Flags().BoolVar(
-		&resetOffsetsConfig.tlsEnabled,
-		"tls-enabled",
-		false,
-		"Use TLS for communication with brokers",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.tlsKey,
-		"tls-key",
-		"",
-		"Path to client private key PEM file if using TLS",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.tlsServerName,
-		"tls-server-name",
-		"",
-		"Server name to use for TLS cert verification",
-	)
-	resetOffsetsCmd.Flags().BoolVar(
-		&resetOffsetsConfig.tlsSkipVerify,
-		"tls-skip-verify",
-		false,
-		"Skip hostname verification when using TLS",
-	)
-	resetOffsetsCmd.Flags().StringVarP(
-		&resetOffsetsConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(resetOffsetsCmd, &resetOffsetsConfig.shared)
 	RootCmd.AddCommand(resetOffsetsCmd)
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	return validateCommonFlags(
-		resetOffsetsConfig.clusterConfig,
-		resetOffsetsConfig.zkAddr,
-		resetOffsetsConfig.zkPrefix,
-		resetOffsetsConfig.brokerAddr,
-		resetOffsetsConfig.tlsCACert,
-		resetOffsetsConfig.tlsCert,
-		resetOffsetsConfig.tlsKey,
-	)
+	return resetOffsetsConfig.shared.validate()
 }
 
 func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var adminClient admin.Client
-	var clientErr error
-
-	if resetOffsetsConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(resetOffsetsConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
-	} else if resetOffsetsConfig.brokerAddr != "" {
-		tlsEnabled := (resetOffsetsConfig.tlsEnabled ||
-			resetOffsetsConfig.tlsCACert != "" ||
-			resetOffsetsConfig.tlsCert != "" ||
-			resetOffsetsConfig.tlsKey != "")
-		adminClient, clientErr = admin.NewBrokerAdminClient(
-			ctx,
-			admin.BrokerAdminClientConfig{
-				ConnectorConfig: admin.ConnectorConfig{
-					BrokerAddr: resetOffsetsConfig.brokerAddr,
-					TLSEnabled: tlsEnabled,
-					CACertPath: resetOffsetsConfig.tlsCACert,
-					CertPath:   resetOffsetsConfig.tlsCert,
-					KeyPath:    resetOffsetsConfig.tlsKey,
-					ServerName: resetOffsetsConfig.tlsServerName,
-					SkipVerify: resetOffsetsConfig.tlsSkipVerify,
-				},
-				ReadOnly: true,
-			},
-		)
-	} else {
-		adminClient, clientErr = admin.NewZKAdminClient(
-			ctx,
-			admin.ZKAdminClientConfig{
-				ZKAddrs:  []string{resetOffsetsConfig.zkAddr},
-				ZKPrefix: resetOffsetsConfig.zkPrefix,
-				ReadOnly: false,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := replConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

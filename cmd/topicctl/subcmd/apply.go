@@ -104,6 +104,7 @@ func init() {
 		"Amount of time to wait between partition checks",
 	)
 
+	applyCmd.MarkFlagRequired("cluster-config")
 	RootCmd.AddCommand(applyCmd)
 }
 

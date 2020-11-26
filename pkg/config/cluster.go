@@ -83,6 +83,10 @@ type ClusterSpec struct {
 	// TLS stores how we should use TLS with broker connections, if appropriate. Only
 	// applies if using the broker admin.
 	TLS TLSConfig `json:"tls"`
+
+	// SASL stores how we should use SASL with broker connections, if appropriate. Only
+	// applies if using the broker admin.
+	SASL SASLConfig `json:"sasl"`
 }
 
 type TLSConfig struct {
@@ -92,6 +96,13 @@ type TLSConfig struct {
 	KeyPath    string `json:"keyPath"`
 	ServerName string `json:"serverName"`
 	SkipVerify bool   `json:"skipVerify"`
+}
+
+type SASLConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Mechanism string `json:"mechanism"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -133,6 +144,18 @@ func (c ClusterConfig) Validate() error {
 			errors.New("TLS not supported with zk access mode; omit zk addresses to fix"),
 		)
 	}
+	if c.Spec.SASL.Enabled && len(c.Spec.ZKAddrs) > 0 {
+		err = multierror.Append(
+			err,
+			errors.New("SASL not supported with zk access mode; omit zk addresses to fix"),
+		)
+	}
+
+	if c.Spec.SASL.Enabled {
+		if saslErr := admin.ValidateSASLMechanism(c.Spec.SASL.Mechanism); saslErr != nil {
+			err = multierror.Append(err, saslErr)
+		}
+	}
 
 	return err
 }
@@ -158,12 +181,19 @@ func (c ClusterConfig) NewAdminClient(
 			admin.BrokerAdminClientConfig{
 				ConnectorConfig: admin.ConnectorConfig{
 					BrokerAddr: c.Spec.BootstrapAddrs[0],
-					TLSEnabled: c.Spec.TLS.Enabled,
-					CACertPath: c.absPath(c.Spec.TLS.CACertPath),
-					CertPath:   c.absPath(c.Spec.TLS.CertPath),
-					KeyPath:    c.absPath(c.Spec.TLS.KeyPath),
-					ServerName: c.Spec.TLS.ServerName,
-					SkipVerify: c.Spec.TLS.SkipVerify,
+					TLS: admin.TLSConfig{
+						Enabled:    c.Spec.TLS.Enabled,
+						CACertPath: c.absPath(c.Spec.TLS.CACertPath),
+						KeyPath:    c.absPath(c.Spec.TLS.KeyPath),
+						ServerName: c.Spec.TLS.ServerName,
+						SkipVerify: c.Spec.TLS.SkipVerify,
+					},
+					SASL: admin.SASLConfig{
+						Enabled:   c.Spec.SASL.Enabled,
+						Mechanism: c.Spec.SASL.Mechanism,
+						Username:  c.Spec.SASL.Username,
+						Password:  c.Spec.SASL.Password,
+					},
 				},
 				ReadOnly: readOnly,
 			},

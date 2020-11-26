@@ -42,6 +42,7 @@ func NewBrokerAdminClient(
 	}
 	client := connector.KafkaClient
 
+	log.Debugf("Getting supported API versions")
 	apiVersions, err := client.ApiVersions(ctx, kafka.ApiVersionsRequest{})
 	if err != nil {
 		return nil, err

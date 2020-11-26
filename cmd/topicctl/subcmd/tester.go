@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,30 +23,17 @@ var testerCmd = &cobra.Command{
 }
 
 type testerCmdConfig struct {
-	brokerAddr    string
-	mode          string
-	readConsumer  string
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	topic         string
-	writeRate     int
-	zkAddr        string
+	mode         string
+	readConsumer string
+	topic        string
+	writeRate    int
+
+	shared sharedOptions
 }
 
 var testerConfig testerCmdConfig
 
 func init() {
-	testerCmd.Flags().StringVarP(
-		&testerConfig.brokerAddr,
-		"broker-addr",
-		"b",
-		"",
-		"Broker address",
-	)
 	testerCmd.Flags().StringVar(
 		&testerConfig.mode,
 		"mode",
@@ -61,42 +47,6 @@ func init() {
 		"Consumer group ID for reads; if blank, no consumer group is set",
 	)
 	testerCmd.Flags().StringVar(
-		&testerConfig.tlsCACert,
-		"tls-ca-cert",
-		"",
-		"Path to client CA cert PEM file if using TLS",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.tlsCert,
-		"tls-cert",
-		"",
-		"Path to client cert PEM file if using TLS",
-	)
-	testerCmd.Flags().BoolVar(
-		&testerConfig.tlsEnabled,
-		"tls-enabled",
-		false,
-		"Use TLS for communication with brokers",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.tlsKey,
-		"tls-key",
-		"",
-		"Path to client private key PEM file if using TLS",
-	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.tlsServerName,
-		"tls-server-name",
-		"",
-		"Server name to use for TLS cert verification",
-	)
-	testerCmd.Flags().BoolVar(
-		&testerConfig.tlsSkipVerify,
-		"tls-skip-verify",
-		false,
-		"Skip hostname verification when using TLS",
-	)
-	testerCmd.Flags().StringVar(
 		&testerConfig.topic,
 		"topic",
 		"",
@@ -108,24 +58,14 @@ func init() {
 		5,
 		"Approximate number of messages to write per sec",
 	)
-	testerCmd.Flags().StringVarP(
-		&testerConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"localhost:2181",
-		"Zookeeper address",
-	)
 
 	testerCmd.MarkFlagRequired("topic")
-
+	addSharedFlags(testerCmd, &testerConfig.shared)
 	RootCmd.AddCommand(testerCmd)
 }
 
 func testerPreRun(cmd *cobra.Command, args []string) error {
-	if testerConfig.zkAddr == "" && tailConfig.brokerAddr == "" {
-		return errors.New("Must set either broker-addr or zk-addr")
-	}
-	return nil
+	return testerConfig.shared.validate()
 }
 
 func testerRun(cmd *cobra.Command, args []string) error {
@@ -150,10 +90,12 @@ func testerRun(cmd *cobra.Command, args []string) error {
 }
 
 func runTestReader(ctx context.Context) error {
-	connector, err := getConnector(ctx)
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
 	if err != nil {
 		return err
 	}
+	defer adminClient.Close()
+	connector := adminClient.GetConnector()
 
 	log.Infof(
 		"This will read test messages from the '%s' topic in %s using the consumer group ID '%s'",
@@ -197,10 +139,12 @@ func runTestReader(ctx context.Context) error {
 }
 
 func runTestWriter(ctx context.Context) error {
-	connector, err := getConnector(ctx)
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
 	if err != nil {
 		return err
 	}
+	defer adminClient.Close()
+	connector := adminClient.GetConnector()
 
 	log.Infof(
 		"This will write test messages to the '%s' topic in %s at a rate of %d/sec.",
@@ -253,36 +197,5 @@ func runTestWriter(ctx context.Context) error {
 		case <-logTicker.C:
 			log.Infof("%d messages sent", index)
 		}
-	}
-}
-
-func getConnector(ctx context.Context) (*admin.Connector, error) {
-	if testerConfig.brokerAddr == "" {
-		adminClient, err := admin.NewZKAdminClient(
-			ctx,
-			admin.ZKAdminClientConfig{
-				ZKAddrs: []string{testerConfig.zkAddr},
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		return adminClient.GetConnector(), nil
-	} else {
-		tlsEnabled := (testerConfig.tlsEnabled ||
-			testerConfig.tlsCACert != "" ||
-			testerConfig.tlsCert != "" ||
-			testerConfig.tlsKey != "")
-		return admin.NewConnector(
-			admin.ConnectorConfig{
-				BrokerAddr: testerConfig.brokerAddr,
-				TLSEnabled: tlsEnabled,
-				CACertPath: testerConfig.tlsCACert,
-				CertPath:   testerConfig.tlsCert,
-				KeyPath:    testerConfig.tlsKey,
-				ServerName: testerConfig.tlsServerName,
-				SkipVerify: testerConfig.tlsSkipVerify,
-			},
-		)
 	}
 }
