@@ -80,7 +80,13 @@ func (s sharedOptions) getAdminClient(
 		if err != nil {
 			return nil, err
 		}
-		return clusterConfig.NewAdminClient(ctx, sess, true)
+		return clusterConfig.NewAdminClient(
+			ctx,
+			sess,
+			true,
+			s.saslUsername,
+			s.saslPassword,
+		)
 	} else if s.brokerAddr != "" {
 		tlsEnabled := (s.tlsEnabled ||
 			s.tlsCACert != "" ||
@@ -145,19 +151,7 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		&options.saslMechanism,
 		"sasl-mechanism",
 		"",
-		"SASL mechanism if using SASL (either: plain, scram-sha-256, or scram-sha-512)",
-	)
-	cmd.Flags().StringVar(
-		&options.saslPassword,
-		"sasl-password",
-		os.Getenv("TOPICCTL_SASL_PASSWORD"),
-		"SASL password if using SASL",
-	)
-	cmd.Flags().StringVar(
-		&options.saslUsername,
-		"sasl-username",
-		os.Getenv("TOPICCTL_SASL_USERNAME"),
-		"SASL username if using SASL",
+		"SASL mechanism if using SASL (choices: PLAIN, SCRAM-SHA-256, or SCRAM-SHA-512)",
 	)
 	cmd.Flags().StringVar(
 		&options.tlsCACert,
@@ -207,5 +201,26 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"zk-prefix",
 		"",
 		"Prefix for cluster-related nodes in zk",
+	)
+}
+
+func addSharedConfigOnlyFlags(cmd *cobra.Command, options *sharedOptions) {
+	cmd.Flags().StringVar(
+		&options.clusterConfig,
+		"cluster-config",
+		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
+		"Cluster config",
+	)
+	cmd.Flags().StringVar(
+		&options.saslPassword,
+		"sasl-password",
+		os.Getenv("TOPICCTL_SASL_PASSWORD"),
+		"SASL password if using SASL; will override value set in cluster config",
+	)
+	cmd.Flags().StringVar(
+		&options.saslUsername,
+		"sasl-username",
+		os.Getenv("TOPICCTL_SASL_USERNAME"),
+		"SASL username if using SASL; will override value set in cluster config",
 	)
 }

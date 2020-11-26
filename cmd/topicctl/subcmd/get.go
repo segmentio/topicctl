@@ -29,7 +29,8 @@ var getCmd = &cobra.Command{
 }
 
 type getCmdConfig struct {
-	full   bool
+	full bool
+
 	shared sharedOptions
 }
 

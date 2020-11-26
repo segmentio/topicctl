@@ -28,7 +28,7 @@ func TestCheck(t *testing.T) {
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false)
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
 	require.NoError(t, err)
 
 	topicName := util.RandomString("check-topic-", 6)

@@ -173,9 +173,28 @@ func (c ClusterConfig) NewAdminClient(
 	ctx context.Context,
 	sess *session.Session,
 	readOnly bool,
+	usernameOverride string,
+	passwordOverride string,
 ) (admin.Client, error) {
 	if len(c.Spec.ZKAddrs) == 0 {
 		log.Debug("No ZK addresses provided, using broker admin client")
+
+		var saslUsername string
+		var saslPassword string
+		if usernameOverride != "" {
+			log.Debugf("Setting SASL username from override value")
+			saslUsername = usernameOverride
+		} else {
+			saslUsername = c.Spec.SASL.Username
+		}
+
+		if passwordOverride != "" {
+			log.Debugf("Setting SASL password from override value")
+			saslPassword = passwordOverride
+		} else {
+			saslPassword = c.Spec.SASL.Password
+		}
+
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
@@ -191,8 +210,8 @@ func (c ClusterConfig) NewAdminClient(
 					SASL: admin.SASLConfig{
 						Enabled:   c.Spec.SASL.Enabled,
 						Mechanism: c.Spec.SASL.Mechanism,
-						Username:  c.Spec.SASL.Username,
-						Password:  c.Spec.SASL.Password,
+						Username:  saslUsername,
+						Password:  saslPassword,
 					},
 				},
 				ReadOnly: readOnly,

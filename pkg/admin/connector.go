@@ -129,7 +129,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		}
 	}
 
-	log.Debugf("Connecting to cluster on address %s with TLS enabled=%s, SASL enabled=%s",
+	log.Debugf("Connecting to cluster on address %s with TLS enabled=%v, SASL enabled=%v",
 		config.BrokerAddr,
 		config.TLS.Enabled,
 		config.SASL.Enabled,
