@@ -386,19 +386,19 @@ the process should continue from where it left off.
 
 ## Cluster access details
 
-### zk vs. broker APIs
+### ZooKeeper vs. broker APIs
 
 `topicctl` can interact with a cluster through either ZooKeeper or by hitting broker APIs
 directly.
 
-Broker APIs are used exclusively if the tool is run with either:
+Broker APIs are used exclusively if the tool is run with either of the following flags:
 
 1. `--broker-addr` *or*
 2. `--cluster-config` and the cluster config doesn't specify any ZK addresses
 
 In all other cases, i.e. if `--zk-addr` is specified or the cluster config has ZK addresses, then
 ZooKeeper will be used for most interactions. A few operations that are not possible via ZK
-will still use broker APIs, including:
+will still use broker APIs, however, including:
 
 1. Group-related `get` commands: `get groups`, `get lags`, `get members`
 2. `get offsets`
@@ -406,8 +406,17 @@ will still use broker APIs, including:
 4. `tail`
 5. `apply` with topic creation
 
-Note that the broker-only mode is only possible with newer Kafka versions (>= 2 for read-only
-operations, >= 2.4 for applies).
+### Limitations of broker-only access mode
+
+There are a few limitations in the tool when using the broker APIs exclusively:
+
+1. Only newer versions of Kafka are supported. In particular:
+    a. v2.0 or greater is required for read-only operations (`get brokers`, `get topics`, etc.)
+    b. v2.4 or greater is required for applying topic changes
+2. Apply locking is not yet implemented; please be careful when applying to ensure that someone
+  else isn't applying changes in the same topic at the same time.
+3. The values of some dynamic broker properties, e.g. `leader.replication.throttled.rate`, are not
+  returned by the API and thus won't appear in the tool output. This appears to be fixed in v2.6.
 
 ### TLS
 
