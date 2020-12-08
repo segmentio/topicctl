@@ -3,7 +3,7 @@ module github.com/segmentio/topicctl
 go 1.14
 
 // Use something like this to use a local kafka-go (useful for testing purposes).
-//replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
+// replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
 
 require (
 	github.com/aws/aws-sdk-go v1.20.6
@@ -25,7 +25,7 @@ require (
 
 	// This is a draft kafka-go version that is not merged into master of that
 	// repo yet.
-	github.com/segmentio/kafka-go v0.4.9-0.20201125211318-63239f1766cc
+	github.com/segmentio/kafka-go v0.4.9-0.20201208034254-d66b9dd6fa82
 
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0

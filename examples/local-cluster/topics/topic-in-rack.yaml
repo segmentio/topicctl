@@ -1,5 +1,5 @@
 meta:
-  name: topic-in-rack
+  name: topic-in-rack3
   cluster: local-cluster
   environment: local-env
   region: local-region

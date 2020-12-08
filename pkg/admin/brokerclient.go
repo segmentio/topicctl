@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,17 @@ import (
 
 const (
 	defaultTimeout = 5 * time.Second
+
+	// Used for filtering out default configs
+	configSourceUnknown                    int8 = 0
+	configSourceTopicConfig                int8 = 1
+	configSourceDynamicBrokerConfig        int8 = 2
+	configSourceDynamicDefaultBrokerConfig int8 = 3
+	configSourceStaticBrokerConfig         int8 = 4
+	configSourceDefaultConfig              int8 = 5
+	configSourceDynamicBrokerLoggerConfig  int8 = 6
+
+	sensitivePlaceholder = "SENSITIVE"
 )
 
 // BrokerAdminClient is a Client implementation that only uses broker APIs, without any
@@ -113,7 +125,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 		idsMap[id] = struct{}{}
 	}
 
-	brokerIDs := []int{}
+	configRequestResources := []kafka.DescribeConfigRequestResource{}
 	brokerIDIndices := map[int]int{}
 
 	for b, broker := range metadataResp.Brokers {
@@ -130,25 +142,52 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 				Rack: broker.Rack,
 			},
 		)
-		brokerIDs = append(brokerIDs, broker.ID)
 		brokerIDIndices[broker.ID] = b
+
+		configRequestResources = append(
+			configRequestResources,
+			kafka.DescribeConfigRequestResource{
+				ResourceType: kafka.ResourceTypeBroker,
+				ResourceName: fmt.Sprintf("%d", broker.ID),
+			},
+		)
 	}
 
 	configsReq := kafka.DescribeConfigsRequest{
-		Brokers:         brokerIDs,
-		IncludeDefaults: false,
+		Resources: configRequestResources,
 	}
 	log.Debugf("DescribeConfigs request: %+v", configsReq)
 
-	configsResp, err := c.client.DescribeConfigs(ctx, configsReq)
+	configsResp, err := c.client.DescribeConfigs(ctx, &configsReq)
 	log.Debugf("DescribeConfigs response: %+v (%+v)", configsResp, err)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, broker := range configsResp.Brokers {
-		index := brokerIDIndices[broker.BrokerID]
-		brokerInfos[index].Config = broker.Configs
+	for _, resource := range configsResp.Resources {
+		brokerID, err := strconv.Atoi(resource.ResourceName)
+		if err != nil {
+			return nil, err
+		}
+
+		config := map[string]string{}
+		for _, configEntry := range resource.ConfigEntries {
+			if configEntry.IsDefault ||
+				configEntry.ConfigSource == configSourceDefaultConfig ||
+				configEntry.ConfigSource == configSourceDynamicDefaultBrokerConfig {
+				// Skip over defaults
+				continue
+			}
+
+			if configEntry.ConfigValue == "" && configEntry.IsSensitive {
+				config[configEntry.ConfigName] = sensitivePlaceholder
+			} else {
+				config[configEntry.ConfigName] = configEntry.ConfigValue
+			}
+		}
+
+		index := brokerIDIndices[brokerID]
+		brokerInfos[index].Config = config
 	}
 
 	return brokerInfos, nil
@@ -187,7 +226,7 @@ func (c *BrokerAdminClient) GetTopics(
 	}
 
 	topicInfos := []TopicInfo{}
-	topicInfoNames := []string{}
+	configRequestResources := []kafka.DescribeConfigRequestResource{}
 	topicNameToIndex := map[string]int{}
 
 	for t, topic := range metadataResp.Topics {
@@ -223,25 +262,48 @@ func (c *BrokerAdminClient) GetTopics(
 				Partitions: partitionInfos,
 			},
 		)
-		topicInfoNames = append(topicInfoNames, topic.Name)
 		topicNameToIndex[topic.Name] = t
+
+		configRequestResources = append(
+			configRequestResources,
+			kafka.DescribeConfigRequestResource{
+				ResourceType: kafka.ResourceTypeTopic,
+				ResourceName: topic.Name,
+			},
+		)
+
 	}
 
 	configsReq := kafka.DescribeConfigsRequest{
-		Topics:          topicInfoNames,
-		IncludeDefaults: false,
+		Resources: configRequestResources,
 	}
 	log.Debugf("DescribeConfigs request: %+v", configsReq)
 
-	configsResp, err := c.client.DescribeConfigs(ctx, configsReq)
+	configsResp, err := c.client.DescribeConfigs(ctx, &configsReq)
 	log.Debugf("DescribeConfigs response: %+v (%+v)", configsResp, err)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, topic := range configsResp.Topics {
-		index := topicNameToIndex[topic.Topic]
-		topicInfos[index].Config = topic.Configs
+	for _, resource := range configsResp.Resources {
+		config := map[string]string{}
+		for _, configEntry := range resource.ConfigEntries {
+			if configEntry.IsDefault ||
+				configEntry.ConfigSource == configSourceDefaultConfig ||
+				configEntry.ConfigSource == configSourceStaticBrokerConfig {
+				// Skip over defaults
+				continue
+			}
+
+			if configEntry.ConfigValue == "" && configEntry.IsSensitive {
+				config[configEntry.ConfigName] = sensitivePlaceholder
+			} else {
+				config[configEntry.ConfigName] = configEntry.ConfigValue
+			}
+		}
+
+		index := topicNameToIndex[resource.ResourceName]
+		topicInfos[index].Config = config
 	}
 
 	return topicInfos, nil
@@ -404,25 +466,32 @@ func (c *BrokerAdminClient) AddPartitions(
 		return err
 	}
 
-	partitions := []kafka.CreatePartitionsRequestPartition{}
+	topicPartitions := kafka.TopicPartitionsConfig{
+		Name:  topic,
+		Count: int32(len(newAssignments)) + int32(len(topicInfo.Partitions)),
+	}
+	partitionAssignments := []kafka.TopicPartitionAssignment{}
+
 	for _, newAssignment := range newAssignments {
-		partitions = append(
-			partitions,
-			kafka.CreatePartitionsRequestPartition{
-				BrokerIDs: newAssignment.Replicas,
+		brokerIDsInt32 := []int32{}
+		for _, replica := range newAssignment.Replicas {
+			brokerIDsInt32 = append(brokerIDsInt32, int32(replica))
+		}
+
+		partitionAssignments = append(
+			partitionAssignments,
+			kafka.TopicPartitionAssignment{
+				BrokerIDs: brokerIDsInt32,
 			},
 		)
 	}
 
 	req := kafka.CreatePartitionsRequest{
-		Topic:         topic,
-		NewPartitions: partitions,
-		TotalCount:    len(partitions) + len(topicInfo.Partitions),
-		Timeout:       defaultTimeout,
+		Topics: []kafka.TopicPartitionsConfig{topicPartitions},
 	}
 	log.Debugf("CreatePartitions request: %+v", req)
 
-	resp, err := c.client.CreatePartitions(ctx, req)
+	resp, err := c.client.CreatePartitions(ctx, &req)
 	log.Debugf("CreatePartitions response: %+v (%+v)", resp, err)
 
 	return err
