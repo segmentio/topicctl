@@ -5,7 +5,6 @@ import (
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply/pickers"
-	log "github.com/sirupsen/logrus"
 )
 
 // BalancedExtender adds extra partition assignments in a "balanced" way. The current
@@ -52,7 +51,10 @@ func (b *BalancedExtender) Extend(
 	extraPartitions int,
 ) ([]admin.PartitionAssignment, error) {
 	if extraPartitions%len(b.racks) != 0 {
-		log.Warn("Extra partitions are not a multiple of the number of racks")
+		return nil,
+			fmt.Errorf(
+				"Cannot balance because extra partitions are not a multiple of the number of racks",
+			)
 	}
 
 	if b.inRack {
