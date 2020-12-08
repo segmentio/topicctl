@@ -486,6 +486,8 @@ func (c *BrokerAdminClient) AddPartitions(
 		)
 	}
 
+	topicPartitions.TopicPartitionAssignments = partitionAssignments
+
 	req := kafka.CreatePartitionsRequest{
 		Topics: []kafka.TopicPartitionsConfig{topicPartitions},
 	}
