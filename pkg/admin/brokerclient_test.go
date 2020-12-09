@@ -215,7 +215,7 @@ func TestBrokerClientBrokers(t *testing.T) {
 	if client.GetSupportedFeatures().DynamicBrokerConfigs {
 		expectedThrottledRate = "21000000"
 	} else {
-		expectedThrottledRate = ""
+		expectedThrottledRate = "SENSITIVE"
 	}
 
 	for _, brokerInfo := range brokerInfos {

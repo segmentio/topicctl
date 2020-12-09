@@ -174,6 +174,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 		for _, configEntry := range resource.ConfigEntries {
 			if configEntry.IsDefault ||
 				configEntry.ConfigSource == configSourceDefaultConfig ||
+				configEntry.ConfigSource == configSourceStaticBrokerConfig ||
 				configEntry.ConfigSource == configSourceDynamicDefaultBrokerConfig {
 				// Skip over defaults
 				continue
