@@ -420,8 +420,14 @@ There are a few limitations in the tool when using the broker APIs exclusively:
     - v2.4 or greater is required for applying topic changes
 2. Apply locking is not yet implemented; please be careful when applying to ensure that someone
   else isn't applying changes in the same topic at the same time.
-3. The values of some dynamic broker properties, e.g. `leader.replication.throttled.rate`, are not
-  returned by the API and thus won't appear in the tool output. This appears to be fixed in v2.6.
+3. The values of some dynamic broker properties, e.g. `leader.replication.throttled.rate`, are
+  marked as "sensitive" and not returned via the API; `topicctl` will show the value as
+  `SENSITIVE`. This appears to be fixed in v2.6.
+4. Broker timestamps are not returned by the metadata API. These will be blank in the results
+  of `get brokers`.
+5. Applying is not fully compatible with clusters provisioned in Confluent Cloud. It appears
+  that Confluent prevents arbitrary partition reassignments, among other restrictions. Read-only
+  operations seem to work.
 
 ### TLS
 
