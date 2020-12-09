@@ -18,7 +18,7 @@ func GetGroups(
 ) ([]GroupCoordinator, error) {
 	listGroupsResp, err := connector.KafkaClient.ListGroups(
 		ctx,
-		kafka.ListGroupsRequest{},
+		&kafka.ListGroupsRequest{},
 	)
 
 	// Don't immediately fail if err is non-nil; instead, just process and return
@@ -48,9 +48,11 @@ func GetGroupDetails(
 	connector *admin.Connector,
 	groupID string,
 ) (*GroupDetails, error) {
-	describeGroupsResponse, err := connector.KafkaClient.DescribeGroup(
+	describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(
 		ctx,
-		kafka.DescribeGroupsRequest{GroupIDs: []string{groupID}},
+		&kafka.DescribeGroupsRequest{
+			GroupIDs: []string{groupID},
+		},
 	)
 	if err != nil {
 		return nil, err

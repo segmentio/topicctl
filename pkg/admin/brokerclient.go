@@ -55,7 +55,7 @@ func NewBrokerAdminClient(
 	client := connector.KafkaClient
 
 	log.Debugf("Getting supported API versions")
-	apiVersions, err := client.ApiVersions(ctx, kafka.ApiVersionsRequest{})
+	apiVersions, err := client.ApiVersions(ctx, &kafka.ApiVersionsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -352,15 +352,20 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 		return nil, errors.New("Cannot update topic config read-only mode")
 	}
 
-	req := kafka.AlterTopicConfigsRequest{
-		Topic:         name,
-		ConfigEntries: configEntries,
+	req := kafka.IncrementalAlterConfigsRequest{
+		Resources: []kafka.IncrementalAlterConfigsRequestResource{
+			{
+				ResourceType: kafka.ResourceTypeTopic,
+				ResourceName: name,
+				Configs:      configEntriesToAPIConfigs(configEntries),
+			},
+		},
 	}
-	log.Debugf("AlterTopicConfigs request: %+v", req)
+	log.Debugf("IncrementalAlterConfigs request: %+v", req)
 
 	// TODO: Handle case where overwrite is false.
-	resp, err := c.client.AlterTopicConfigs(ctx, req)
-	log.Debugf("AlterTopicConfigs response: %+v (%+v)", resp, err)
+	resp, err := c.client.IncrementalAlterConfigs(ctx, &req)
+	log.Debugf("IncrementalAlterConfigs response: %+v (%+v)", resp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -383,15 +388,20 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 		return nil, errors.New("Cannot update broker config read-only mode")
 	}
 
-	req := kafka.AlterBrokerConfigsRequest{
-		BrokerID:      id,
-		ConfigEntries: configEntries,
+	req := kafka.IncrementalAlterConfigsRequest{
+		Resources: []kafka.IncrementalAlterConfigsRequestResource{
+			{
+				ResourceType: kafka.ResourceTypeBroker,
+				ResourceName: fmt.Sprintf("%d", id),
+				Configs:      configEntriesToAPIConfigs(configEntries),
+			},
+		},
 	}
-	log.Debugf("AlterBrokerConfigs request: %+v", req)
+	log.Debugf("IncrementalAlterConfigs request: %+v", req)
 
 	// TODO: Handle case where overwrite is false.
-	resp, err := c.client.AlterBrokerConfigs(ctx, req)
-	log.Debugf("AlterBrokerConfigs response: %+v (%+v)", resp, err)
+	resp, err := c.client.IncrementalAlterConfigs(ctx, &req)
+	log.Debugf("IncrementalAlterConfigs response: %+v (%+v)", resp, err)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +457,7 @@ func (c *BrokerAdminClient) AssignPartitions(
 	}
 	log.Debugf("AlterPartitionReassignments request: %+v", req)
 
-	resp, err := c.client.AlterPartitionReassignments(ctx, req)
+	resp, err := c.client.AlterPartitionReassignments(ctx, &req)
 	log.Debugf("AlterPartitionReassignments response: %+v (%+v)", resp, err)
 	return err
 }
@@ -515,7 +525,7 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	}
 	log.Debugf("ElectLeaders request: %+v", req)
 
-	resp, err := c.client.ElectLeaders(ctx, req)
+	resp, err := c.client.ElectLeaders(ctx, &req)
 	log.Debugf("ElectLeaders response: %+v (%+v)", resp, err)
 
 	return err
@@ -562,7 +572,7 @@ func (c *BrokerAdminClient) getAPIVersions(ctx context.Context) (
 ) {
 	req := kafka.ApiVersionsRequest{}
 	log.Debugf("API versions request: %+v", req)
-	resp, err := c.client.ApiVersions(ctx, req)
+	resp, err := c.client.ApiVersions(ctx, &req)
 	log.Debugf("API versions response: %+v (%+v)", resp, err)
 
 	return resp, err
@@ -574,4 +584,30 @@ func brokerIDs(brokers []kafka.Broker) []int {
 		ids = append(ids, broker.ID)
 	}
 	return ids
+}
+
+func configEntriesToAPIConfigs(
+	configEntries []kafka.ConfigEntry,
+) []kafka.IncrementalAlterConfigsRequestConfig {
+	apiConfigs := []kafka.IncrementalAlterConfigsRequestConfig{}
+	for _, entry := range configEntries {
+		var op kafka.ConfigOperation
+
+		if entry.ConfigValue == "" {
+			op = kafka.ConfigOperationDelete
+		} else {
+			op = kafka.ConfigOperationSet
+		}
+
+		apiConfigs = append(
+			apiConfigs,
+			kafka.IncrementalAlterConfigsRequestConfig{
+				Name:            entry.ConfigName,
+				Value:           entry.ConfigValue,
+				ConfigOperation: op,
+			},
+		)
+	}
+
+	return apiConfigs
 }
