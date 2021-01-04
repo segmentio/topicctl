@@ -25,7 +25,7 @@ require (
 
 	// This is a draft kafka-go version that is not merged into master of that
 	// repo yet.
-	github.com/segmentio/kafka-go v0.4.9-0.20210104214407-a0a495524f0b
+	github.com/segmentio/kafka-go v0.4.9-0.20201209013133-7e5a29618e20
 
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
