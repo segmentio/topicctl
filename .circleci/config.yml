@@ -275,6 +275,7 @@ workflows:
             branches:
               only:
                 - master
+                - v1
       - publish-dockerhub:
           context: docker-publish
           requires:
