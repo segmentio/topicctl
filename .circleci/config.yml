@@ -218,7 +218,7 @@ jobs:
           name: ECR Login
           command: |
             sudo apt-get update && sudo apt-get install --yes python3 python3-pip
-            pip install awscli==1.16.292
+            pip3 install awscli
             $(aws ecr get-login --no-include-email --region ${AWS_REGION} --registry-ids ${AWS_ACCOUNT_ID})
       - run:
           name: Build and push image
