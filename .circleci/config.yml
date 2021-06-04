@@ -269,7 +269,6 @@ workflows:
       - publish-ecr:
           context: segmentio-org-global
           requires:
-            - test010
             - test241
           filters:
             branches:
@@ -279,7 +278,6 @@ workflows:
       - publish-dockerhub:
           context: docker-publish
           requires:
-            - test010
             - test241
           filters:
             # Never publish from a branch event
