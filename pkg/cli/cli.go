@@ -357,6 +357,7 @@ func (c *CLIRunner) GetMemberLags(
 	topic string,
 	groupID string,
 	full bool,
+	sortByValues bool,
 ) error {
 	c.startSpinner()
 

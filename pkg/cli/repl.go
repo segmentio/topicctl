@@ -204,26 +204,27 @@ func (r *Repl) executor(in string) {
 	}()
 	defer signal.Stop(sigChan)
 
-	words := strings.Split(in, " ")
-	switch words[0] {
+	command := parseInputs(in)
+
+	switch command.args[0] {
 	case "exit":
 		fmt.Println("Bye!")
 		os.Exit(0)
 	case "get":
-		if len(words) == 1 {
+		if len(command.args) == 1 {
 			log.Error("Unrecognized input. Run 'help' for details on available commands.")
 			return
 		}
 
-		switch words[1] {
+		switch command.args[1] {
 		case "balance":
-			if err := checkArgsMax(words, 3); err != nil {
+			if err := checkArgsMax(command.args, 3); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 			var topicName string
-			if len(words) == 3 {
-				topicName = words[2]
+			if len(command.args) == 3 {
+				topicName = command.args[2]
 			}
 
 			if err := r.cliRunner.GetBrokerBalance(ctx, topicName); err != nil {
@@ -231,7 +232,7 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "brokers":
-			if err := checkArgs(words, 2); err != nil {
+			if err := checkArgs(command.args, 2); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -240,16 +241,16 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "config":
-			if err := checkArgs(words, 3); err != nil {
+			if err := checkArgs(command.args, 3); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetConfig(ctx, words[2]); err != nil {
+			if err := r.cliRunner.GetConfig(ctx, command.args[2]); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "groups":
-			if err := checkArgs(words, 2); err != nil {
+			if err := checkArgs(command.args, 2); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -258,43 +259,49 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "lags":
-			if err := checkArgs(words, 4); err != nil {
+			if err := checkArgs(command.args, 4); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetMemberLags(ctx, words[2], words[3], false); err != nil {
+			if err := r.cliRunner.GetMemberLags(
+				ctx,
+				command.args[2],
+				command.args[3],
+				false,
+				false,
+			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "members":
-			if err := checkArgs(words, 3); err != nil {
+			if err := checkArgs(command.args, 3); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetGroupMembers(ctx, words[2], false); err != nil {
+			if err := r.cliRunner.GetGroupMembers(ctx, command.args[2], false); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "partitions":
-			if err := checkArgs(words, 3); err != nil {
+			if err := checkArgs(command.args, 3); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetPartitions(ctx, words[2]); err != nil {
+			if err := r.cliRunner.GetPartitions(ctx, command.args[2]); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "offsets":
-			if err := checkArgs(words, 3); err != nil {
+			if err := checkArgs(command.args, 3); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetOffsets(ctx, words[2]); err != nil {
+			if err := r.cliRunner.GetOffsets(ctx, command.args[2]); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "topics":
-			if err := checkArgs(words, 2); err != nil {
+			if err := checkArgs(command.args, 2); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -309,23 +316,23 @@ func (r *Repl) executor(in string) {
 		fmt.Printf("> Commands:\n%s\n", helpTableStr)
 		return
 	case "tail":
-		if err := checkArgsMin(words, 2); err != nil {
+		if err := checkArgsMin(command.args, 2); err != nil {
 			log.Errorf("Error: %+v", err)
 			return
 		}
-		if err := checkArgsMax(words, 3); err != nil {
+		if err := checkArgsMax(command.args, 3); err != nil {
 			log.Errorf("Error: %+v", err)
 			return
 		}
 
 		var filterRegexp string
-		if len(words) == 3 {
-			filterRegexp = words[2]
+		if len(command.args) == 3 {
+			filterRegexp = command.args[2]
 		}
 
 		err := r.cliRunner.Tail(
 			ctx,
-			words[1],
+			command.args[1],
 			kafka.LastOffset,
 			nil,
 			-1,
