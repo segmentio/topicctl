@@ -49,3 +49,23 @@ func TestGetBoolValue(t *testing.T) {
 	assert.False(t, command.getBoolValue("key3"))
 	assert.False(t, command.getBoolValue("non-existent-key"))
 }
+
+func TestCheckArgs(t *testing.T) {
+	command := replCommand{
+		args: []string{
+			"arg1",
+			"arg2",
+		},
+		flags: map[string]string{
+			"key1": "value1",
+		},
+	}
+	assert.NoError(t, command.checkArgs(2, 2, map[string]struct{}{"key1": {}}))
+	assert.NoError(t, command.checkArgs(2, 3, map[string]struct{}{"key1": {}}))
+	assert.NoError(t, command.checkArgs(1, 2, map[string]struct{}{"key1": {}}))
+	assert.NoError(t, command.checkArgs(1, 2, map[string]struct{}{"key1": {}, "key2": {}}))
+	assert.Error(t, command.checkArgs(3, 3, map[string]struct{}{"key1": {}}))
+	assert.Error(t, command.checkArgs(3, 5, map[string]struct{}{"key1": {}}))
+	assert.Error(t, command.checkArgs(2, 2, map[string]struct{}{"key2": {}}))
+	assert.Error(t, command.checkArgs(2, 2, nil))
+}
