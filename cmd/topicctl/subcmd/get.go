@@ -35,6 +35,7 @@ var getCmd = &cobra.Command{
 type getCmdConfig struct {
 	clusterConfig string
 	full          bool
+	sortValues    bool
 	zkAddr        string
 	zkPrefix      string
 }
@@ -53,6 +54,12 @@ func init() {
 		"full",
 		false,
 		"Show more full information for resources",
+	)
+	getCmd.Flags().BoolVar(
+		&getConfig.sortValues,
+		"sort-values",
+		false,
+		"Sort by value instead of name; only applies for lags at the moment",
 	)
 	getCmd.Flags().StringVarP(
 		&getConfig.zkAddr,
@@ -153,7 +160,13 @@ func getRun(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Must provide topic and groupID as additional positional arguments")
 		}
 
-		return cliRunner.GetMemberLags(ctx, args[1], args[2], getConfig.full)
+		return cliRunner.GetMemberLags(
+			ctx,
+			args[1],
+			args[2],
+			getConfig.full,
+			getConfig.sortValues,
+		)
 	case "members":
 		if len(args) != 2 {
 			return fmt.Errorf("Must provide group ID as second positional argument")

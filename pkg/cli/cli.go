@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -357,6 +358,7 @@ func (c *CLIRunner) GetMemberLags(
 	topic string,
 	groupID string,
 	full bool,
+	sortByValues bool,
 ) error {
 	c.startSpinner()
 
@@ -375,7 +377,16 @@ func (c *CLIRunner) GetMemberLags(
 		return err
 	}
 
-	c.printer("Group member lags:\n%s", groups.FormatMemberLags(memberLags, full))
+	if sortByValues {
+		sort.Slice(memberLags, func(a, b int) bool {
+			return memberLags[a].TimeLag() < memberLags[b].TimeLag()
+		})
+	}
+
+	c.printer(
+		"Group member lags:\n%s",
+		groups.FormatMemberLags(memberLags, full),
+	)
 	return nil
 }
 
