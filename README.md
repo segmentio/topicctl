@@ -68,7 +68,7 @@ topicctl apply --skip-confirm examples/local-cluster/topics/*yaml
 4. Send some test messages to the `topic-default` topic:
 
 ```
-topicctl tester --broker-addr=localhost:2181 --topic=topic-default
+topicctl tester --broker-addr=localhost:9092 --topic=topic-default
 ```
 
 5. Open up the repl (while keeping the tester running in a separate terminal):
