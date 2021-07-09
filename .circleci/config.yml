@@ -115,8 +115,8 @@ jobs:
       - run:
           name: ECR Login
           command: |
-            curl -O https://bootstrap.pypa.io/get-pip.py && python get-pip.py
-            pip install awscli==1.16.292
+            sudo apt-get update && sudo apt-get install --yes python3 python3-pip
+            pip3 install awscli
             $(aws ecr get-login --no-include-email --region ${AWS_REGION} --registry-ids ${AWS_ACCOUNT_ID})
       - run:
           name: Build and push image
