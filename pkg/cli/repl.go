@@ -204,7 +204,10 @@ func (r *Repl) executor(in string) {
 	}()
 	defer signal.Stop(sigChan)
 
-	command := parseInputs(in)
+	command := parseReplInputs(in)
+	if len(command.args) == 0 {
+		return
+	}
 
 	switch command.args[0] {
 	case "exit":
@@ -218,7 +221,7 @@ func (r *Repl) executor(in string) {
 
 		switch command.args[1] {
 		case "balance":
-			if err := checkArgsMax(command.args, 3); err != nil {
+			if err := command.checkArgs(2, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -232,16 +235,16 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "brokers":
-			if err := checkArgs(command.args, 2); err != nil {
+			if err := command.checkArgs(2, 2, map[string]struct{}{"full": {}}); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetBrokers(ctx, false); err != nil {
+			if err := r.cliRunner.GetBrokers(ctx, command.getBoolValue("full")); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "config":
-			if err := checkArgs(command.args, 3); err != nil {
+			if err := command.checkArgs(3, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -250,7 +253,7 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "groups":
-			if err := checkArgs(command.args, 2); err != nil {
+			if err := command.checkArgs(2, 2, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -259,7 +262,11 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "lags":
-			if err := checkArgs(command.args, 4); err != nil {
+			if err := command.checkArgs(
+				4,
+				4,
+				map[string]struct{}{"full": {}, "sort-values": {}},
+			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -267,23 +274,27 @@ func (r *Repl) executor(in string) {
 				ctx,
 				command.args[2],
 				command.args[3],
-				false,
-				false,
+				command.getBoolValue("full"),
+				command.getBoolValue("sort-values"),
 			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "members":
-			if err := checkArgs(command.args, 3); err != nil {
+			if err := command.checkArgs(3, 3, map[string]struct{}{"full": {}}); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetGroupMembers(ctx, command.args[2], false); err != nil {
+			if err := r.cliRunner.GetGroupMembers(
+				ctx,
+				command.args[2],
+				command.getBoolValue("full"),
+			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
 		case "partitions":
-			if err := checkArgs(command.args, 3); err != nil {
+			if err := command.checkArgs(3, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -292,7 +303,7 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "offsets":
-			if err := checkArgs(command.args, 3); err != nil {
+			if err := command.checkArgs(3, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -301,7 +312,7 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "topics":
-			if err := checkArgs(command.args, 2); err != nil {
+			if err := command.checkArgs(2, 2, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -313,21 +324,29 @@ func (r *Repl) executor(in string) {
 			log.Error("Unrecognized input. Run 'help' for details on available commands.")
 		}
 	case "help":
-		fmt.Printf("> Commands:\n%s\n", helpTableStr)
-		return
-	case "tail":
-		if err := checkArgsMin(command.args, 2); err != nil {
-			log.Errorf("Error: %+v", err)
-			return
-		}
-		if err := checkArgsMax(command.args, 3); err != nil {
+		if err := command.checkArgs(1, 1, nil); err != nil {
 			log.Errorf("Error: %+v", err)
 			return
 		}
 
+		fmt.Printf("> Commands:\n%s\n", helpTableStr)
+		return
+	case "tail":
+		if err := command.checkArgs(
+			2,
+			3,
+			map[string]struct{}{"filter": {}, "raw": {}},
+		); err != nil {
+			log.Errorf("Error: %+v", err)
+			return
+		}
+
+		// Support filter as either an arg or a flag for backwards-compatibility purposes
 		var filterRegexp string
 		if len(command.args) == 3 {
 			filterRegexp = command.args[2]
+		} else {
+			filterRegexp = command.flags["filter"]
 		}
 
 		err := r.cliRunner.Tail(
@@ -337,7 +356,7 @@ func (r *Repl) executor(in string) {
 			nil,
 			-1,
 			filterRegexp,
-			false,
+			command.getBoolValue("raw"),
 		)
 		if err != nil {
 			log.Errorf("Error: %+v", err)
@@ -383,27 +402,6 @@ func (r *Repl) completer(doc prompt.Document) []prompt.Suggest {
 	)
 }
 
-func checkArgs(args []string, expectedCount int) error {
-	if len(args) != expectedCount {
-		return fmt.Errorf("Expected %d args", expectedCount)
-	}
-	return nil
-}
-
-func checkArgsMin(args []string, expectedCount int) error {
-	if len(args) < expectedCount {
-		return fmt.Errorf("Expected at least %d args", expectedCount)
-	}
-	return nil
-}
-
-func checkArgsMax(args []string, expectedCount int) error {
-	if len(args) > expectedCount {
-		return fmt.Errorf("Expected at most %d args", expectedCount)
-	}
-	return nil
-}
-
 func helpTable() string {
 	buf := &bytes.Buffer{}
 
@@ -432,7 +430,7 @@ func helpTable() string {
 				"Get positions of all brokers in topic or across cluster",
 			},
 			{
-				"  get brokers",
+				"  get brokers [--full]",
 				"Get all brokers",
 			},
 			{
@@ -444,11 +442,11 @@ func helpTable() string {
 				"Get all consumer groups",
 			},
 			{
-				"  get lags [topic] [group]",
+				"  get lags [topic] [group] [--full] [--sort-values]",
 				"Get consumer group lags for all partitions in a topic",
 			},
 			{
-				"  get members [group]",
+				"  get members [group] [--full]",
 				"Get the members of a consumer group",
 			},
 			{
@@ -464,7 +462,7 @@ func helpTable() string {
 				"Get all topics",
 			},
 			{
-				"  tail [topic] [optional filter regexp]",
+				"  tail [topic] [optional filter regexp] [--raw]",
 				"Tail all messages in a topic",
 			},
 			{

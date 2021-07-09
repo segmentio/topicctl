@@ -6,38 +6,38 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParse(t *testing.T) {
+func TestParseReplInputs(t *testing.T) {
 	assert.Equal(
 		t,
-		cliCommand{
+		replCommand{
 			args:  []string{"arg1", "arg2"},
 			flags: map[string]string{},
 		},
-		parseInputs("arg1   arg2"),
+		parseReplInputs("arg1   arg2"),
 	)
 	assert.Equal(
 		t,
-		cliCommand{
+		replCommand{
 			args:  []string{"--flag1=value1", "arg1", "arg2"},
 			flags: map[string]string{},
 		},
-		parseInputs("--flag1=value1  arg1   arg2"),
+		parseReplInputs("--flag1=value1  arg1   arg2"),
 	)
 	assert.Equal(
 		t,
-		cliCommand{
+		replCommand{
 			args: []string{"arg1", "arg2", "arg3"},
 			flags: map[string]string{
 				"flag1": "value1",
 				"flag2": "value2",
 			},
 		},
-		parseInputs("arg1 arg2 --flag1=value1 arg3 --flag2=value2"),
+		parseReplInputs("arg1 arg2 --flag1=value1 arg3 --flag2=value2"),
 	)
 }
 
 func TestGetBoolValue(t *testing.T) {
-	command := cliCommand{
+	command := replCommand{
 		flags: map[string]string{
 			"key1": "",
 			"key2": "true",

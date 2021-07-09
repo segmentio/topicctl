@@ -1,14 +1,17 @@
 package cli
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
-type cliCommand struct {
+type replCommand struct {
 	args  []string
 	flags map[string]string
 }
 
-func (c cliCommand) getBoolValue(key string) bool {
-	value, ok := c.flags[key]
+func (r replCommand) getBoolValue(key string) bool {
+	value, ok := r.flags[key]
 
 	if value == "true" {
 		return true
@@ -20,8 +23,34 @@ func (c cliCommand) getBoolValue(key string) bool {
 	}
 }
 
-// parse parses the CLI inputs into command args and flags.
-func parseInputs(input string) cliCommand {
+func (r replCommand) checkArgs(
+	minArgs int,
+	maxArgs int,
+	allowedFlags map[string]struct{},
+) error {
+	if minArgs == maxArgs {
+		if len(r.args) != minArgs {
+			return fmt.Errorf("Expected %d args", minArgs)
+		}
+	} else {
+		if len(r.args) < minArgs || len(r.args) > maxArgs {
+			return fmt.Errorf("Expected between %d and %d args", minArgs, maxArgs)
+		}
+	}
+
+	for key := range r.flags {
+		if allowedFlags == nil {
+			return fmt.Errorf("Flag %s not recognized", key)
+		}
+		if _, ok := allowedFlags[key]; !ok {
+			return fmt.Errorf("Flag %s not recognized", key)
+		}
+	}
+
+	return nil
+}
+
+func parseReplInputs(input string) replCommand {
 	args := []string{}
 	flags := map[string]string{}
 
@@ -43,7 +72,7 @@ func parseInputs(input string) cliCommand {
 		}
 	}
 
-	return cliCommand{
+	return replCommand{
 		args:  args,
 		flags: flags,
 	}
