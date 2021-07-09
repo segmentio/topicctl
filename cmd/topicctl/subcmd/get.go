@@ -29,7 +29,8 @@ var getCmd = &cobra.Command{
 }
 
 type getCmdConfig struct {
-	full bool
+	full       bool
+	sortValues bool
 
 	shared sharedOptions
 }
@@ -42,6 +43,12 @@ func init() {
 		"full",
 		false,
 		"Show more full information for resources",
+	)
+	getCmd.Flags().BoolVar(
+		&getConfig.sortValues,
+		"sort-values",
+		false,
+		"Sort by value instead of name; only applies for lags at the moment",
 	)
 
 	addSharedFlags(getCmd, &getConfig.shared)
@@ -100,7 +107,13 @@ func getRun(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("Must provide topic and groupID as additional positional arguments")
 		}
 
-		return cliRunner.GetMemberLags(ctx, args[1], args[2], getConfig.full)
+		return cliRunner.GetMemberLags(
+			ctx,
+			args[1],
+			args[2],
+			getConfig.full,
+			getConfig.sortValues,
+		)
 	case "members":
 		if len(args) != 2 {
 			return fmt.Errorf("Must provide group ID as second positional argument")
