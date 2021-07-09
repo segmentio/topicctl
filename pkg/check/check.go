@@ -12,7 +12,7 @@ import (
 
 // CheckConfig contains all of the context necessary to check a single topic config.
 type CheckConfig struct {
-	AdminClient   *admin.Client
+	AdminClient   admin.Client
 	ClusterConfig config.ClusterConfig
 	CheckLeaders  bool
 	NumRacks      int

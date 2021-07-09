@@ -3,7 +3,6 @@ package admin
 import (
 	"context"
 	"fmt"
-	"sort"
 	"testing"
 	"time"
 
@@ -15,12 +14,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetClusterID(t *testing.T) {
+func TestZkClientGetClusterID(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -48,9 +47,9 @@ func TestGetClusterID(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:           []string{util.TestZKAddr()},
 			ZKPrefix:          clusterName,
 			BootstrapAddrs:    []string{util.TestKafkaAddr()},
@@ -58,15 +57,15 @@ func TestGetClusterID(t *testing.T) {
 			ReadOnly:          true,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	clusterID, err := adminClient.GetClusterID(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "test-cluster-id", clusterID)
 
-	_, err = NewClient(
+	_, err = NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:           []string{util.TestZKAddr()},
 			ZKPrefix:          clusterName,
 			BootstrapAddrs:    []string{util.TestKafkaAddr()},
@@ -77,12 +76,12 @@ func TestGetClusterID(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-func TestGetBrokers(t *testing.T) {
+func TestZkClientGetBrokers(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -142,16 +141,16 @@ func TestGetBrokers(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       true,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
 	brokers, err := adminClient.GetBrokers(ctx, nil)
@@ -185,12 +184,12 @@ func TestGetBrokers(t *testing.T) {
 	)
 }
 
-func TestGetTopics(t *testing.T) {
+func TestZkClientGetTopics(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -310,16 +309,16 @@ func TestGetTopics(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       true,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
 	topics, err := adminClient.GetTopics(ctx, nil, true)
@@ -422,65 +421,12 @@ func TestGetTopics(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestGetBrokerPartitions(t *testing.T) {
-	ctx := context.Background()
-	adminClient, err := NewClient(
-		ctx,
-		ClientConfig{
-			ZKAddrs:        []string{util.TestZKAddr()},
-			BootstrapAddrs: []string{util.TestKafkaAddr()},
-			ReadOnly:       false,
-		},
-	)
-	require.Nil(t, err)
-	defer adminClient.Close()
-
-	topicName := util.RandomString("topic-create-", 6)
-
-	config := kafka.TopicConfig{
-		Topic:             topicName,
-		NumPartitions:     2,
-		ReplicationFactor: 2,
-	}
-	err = adminClient.CreateTopic(ctx, config)
-	require.Nil(t, err)
-	time.Sleep(250 * time.Millisecond)
-
-	topicInfo, err := adminClient.getTopic(ctx, topicName, true)
-	require.Nil(t, err)
-	require.Equal(t, 2, len(topicInfo.Partitions))
-
-	partitions, err := adminClient.GetBrokerPartitions(ctx, []string{topicName})
-	require.Nil(t, err)
-	require.Equal(t, 2, len(partitions))
-
-	sort.Slice(partitions, func(a, b int) bool {
-		return partitions[a].ID < partitions[b].ID
-	})
-
-	for p, partition := range partitions {
-		assert.Equal(t, topicName, partition.Topic)
-		assert.Equal(t, p, partition.ID)
-		assert.Equal(t, topicInfo.Partitions[p].Leader, partition.Leader)
-		assert.True(
-			t,
-			// Order returned by broker might not match what zk returns
-			util.SameElements(partition.Replicas, topicInfo.Partitions[p].Replicas),
-		)
-		assert.True(
-			t,
-			// Order returned by broker might not match what zk returns
-			util.SameElements(partition.ISR, topicInfo.Partitions[p].ISR),
-		)
-	}
-}
-
-func TestUpdateTopicConfig(t *testing.T) {
+func TestZkClientUpdateTopicConfig(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -520,16 +466,16 @@ func TestUpdateTopicConfig(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
 	updatedKeys, err := adminClient.UpdateTopicConfig(
@@ -552,7 +498,7 @@ func TestUpdateTopicConfig(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(
 		t,
 		[]string{
@@ -582,7 +528,7 @@ func TestUpdateTopicConfig(t *testing.T) {
 		},
 		false,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(
 		t,
 		[]string{
@@ -621,12 +567,12 @@ func TestUpdateTopicConfig(t *testing.T) {
 	)
 }
 
-func TestUpdateBrokerConfig(t *testing.T) {
+func TestZkClientUpdateBrokerConfig(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -652,16 +598,16 @@ func TestUpdateBrokerConfig(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
 	updatedKeys, err := adminClient.UpdateBrokerConfig(
@@ -679,7 +625,7 @@ func TestUpdateBrokerConfig(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(
 		t,
 		[]string{
@@ -708,7 +654,7 @@ func TestUpdateBrokerConfig(t *testing.T) {
 		},
 		false,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	// Only key 5 is updated because overwrite is set to false
 	assert.Equal(
 		t,
@@ -748,18 +694,18 @@ func TestUpdateBrokerConfig(t *testing.T) {
 	)
 }
 
-func TestCreateTopic(t *testing.T) {
+func TestZkClientCreateTopic(t *testing.T) {
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       "",
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
 	topicName := util.RandomString("topic-create-", 6)
@@ -770,21 +716,21 @@ func TestCreateTopic(t *testing.T) {
 		ReplicationFactor: 2,
 	}
 	err = adminClient.CreateTopic(ctx, config)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	time.Sleep(250 * time.Millisecond)
 
 	topics, err := adminClient.GetTopics(ctx, []string{topicName}, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 1, len(topics))
 	assert.Equal(t, topicName, topics[0].Name)
 }
 
-func TestUpdateAssignments(t *testing.T) {
+func TestZkClientUpdateAssignments(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -805,19 +751,19 @@ func TestUpdateAssignments(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
-	exists, err := adminClient.AssignmentInProgress(ctx)
+	exists, err := adminClient.assignmentInProgress(ctx)
 	assert.Nil(t, err)
 	assert.False(t, exists)
 
@@ -835,13 +781,13 @@ func TestUpdateAssignments(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	reassignment, _, err := adminClient.zkClient.Get(
 		ctx,
 		fmt.Sprintf("/%s/admin/reassign_partitions", clusterName),
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.JSONEq(
 		t,
 		`{
@@ -854,17 +800,17 @@ func TestUpdateAssignments(t *testing.T) {
 		string(reassignment),
 	)
 
-	exists, err = adminClient.AssignmentInProgress(ctx)
+	exists, err = adminClient.assignmentInProgress(ctx)
 	assert.Nil(t, err)
 	assert.True(t, exists)
 }
 
-func TestAddPartitions(t *testing.T) {
+func TestZkClientAddPartitions(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -913,19 +859,19 @@ func TestAddPartitions(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
-	exists, err := adminClient.AssignmentInProgress(ctx)
+	exists, err := adminClient.assignmentInProgress(ctx)
 	assert.Nil(t, err)
 	assert.False(t, exists)
 
@@ -943,10 +889,10 @@ func TestAddPartitions(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err := adminClient.getTopic(ctx, "topic1", false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(
 		t,
 		[]PartitionInfo{
@@ -992,12 +938,12 @@ func TestAddPartitions(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-func TestRunLeaderElection(t *testing.T) {
+func TestZkClientRunLeaderElection(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, zkConn)
 	defer zkConn.Close()
 
@@ -1018,19 +964,19 @@ func TestRunLeaderElection(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			ZKPrefix:       clusterName,
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 			ReadOnly:       false,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
-	exists, err := adminClient.ElectionInProgress(ctx)
+	exists, err := adminClient.electionInProgress(ctx)
 	assert.Nil(t, err)
 	assert.False(t, exists)
 
@@ -1039,13 +985,13 @@ func TestRunLeaderElection(t *testing.T) {
 		"test-topic",
 		[]int{3, 5, 6},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	reassignment, _, err := adminClient.zkClient.Get(
 		ctx,
 		fmt.Sprintf("/%s/admin/preferred_replica_election", clusterName),
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.JSONEq(
 		t,
 		`{
@@ -1059,21 +1005,21 @@ func TestRunLeaderElection(t *testing.T) {
 		string(reassignment),
 	)
 
-	exists, err = adminClient.ElectionInProgress(ctx)
+	exists, err = adminClient.electionInProgress(ctx)
 	assert.Nil(t, err)
 	assert.True(t, exists)
 }
 
-func testLocking(t *testing.T) {
+func TestZkClientLocking(t *testing.T) {
 	ctx := context.Background()
-	adminClient, err := NewClient(
+	adminClient, err := NewZKAdminClient(
 		ctx,
-		ClientConfig{
+		ZKAdminClientConfig{
 			ZKAddrs:        []string{util.TestZKAddr()},
 			BootstrapAddrs: []string{util.TestKafkaAddr()},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer adminClient.Close()
 
 	lockPath := fmt.Sprintf("/locks/%s", util.RandomString("", 8))
@@ -1082,7 +1028,7 @@ func testLocking(t *testing.T) {
 	assert.False(t, held)
 
 	lock, err := adminClient.AcquireLock(ctx, lockPath)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	held, err = adminClient.LockHeld(ctx, lockPath)
 	assert.Nil(t, err)

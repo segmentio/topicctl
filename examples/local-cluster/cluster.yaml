@@ -3,12 +3,16 @@ meta:
   environment: local-env
   region: local-region
   description: |
-    Test cluster
+    Test cluster that uses plaintext access to brokers. Can be run against compose setup defined
+    in docker-compose.yml in the repo root.
 
 spec:
-  versionMajor: v2
   bootstrapAddrs:
     - localhost:9092
-  zkAddrs:
-    - localhost:2181
-  zkLockPath: /topicctl/locks
+
+  # Uncomment these lines to access cluster via ZooKeeper instead of broker APIs (required
+  # for older cluster versions).
+  #
+  # zkAddrs:
+  #   - localhost:2181
+  # zkLockPath: /topicctl/locks

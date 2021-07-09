@@ -1,0 +1,29 @@
+meta:
+  name: local-cluster-auth
+  environment: local-env
+  region: local-region
+  description: |
+    Test cluster that uses SSL/TLS and SASL to securely connect to brokers. Can be run
+    against compose setup defined in docker-compose-auth.yml in the repo root.
+
+spec:
+  bootstrapAddrs:
+    # To use just TLS without SASL, switch to port 9093 and disable SASL in the config below.
+    # To use just SASL without TLS, switch to port 9094 and disabled TLS in the config below.
+    - localhost:9095
+  tls:
+    enabled: true
+    caCertPath: certs/ca.crt
+    certPath: certs/client.crt
+    keyPath: certs/client.key
+    skipVerify: true
+  sasl:
+    enabled: true
+    mechanism: SCRAM-SHA-512
+
+    # As an alternative to storing these in the config (probably not super-secure), these can be
+    # set by using the --sasl-username and --sasl-password flags or the
+    # TOPICCTL_SASL_USERNAME and TOPICCTL_SASL_PASSWORD environment variables when running
+    # topicctl.
+    username: adminscram
+    password: admin-secret-512

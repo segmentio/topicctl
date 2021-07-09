@@ -10,6 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 
@@ -22,7 +23,7 @@ import (
 
 // TopicTailer fetches a stream of messages from a topic.
 type TopicTailer struct {
-	brokerAddr string
+	Connector  *admin.Connector
 	topic      string
 	partitions []int
 	offset     int64
@@ -32,7 +33,7 @@ type TopicTailer struct {
 
 // NewTopicTailer returns a new TopicTailer instance.
 func NewTopicTailer(
-	brokerAddr string,
+	Connector *admin.Connector,
 	topic string,
 	partitions []int,
 	offset int64,
@@ -40,7 +41,7 @@ func NewTopicTailer(
 	maxBytes int,
 ) *TopicTailer {
 	return &TopicTailer{
-		brokerAddr: brokerAddr,
+		Connector:  Connector,
 		topic:      topic,
 		partitions: partitions,
 		offset:     offset,
@@ -86,7 +87,8 @@ func (t *TopicTailer) GetMessages(
 	for _, partition := range t.partitions {
 		reader := kafka.NewReader(
 			kafka.ReaderConfig{
-				Brokers:        []string{t.brokerAddr},
+				Brokers:        []string{t.Connector.Config.BrokerAddr},
+				Dialer:         t.Connector.Dialer,
 				Topic:          t.topic,
 				Partition:      partition,
 				MinBytes:       t.minBytes,

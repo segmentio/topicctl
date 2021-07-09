@@ -41,7 +41,7 @@ type TopicApplierConfig struct {
 // align the two.
 type TopicApplier struct {
 	config      TopicApplierConfig
-	adminClient *admin.Client
+	adminClient admin.Client
 	brokers     []admin.BrokerInfo
 
 	// Pull out some fields for easier access
@@ -55,9 +55,16 @@ type TopicApplier struct {
 // NewTopicApplier creates and returns a new TopicApplier instance.
 func NewTopicApplier(
 	ctx context.Context,
-	adminClient *admin.Client,
+	adminClient admin.Client,
 	applierConfig TopicApplierConfig,
 ) (*TopicApplier, error) {
+	if !adminClient.GetSupportedFeatures().Applies {
+		return nil,
+			errors.New(
+				"Admin client does not support features needed for apply; please use zk-based client instead.",
+			)
+	}
+
 	brokers, err := adminClient.GetBrokers(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -972,6 +979,8 @@ outerLoop:
 				log.Infof("Partition(s) %+v looks good, continuing", idsToUpdate)
 				break outerLoop
 			}
+			log.Infof(">>> Not ready: %+v", notReady)
+
 			log.Infof(
 				"%d/%d partitions have not picked up the update and/or have out-of-sync replicas:\n%s",
 				len(notReady),

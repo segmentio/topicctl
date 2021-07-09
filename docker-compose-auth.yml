@@ -1,0 +1,50 @@
+# This config sets up a simple, single-node cluster that's equipped to use SSL/TLS and/or SASL.
+# It exposes access on four separate ports:
+#
+#    1. 9092: plaintext, no SASL
+#    2. 9093: SSL, no SASL
+#    3. 9094: SASL over plaintext
+#    4. 9095: SASL over SSL
+#
+# See examples/auth for the associated cluster configs and certs.
+version: '2'
+
+services:
+  zookeeper:
+    image: "wurstmeister/zookeeper:latest"
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka:2.12-2.4.1
+    restart: on-failure:3
+    links:
+    - zookeeper
+    ports:
+    - 9092:9092
+    - 9093:9093
+    - 9094:9094
+    - 9095:9095
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_MESSAGE_MAX_BYTES: 200000000
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,SSL://:9093,SASL_PLAINTEXT://:9094,SASL_SSL://:9095"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,SSL://localhost:9093,SASL_PLAINTEXT://localhost:9094,SASL_SSL://localhost:9095"
+      KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
+      KAFKA_SSL_KEYSTORE_LOCATION: /certs/kafka.keystore.jks
+      KAFKA_SSL_KEYSTORE_PASSWORD: test123
+      KAFKA_SSL_KEY_PASSWORD: test123
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /certs/kafka.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: test123
+      KAFKA_SSL_CLIENT_AUTH: none
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/opt/kafka/config/kafka_server_jaas.conf"
+      CUSTOM_INIT_SCRIPT: |-
+        echo -e 'KafkaServer {\norg.apache.kafka.common.security.scram.ScramLoginModule required\n username="adminscram"\n password="admin-secret";\n org.apache.kafka.common.security.plain.PlainLoginModule required\n username="adminplain"\n password="admin-secret"\n user_adminplain="admin-secret";\n  };' > /opt/kafka/config/kafka_server_jaas.conf;
+        /opt/kafka/bin/kafka-configs.sh --zookeeper zookeeper:2181 --alter --add-config 'SCRAM-SHA-256=[password=admin-secret-256],SCRAM-SHA-512=[password=admin-secret-512]' --entity-type users --entity-name adminscram
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./examples/auth/certs:/certs

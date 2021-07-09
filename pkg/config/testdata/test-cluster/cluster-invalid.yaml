@@ -7,4 +7,7 @@ meta:
   clusterId: test-cluster-id
 
 spec:
-  versionMajor: v0.40
+  zkAddrs:
+    - localhost:2181
+  tls:
+    enabled: true

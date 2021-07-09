@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"io/ioutil"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -18,7 +19,19 @@ func LoadClusterFile(path string) (ClusterConfig, error) {
 	if err != nil {
 		return ClusterConfig{}, err
 	}
-	return LoadClusterBytes(contents)
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return ClusterConfig{}, err
+	}
+
+	config, err := LoadClusterBytes(contents)
+	if err != nil {
+		return ClusterConfig{}, err
+	}
+
+	config.RootDir = filepath.Dir(absPath)
+	return config, nil
 }
 
 // LoadClusterBytes loads a ClusterConfig from YAML bytes.

@@ -460,7 +460,14 @@ func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) str
 		rackCount, _ := partition.NumRacks(brokerRacks)
 
 		inSync := util.SameElements(partition.Replicas, partition.ISR)
-		correctLeader := partition.Leader == partition.Replicas[0]
+
+		var correctLeader bool
+		if len(partition.Replicas) > 0 {
+			correctLeader = partition.Leader == partition.Replicas[0]
+		} else {
+			// No replica information yet
+			correctLeader = false
+		}
 
 		var statusPrinter func(f string, a ...interface{}) string
 		if !util.InTerminal() || (inSync && correctLeader) {

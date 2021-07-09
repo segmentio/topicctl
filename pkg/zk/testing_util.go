@@ -23,13 +23,13 @@ func CreateNode(t *testing.T, zkConn *szk.Conn, path string, obj interface{}) {
 
 	if obj != nil {
 		data, err = json.Marshal(obj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	log.Infof("Creating path %+v", path)
 
 	_, err = zkConn.Create(path, data, 0, szk.WorldACL(szk.PermAll))
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 // CreateNodes creates nodes according to the argument PathTuples. For testing purposes only.
