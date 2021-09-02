@@ -31,6 +31,28 @@ func TestBrokerClientGetClusterID(t *testing.T) {
 	clusterID, err := client.GetClusterID(ctx)
 	require.NoError(t, err)
 	require.NotEqual(t, "", clusterID)
+
+	_, err = NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ExpectedClusterID: clusterID,
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ExpectedClusterID: "bad-cluster-id",
+		},
+	)
+	require.Error(t, err)
 }
 
 func TestBrokerClientUpdateTopicConfig(t *testing.T) {
@@ -260,6 +282,41 @@ func TestBrokerClientBrokers(t *testing.T) {
 	for _, brokerInfo := range brokerInfos {
 		assert.Equal(t, map[string]string{}, brokerInfo.Config)
 	}
+}
+
+func TestBrokerClientBrokerIndices(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	brokerIDs, err := client.GetBrokerIDs(ctx)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		[]int{1, 2, 3, 4, 5, 6},
+		brokerIDs,
+	)
+
+	brokerInfos, err := client.GetBrokers(ctx, []int{2, 4, 5})
+	require.NoError(t, err)
+	assert.Equal(t, 3, len(brokerInfos))
+
+	ids := []int{}
+	for _, brokerInfo := range brokerInfos {
+		ids = append(ids, brokerInfo.ID)
+	}
+	assert.Equal(t, []int{2, 4, 5}, ids)
 }
 
 func TestBrokerClientAddPartitions(t *testing.T) {

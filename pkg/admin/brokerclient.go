@@ -41,7 +41,8 @@ var _ Client = (*BrokerAdminClient)(nil)
 
 type BrokerAdminClientConfig struct {
 	ConnectorConfig
-	ReadOnly bool
+	ReadOnly          bool
+	ExpectedClusterID string
 }
 
 func NewBrokerAdminClient(
@@ -94,12 +95,29 @@ func NewBrokerAdminClient(
 	}
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
-	return &BrokerAdminClient{
+	adminClient := &BrokerAdminClient{
 		client:            client,
 		connector:         connector,
 		config:            config,
 		supportedFeatures: supportedFeatures,
-	}, nil
+	}
+
+	if config.ExpectedClusterID != "" {
+		log.Info("Checking cluster ID against version in cluster")
+		clusterID, err := adminClient.GetClusterID(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if clusterID != config.ExpectedClusterID {
+			return nil, fmt.Errorf(
+				"ID in cluster (%s) does not match expected one (%s)",
+				clusterID,
+				config.ExpectedClusterID,
+			)
+		}
+	}
+
+	return adminClient, nil
 }
 
 func (c *BrokerAdminClient) GetClusterID(ctx context.Context) (string, error) {
@@ -128,7 +146,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	configRequestResources := []kafka.DescribeConfigRequestResource{}
 	brokerIDIndices := map[int]int{}
 
-	for b, broker := range metadataResp.Brokers {
+	for _, broker := range metadataResp.Brokers {
 		if _, ok := idsMap[broker.ID]; !ok && len(idsMap) > 0 {
 			continue
 		}
@@ -142,7 +160,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 				Rack: broker.Rack,
 			},
 		)
-		brokerIDIndices[broker.ID] = b
+		brokerIDIndices[broker.ID] = len(brokerInfos) - 1
 
 		configRequestResources = append(
 			configRequestResources,

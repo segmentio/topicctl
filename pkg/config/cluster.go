@@ -194,7 +194,8 @@ func (c ClusterConfig) NewAdminClient(
 						Password:  saslPassword,
 					},
 				},
-				ReadOnly: readOnly,
+				ExpectedClusterID: c.Spec.ClusterID,
+				ReadOnly:          readOnly,
 			},
 		)
 	} else {

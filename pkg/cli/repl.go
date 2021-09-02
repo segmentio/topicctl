@@ -48,6 +48,10 @@ var (
 			Description: "Get all brokers",
 		},
 		{
+			Text:        "config",
+			Description: "Get config for broker or topic",
+		},
+		{
 			Text:        "groups",
 			Description: "Get all consumer groups",
 		},
