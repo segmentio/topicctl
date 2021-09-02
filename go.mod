@@ -1,6 +1,6 @@
 module github.com/segmentio/topicctl
 
-go 1.14
+go 1.16
 
 // Use something like this to use a local kafka-go (useful for testing purposes).
 // replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
