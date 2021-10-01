@@ -9,6 +9,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/messages"
+	log "github.com/sirupsen/logrus"
 )
 
 // GetGroups fetches and returns information about all consumer groups in the cluster.
@@ -48,15 +49,16 @@ func GetGroupDetails(
 	connector *admin.Connector,
 	groupID string,
 ) (*GroupDetails, error) {
-	describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(
-		ctx,
-		&kafka.DescribeGroupsRequest{
-			GroupIDs: []string{groupID},
-		},
-	)
+	req := kafka.DescribeGroupsRequest{
+		GroupIDs: []string{groupID},
+	}
+	log.Debugf("DescribeGroups request: %+v", req)
+
+	describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("DescribeGroups response: %+v", describeGroupsResponse)
 
 	if len(describeGroupsResponse.Groups) != 1 {
 		return nil, fmt.Errorf("Unexpected response length from describeGroups")

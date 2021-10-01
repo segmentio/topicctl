@@ -1,4 +1,4 @@
-FROM golang:1.16 as builder
+FROM golang:1.17 as builder
 ENV SRC github.com/segmentio/topicctl
 ENV CGO_ENABLED=0
 
