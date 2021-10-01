@@ -212,7 +212,7 @@ independently of an `apply` workflow.
 
 ### Version compatibility
 
-We've tested `topicctl` on Kafka clusters with versions between `0.10.1` and `2.4.1`, inclusive.
+We've tested `topicctl` on Kafka clusters with versions between `0.10.1` and `2.7.1`, inclusive.
 If you run into any compatibility issues, please file a bug.
 
 ## Config formats
@@ -241,7 +241,7 @@ spec:
     - my-cluster.example.com:9092
   clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as safety check only)
 
-  # ZooKeeper access settings (required for pre-v2 clusters)
+  # ZooKeeper access settings (only required for pre-v2 clusters)
   zkAddrs:                              # One or more cluster zookeeper addresses; if these are
     - zk.example.com:2181               # omitted, then the cluster will only be accessed via broker APIs;
                                         # see the section below on cluster access for more details.
@@ -401,6 +401,8 @@ Broker APIs are used exclusively if the tool is run with either of the following
 1. `--broker-addr` *or*
 2. `--cluster-config` and the cluster config doesn't specify any ZK addresses
 
+We recommend using this "broker only" access mode for all clusters running Kafka versions >= 2.4.
+
 In all other cases, i.e. if `--zk-addr` is specified or the cluster config has ZK addresses, then
 ZooKeeper will be used for most interactions. A few operations that are not possible via ZK
 will still use broker APIs, however, including:
@@ -410,6 +412,8 @@ will still use broker APIs, however, including:
 3. `reset-offsets`
 4. `tail`
 5. `apply` with topic creation
+
+This "mixed" mode is required for clusters running Kafka versions < 2.0.
 
 ### Limitations of broker-only access mode
 
