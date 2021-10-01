@@ -19,7 +19,7 @@ require (
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.4.21-0.20211001180856-4d75f822c8b8
+	github.com/segmentio/kafka-go v0.4.21-0.20211001205616-c03923d67699
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
