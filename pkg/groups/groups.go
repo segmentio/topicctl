@@ -3,43 +3,35 @@ package groups
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/messages"
+	log "github.com/sirupsen/logrus"
 )
 
-// Client is a struct for getting information about consumer groups from a cluster.
-type Client struct {
-	brokerAddr string
-	client     *kafka.Client
-}
-
-// NewClient creates and returns a new Client instance.
-func NewClient(brokerAddr string) *Client {
-	return &Client{
-		brokerAddr: brokerAddr,
-		client:     kafka.NewClient(brokerAddr),
-	}
-}
-
 // GetGroups fetches and returns information about all consumer groups in the cluster.
-func (c *Client) GetGroups(
+func GetGroups(
 	ctx context.Context,
+	connector *admin.Connector,
 ) ([]GroupCoordinator, error) {
-	kafkaGroupObjs, err := c.client.ListGroups(ctx)
+	listGroupsResp, err := connector.KafkaClient.ListGroups(
+		ctx,
+		&kafka.ListGroupsRequest{},
+	)
 
 	// Don't immediately fail if err is non-nil; instead, just process and return
 	// whatever results are returned.
-
 	groupCoordinators := []GroupCoordinator{}
 
-	for _, kafkaGroupInfo := range kafkaGroupObjs {
+	for _, kafkaGroupInfo := range listGroupsResp.Groups {
 		groupCoordinators = append(
 			groupCoordinators,
 			GroupCoordinator{
 				GroupID:     kafkaGroupInfo.GroupID,
-				Coordinator: kafkaGroupInfo.Coordinator,
+				Coordinator: int(kafkaGroupInfo.Coordinator),
 			},
 		)
 	}
@@ -52,21 +44,33 @@ func (c *Client) GetGroups(
 }
 
 // GetGroupDetails returns the details (membership, etc.) for a single consumer group.
-func (c *Client) GetGroupDetails(
+func GetGroupDetails(
 	ctx context.Context,
+	connector *admin.Connector,
 	groupID string,
 ) (*GroupDetails, error) {
-	kafkaGroupInfo, err := c.client.DescribeGroup(ctx, groupID)
+	req := kafka.DescribeGroupsRequest{
+		GroupIDs: []string{groupID},
+	}
+	log.Debugf("DescribeGroups request: %+v", req)
+
+	describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("DescribeGroups response: %+v", describeGroupsResponse)
+
+	if len(describeGroupsResponse.Groups) != 1 {
+		return nil, fmt.Errorf("Unexpected response length from describeGroups")
+	}
+	group := describeGroupsResponse.Groups[0]
 
 	groupDetails := GroupDetails{
-		GroupID: kafkaGroupInfo.GroupID,
-		State:   kafkaGroupInfo.State,
+		GroupID: group.GroupID,
+		State:   group.GroupState,
 		Members: []MemberInfo{},
 	}
-	for _, kafkaMember := range kafkaGroupInfo.Members {
+	for _, kafkaMember := range group.Members {
 		member := MemberInfo{
 			MemberID:        kafkaMember.MemberID,
 			ClientID:        kafkaMember.ClientID,
@@ -103,12 +107,13 @@ func (c *Client) GetGroupDetails(
 
 // GetMemberLags returns the lag for each partition being consumed by the argument group in the
 // argument topic.
-func (c *Client) GetMemberLags(
+func GetMemberLags(
 	ctx context.Context,
+	connector *admin.Connector,
 	topic string,
 	groupID string,
 ) ([]MemberPartitionLag, error) {
-	groupDetails, err := c.GetGroupDetails(ctx, groupID)
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +124,7 @@ func (c *Client) GetMemberLags(
 
 	partitionMembers := groupDetails.PartitionMembers(topic)
 
-	offsets, err := c.client.ConsumerOffsets(
+	offsets, err := connector.KafkaClient.ConsumerOffsets(
 		ctx, kafka.TopicAndGroup{
 			Topic:   topic,
 			GroupId: groupID,
@@ -129,7 +134,7 @@ func (c *Client) GetMemberLags(
 		return nil, err
 	}
 
-	bounds, err := messages.GetAllPartitionBounds(ctx, c.brokerAddr, topic, offsets)
+	bounds, err := messages.GetAllPartitionBounds(ctx, connector, topic, offsets)
 	if err != nil {
 		return nil, err
 	}
@@ -157,8 +162,9 @@ func (c *Client) GetMemberLags(
 }
 
 // ResetOffsets updates the offsets for a given topic / group combination.
-func (c *Client) ResetOffsets(
+func ResetOffsets(
 	ctx context.Context,
+	connector *admin.Connector,
 	topic string,
 	groupID string,
 	partitionOffsets map[int]int64,
@@ -166,8 +172,9 @@ func (c *Client) ResetOffsets(
 	consumerGroup, err := kafka.NewConsumerGroup(
 		kafka.ConsumerGroupConfig{
 			ID:      groupID,
-			Brokers: []string{c.brokerAddr},
+			Brokers: []string{connector.Config.BrokerAddr},
 			Topics:  []string{topic},
+			Dialer:  connector.Dialer,
 		},
 	)
 	if err != nil {

@@ -28,12 +28,6 @@ more details.
 Check out the [data-digger](https://github.com/segmentio/data-digger) for a command-line tool
 that makes it easy to tail and summarize structured data in Kafka.
 
-## Roadmap
-
-We are planning on making some changes to (optionally) remove the ZK dependency and also to support
-some additional security features like TLS. See
-[this page](https://github.com/segmentio/topicctl/wiki/v1-Plan) for the current plan.
-
 ## Getting started
 
 ### Installation
@@ -74,7 +68,7 @@ topicctl apply --skip-confirm examples/local-cluster/topics/*yaml
 4. Send some test messages to the `topic-default` topic:
 
 ```
-topicctl tester --zk-addr=localhost:2181 --topic=topic-default
+topicctl tester --broker-addr=localhost:9092 --topic=topic-default
 ```
 
 5. Open up the repl (while keeping the tester running in a separate terminal):
@@ -205,19 +199,20 @@ only.
 
 ### Specifying the target cluster
 
-There are two patterns for specifying a target cluster in the `topicctl` subcommands:
+There are three ways to specify a target cluster in the `topicctl` subcommands:
 
 1. `--cluster-config=[path]`, where the refererenced path is a cluster configuration
-  in the format expected by the `apply` command described above *or*
-2. `--zk-addr=[zookeeper address]` and `--zk-prefix=[optional prefix for cluster in zookeeper]`
+  in the format expected by the `apply` command described above,
+2. `--zk-addr=[zookeeper address]` and `--zk-prefix=[optional prefix for cluster in zookeeper]`, *or*
+3. `--broker-addr=[bootstrap broker address]`
 
-All subcommands support the `cluster-config` pattern. The second is also supported
+All subcommands support the `cluster-config` pattern. The last two are also supported
 by the `get`, `repl`, `reset-offsets`, and `tail` subcommands since these can be run
 independently of an `apply` workflow.
 
 ### Version compatibility
 
-We've tested `topicctl` on Kafka clusters with versions between `0.10.1` and `2.4.1`, inclusive.
+We've tested `topicctl` on Kafka clusters with versions between `0.10.1` and `2.7.1`, inclusive.
 If you run into any compatibility issues, please file a bug.
 
 ## Config formats
@@ -227,9 +222,9 @@ typically source-controlled so that changes can be reviewed before being applied
 
 ### Clusters
 
-Each cluster associated with a managed topic must have a config. These
-configs can also be used with the `get`, `repl`, and `tail` subcommands instead
-of specifying a ZooKeeper address.
+Each cluster associated with a managed topic must have a config. These configs can also be used
+with the `get`, `repl`, `reset-offsets`, and `tail` subcommands instead of specifying a broker or
+ZooKeeper address.
 
 The following shows an annotated example:
 
@@ -242,15 +237,30 @@ meta:
     Test cluster for topicctl.
 
 spec:
-  versionMajor: v0.10                   # Version
   bootstrapAddrs:                       # One or more broker bootstrap addresses
     - my-cluster.example.com:9092
-  zkAddrs:                              # One or more cluster zookeeper addresses
-    - zk.example.com:2181
-  zkPrefix: my-cluster                  # Prefix for zookeeper nodes
+  clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as safety check only)
+
+  # ZooKeeper access settings (only required for pre-v2 clusters)
+  zkAddrs:                              # One or more cluster zookeeper addresses; if these are
+    - zk.example.com:2181               # omitted, then the cluster will only be accessed via broker APIs;
+                                        # see the section below on cluster access for more details.
+  zkPrefix: my-cluster                  # Prefix for zookeeper nodes if using zookeeper access
   zkLockPath: /topicctl/locks           # Path used for apply locks (optional)
-  clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as
-                                        #   safety check only)
+
+  # TLS/SSL settings (optional, not supported if using ZooKeeper)
+  tls:
+    enabled: true                       # Whether TLS is enabled
+    caCertPath: path/to/ca.crt          # Path to CA cert to be used (optional)
+    certPath: path/to/client.crt        # Path to client cert to be used (optional)
+    keyPath: path/to/client.key         # Path to client key to be used (optional)
+
+  # SASL settings (optional, not supported if using ZooKeeper)
+  sasl:
+    enabled: true                       # Whether SASL is enabled
+    mechanism: SCRAM-SHA-512            # Mechanism to use; choices are PLAIN, SCRAM-SHA-256, and SCRAM-SHA-512
+    username: my-username               # Username; can also be set via TOPICCTL_SASL_USERNAME environment variable
+    password: my-password               # Password; can also be set via TOPICCTL_SASL_PASSWORD environment variable
 ```
 
 Note that the `name`, `environment`, `region`, and `description` fields are used
@@ -360,7 +370,7 @@ The `apply` subcommand can make changes, but under the following conditions:
 7. Partition replica migrations are protected via
   ["throttles"](https://kafka.apache.org/0101/documentation.html#rep-throttle)
   to prevent the cluster network from getting overwhelmed
-8. Before applying, the tool checks the cluster ID in ZooKeeper against the expected value in the
+8. Before applying, the tool checks the cluster ID against the expected value in the
   cluster config. This can help prevent errors around applying in the wrong cluster when multiple
   clusters are accessed through the same address, e.g `localhost:2181`.
 
@@ -381,8 +391,21 @@ the process should continue from where it left off.
 
 ## Cluster access details
 
-Most `topicctl` functionality interacts with the cluster through ZooKeeper. Currently, only
-the following depend on broker APIs:
+### ZooKeeper vs. broker APIs
+
+`topicctl` can interact with a cluster through either ZooKeeper or by hitting broker APIs
+directly.
+
+Broker APIs are used exclusively if the tool is run with either of the following flags:
+
+1. `--broker-addr` *or*
+2. `--cluster-config` and the cluster config doesn't specify any ZK addresses
+
+We recommend using this "broker only" access mode for all clusters running Kafka versions >= 2.4.
+
+In all other cases, i.e. if `--zk-addr` is specified or the cluster config has ZK addresses, then
+ZooKeeper will be used for most interactions. A few operations that are not possible via ZK
+will still use broker APIs, however, including:
 
 1. Group-related `get` commands: `get groups`, `get lags`, `get members`
 2. `get offsets`
@@ -390,8 +413,54 @@ the following depend on broker APIs:
 4. `tail`
 5. `apply` with topic creation
 
-In the future, we may shift more functionality away from ZooKeeper, at least for newer cluster
-versions; see the "Roadmap" section above for more details.
+This "mixed" mode is required for clusters running Kafka versions < 2.0.
+
+### Limitations of broker-only access mode
+
+There are a few limitations in the tool when using the broker APIs exclusively:
+
+1. Only newer versions of Kafka are supported. In particular:
+    - v2.0 or greater is required for read-only operations (`get brokers`, `get topics`, etc.)
+    - v2.4 or greater is required for applying topic changes
+2. Apply locking is not yet implemented; please be careful when applying to ensure that someone
+  else isn't applying changes in the same topic at the same time.
+3. The values of some dynamic broker properties, e.g. `leader.replication.throttled.rate`, are
+  marked as "sensitive" and not returned via the API; `topicctl` will show the value as
+  `SENSITIVE`. This appears to be fixed in v2.6.
+4. Broker timestamps are not returned by the metadata API. These will be blank in the results
+  of `get brokers`.
+5. Applying is not fully compatible with clusters provisioned in Confluent Cloud. It appears
+  that Confluent prevents arbitrary partition reassignments, among other restrictions. Read-only
+  operations seem to work.
+
+### TLS
+
+TLS (referred to by the older name "SSL" in the Kafka documentation) is supported when running
+`topicctl` in the exclusive broker API mode. To use this, either set `--tls-enabled` in the
+command-line or, if using a cluster config, set `enabled: true` in the `TLS` section of
+the latter.
+
+In addition to standard TLS, the tool also supports mutual TLS using custom certs, keys, and CA
+certs (in PEM format). As with the enabling of TLS, these can be configured either on the
+command-line or in a cluster config. See [this config](examples/auth/cluster.yaml) for an example.
+
+### SASL
+
+`topicctl` supports SASL authentication when running in the exclusive broker API mode. To use this,
+either set the `--sasl-mechanism`, `--sasl-username`, and `--sasl-password` flags on the command
+line or fill out the `SASL` section of the cluster config.
+
+If using the cluster config, the username and password can still be set on the command-line
+or via the `TOPICCTL_SASL_USERNAME` and `TOPICCTL_SASL_PASSWORD` environment variables.
+
+The tool currently supports the following SASL mechanisms:
+
+1. `PLAIN`
+2. `SCRAM-SHA-256`
+3. `SCRAM-SHA-512`
+
+Note that SASL can be run either with or without TLS, although the former is generally more
+secure.
 
 ## Development
 

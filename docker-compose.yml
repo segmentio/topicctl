@@ -1,3 +1,11 @@
+# By default, this docker-compose setup uses Kafka 2.4.1. This version can
+# be overwritten by setting the KAFKA_IMAGE_TAG environment variable; some choices here include:
+#
+# 1. Kafka 2.6: 2.13-2.6.0
+# 2. Kafka 2.5: 2.13-2.5.0
+# 3. Kafka 0.10: 2.11-0.10.2.2
+#
+# See https://hub.docker.com/r/wurstmeister/kafka/tags for the complete list.
 version: '2.1'
 services:
   zookeeper:
@@ -7,7 +15,7 @@ services:
 
   # Zone 1 brokers
   kafka1:
-    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
+    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.12-2.4.1}
     ports:
       - "9092:9092"
     environment:
@@ -21,7 +29,7 @@ services:
       - zookeeper
 
   kafka2:
-    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
+    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.12-2.4.1}
     ports:
       - "9093:9092"
     environment:
@@ -37,7 +45,7 @@ services:
 
   # Zone 2 brokers
   kafka3:
-    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
+    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.12-2.4.1}
     ports:
       - "9094:9092"
     environment:
@@ -53,7 +61,7 @@ services:
       - kafka2
 
   kafka4:
-    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
+    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.12-2.4.1}
     ports:
       - "9095:9092"
     environment:
@@ -71,7 +79,7 @@ services:
 
   # Zone 3 brokers
   kafka5:
-    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
+    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.12-2.4.1}
     ports:
       - "9096:9092"
     environment:
@@ -89,7 +97,7 @@ services:
       - kafka4
 
   kafka6:
-    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.11-0.10.2.2}
+    image: wurstmeister/kafka:${KAFKA_IMAGE_TAG:-2.12-2.4.1}
     ports:
       - "9097:9092"
     environment:

@@ -10,16 +10,16 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var testerCmd = &cobra.Command{
-	Use:   "tester",
-	Short: "tester reads or writes test events to a cluster",
-	RunE:  testerRun,
+	Use:     "tester",
+	Short:   "tester reads or writes test events to a cluster",
+	PreRunE: testerPreRun,
+	RunE:    testerRun,
 }
 
 type testerCmdConfig struct {
@@ -27,7 +27,8 @@ type testerCmdConfig struct {
 	readConsumer string
 	topic        string
 	writeRate    int
-	zkAddr       string
+
+	shared sharedOptions
 }
 
 var testerConfig testerCmdConfig
@@ -57,23 +58,21 @@ func init() {
 		5,
 		"Approximate number of messages to write per sec",
 	)
-	testerCmd.Flags().StringVar(
-		&testerConfig.zkAddr,
-		"zk-addr",
-		"localhost:2181",
-		"Zookeeper address",
-	)
 
 	testerCmd.MarkFlagRequired("topic")
-
+	addSharedFlags(testerCmd, &testerConfig.shared)
 	RootCmd.AddCommand(testerCmd)
+}
+
+func testerPreRun(cmd *cobra.Command, args []string) error {
+	return testerConfig.shared.validate()
 }
 
 func testerRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
@@ -91,10 +90,17 @@ func testerRun(cmd *cobra.Command, args []string) error {
 }
 
 func runTestReader(ctx context.Context) error {
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
+	}
+	defer adminClient.Close()
+	connector := adminClient.GetConnector()
+
 	log.Infof(
 		"This will read test messages from the '%s' topic in %s using the consumer group ID '%s'",
 		testerConfig.topic,
-		testerConfig.zkAddr,
+		connector.Config.BrokerAddr,
 		testerConfig.readConsumer,
 	)
 
@@ -103,20 +109,11 @@ func runTestReader(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	adminClient, err := admin.NewClient(
-		ctx,
-		admin.ClientConfig{
-			ZKAddrs: []string{testerConfig.zkAddr},
-		},
-	)
-	if err != nil {
-		return err
-	}
-
 	reader := kafka.NewReader(
 		kafka.ReaderConfig{
-			Brokers:     adminClient.GetBootstrapAddrs(),
+			Brokers:     []string{connector.Config.BrokerAddr},
 			GroupID:     testerConfig.readConsumer,
+			Dialer:      connector.Dialer,
 			Topic:       testerConfig.topic,
 			MinBytes:    10e3, // 10KB
 			MaxBytes:    10e6, // 10MB
@@ -142,10 +139,17 @@ func runTestReader(ctx context.Context) error {
 }
 
 func runTestWriter(ctx context.Context) error {
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
+	}
+	defer adminClient.Close()
+	connector := adminClient.GetConnector()
+
 	log.Infof(
 		"This will write test messages to the '%s' topic in %s at a rate of %d/sec.",
 		testerConfig.topic,
-		testerConfig.zkAddr,
+		connector.Config.BrokerAddr,
 		testerConfig.writeRate,
 	)
 
@@ -154,19 +158,10 @@ func runTestWriter(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	adminClient, err := admin.NewClient(
-		ctx,
-		admin.ClientConfig{
-			ZKAddrs: []string{testerConfig.zkAddr},
-		},
-	)
-	if err != nil {
-		return err
-	}
-
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:       adminClient.GetBootstrapAddrs(),
+			Brokers:       []string{connector.Config.BrokerAddr},
+			Dialer:        connector.Dialer,
 			Topic:         testerConfig.topic,
 			Balancer:      &kafka.LeastBytes{},
 			Async:         true,

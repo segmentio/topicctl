@@ -31,7 +31,7 @@ func TestPooledClientRead(t *testing.T) {
 		[]string{testZkAddress},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	prefix := testPrefix("pooled-client-read")
 
@@ -94,7 +94,7 @@ func TestPooledClientRead(t *testing.T) {
 		true,
 	)
 	defer pooledClient.Close()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	doneChan := make(chan struct{})
 
@@ -110,14 +110,14 @@ func TestPooledClientRead(t *testing.T) {
 				ctx,
 				fmt.Sprintf("/%s/parent1/parent2/child%d", prefix, index+1),
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, fmt.Sprintf(`"value%d"`, index+1), string(getResult))
 
 			childrenResult, _, err := pooledClient.Children(
 				ctx,
 				fmt.Sprintf("/%s/parent1/parent2/child%d", prefix, index+1),
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.Equal(
 				t,
 				[]string{
@@ -162,7 +162,7 @@ func TestPooledClientWrites(t *testing.T) {
 		[]string{testZkAddress},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	prefix := testPrefix("pooled-client-write")
 
@@ -185,7 +185,7 @@ func TestPooledClientWrites(t *testing.T) {
 		false,
 	)
 	defer pooledClient.Close()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 
@@ -197,7 +197,7 @@ func TestPooledClientWrites(t *testing.T) {
 		[]byte(`"hello"`),
 		false,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	var testStr string
 	_, err = pooledClient.GetJSON(ctx, testPath, &testStr)
@@ -212,7 +212,7 @@ func TestPooledClientWrites(t *testing.T) {
 		},
 		0,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, int32(1), stats.Version)
 
 	testObj := map[string]string{}
@@ -232,7 +232,7 @@ func TestPooledClientSequentialWrites(t *testing.T) {
 		[]string{testZkAddress},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	prefix := testPrefix("pooled-client-write-sequential")
 
@@ -255,7 +255,7 @@ func TestPooledClientSequentialWrites(t *testing.T) {
 		false,
 	)
 	defer pooledClient.Close()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 	testPath := fmt.Sprintf("/%s/test2_", prefix)
@@ -267,7 +267,7 @@ func TestPooledClientSequentialWrites(t *testing.T) {
 			[]byte(`"hello"`),
 			true,
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	children, _, err := pooledClient.Children(ctx, fmt.Sprintf("/%s", prefix))
@@ -280,7 +280,7 @@ func TestPooledClientLocks(t *testing.T) {
 		[]string{testZkAddress},
 		5*time.Second,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	prefix := testPrefix("pooled-client-locks")
 	CreateNodes(
@@ -302,14 +302,14 @@ func TestPooledClientLocks(t *testing.T) {
 		false,
 	)
 	defer pooledClient.Close()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 
 	lockPath := fmt.Sprintf("/%s/locks/test-lock", prefix)
 
 	lock, err := pooledClient.AcquireLock(ctx, lockPath)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, lock)
 
 	children, _, err := pooledClient.Children(ctx, lockPath)

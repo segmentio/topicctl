@@ -10,6 +10,10 @@ import (
 func TestLoadCluster(t *testing.T) {
 	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml")
 	assert.Nil(t, err)
+
+	// Empty RootDir since this will vary based on where test is run.
+	clusterConfig.RootDir = ""
+
 	assert.Equal(
 		t,
 		ClusterConfig{
@@ -20,7 +24,6 @@ func TestLoadCluster(t *testing.T) {
 				Description: "Test cluster\n",
 			},
 			Spec: ClusterSpec{
-				VersionMajor: KafkaVersionMajor010,
 				BootstrapAddrs: []string{
 					"bootstrap-addr:9092",
 				},
@@ -44,7 +47,7 @@ func TestLoadTopicsFile(t *testing.T) {
 	topicConfigs, err := LoadTopicsFile("testdata/test-cluster/topics/topic-test.yaml")
 	assert.Equal(t, 1, len(topicConfigs))
 	topicConfig := topicConfigs[0]
-	require.Nil(t, err)
+	require.NoError(t, err)
 	topicConfig.SetDefaults()
 
 	assert.Equal(
@@ -85,7 +88,7 @@ func TestLoadTopicsFile(t *testing.T) {
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-invalid.yaml")
 	assert.Equal(t, 1, len(topicConfigs))
 	topicConfig = topicConfigs[0]
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, topicConfig.Validate(3))
 
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-multi.yaml")

@@ -52,11 +52,11 @@ func TestApplyBasicUpdates(t *testing.T) {
 
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Topic exists and is set up correctly
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, topicName, topicInfo.Name)
 	assert.Equal(t, 9, len(topicInfo.Partitions))
 	assert.Equal(t, 2, len(topicInfo.Partitions[0].Replicas))
@@ -67,9 +67,9 @@ func TestApplyBasicUpdates(t *testing.T) {
 	applier.topicConfig.Spec.RetentionMinutes = 400
 	applier.topicConfig.Spec.Settings["cleanup.policy"] = "delete"
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Dropped to only 450 because of retention reduction
 	assert.Equal(t, "27000000", topicInfo.Config[admin.RetentionKey])
@@ -83,7 +83,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 }
 
 func TestApplyPlacementUpdates(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
 
 	topicName := util.RandomString("apply-topic-", 6)
@@ -121,12 +121,12 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err := admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(
 		t,
@@ -145,12 +145,12 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	// Next apply converts to balanced leaders
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyBalancedLeaders
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err = admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(
 		t,
@@ -169,12 +169,12 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	// Third apply switches to in-rack
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyInRack
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err = admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(
 		t,
@@ -191,15 +191,17 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	brokers, err := applier.adminClient.GetBrokers(ctx, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// No throttles on brokers or topic
-	assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	}
 	assert.False(t, topicInfo.IsThrottled())
 }
 
 func TestApplyRebalance(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
 
 	topicName := util.RandomString("apply-topic-", 6)
@@ -234,12 +236,12 @@ func TestApplyRebalance(t *testing.T) {
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err := admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(
 		t,
@@ -256,12 +258,12 @@ func TestApplyRebalance(t *testing.T) {
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyAny
 	applier.config.Rebalance = true
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err = admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Unfortunately, because the rebalance is randomized based on the topic name, it's
 	// hard to test the exact result here. For now, just check that a rebalance did occur.
@@ -313,12 +315,12 @@ func TestApplyExtendPartitions(t *testing.T) {
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	err := applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err := admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(
 		t,
@@ -335,12 +337,12 @@ func TestApplyExtendPartitions(t *testing.T) {
 	applier.topicConfig.Spec.Partitions = 6
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyBalancedLeaders
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	updatedReplicas, err = admin.AssignmentsToReplicas(topicInfo.ToAssignments())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(
 		t,
@@ -357,10 +359,12 @@ func TestApplyExtendPartitions(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	brokers, err := applier.adminClient.GetBrokers(ctx, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// No throttles on brokers or topic
-	assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
+	}
 	assert.False(t, topicInfo.IsThrottled())
 }
 
@@ -423,12 +427,20 @@ func TestApplyExistingThrottles(t *testing.T) {
 	applier1 := testApplier(ctx, t, topicConfig1)
 	defer applier1.adminClient.Close()
 	err := applier1.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	applier2 := testApplier(ctx, t, topicConfig2)
 	defer applier2.adminClient.Close()
 	err = applier2.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
+
+	supported1 := applier1.adminClient.GetSupportedFeatures()
+	supported2 := applier1.adminClient.GetSupportedFeatures()
+	if !(supported1.Locks && supported1.DynamicBrokerConfigs &&
+		supported2.Locks && supported2.DynamicBrokerConfigs) {
+		// This test only works on zk-based clients for now
+		return
+	}
 
 	// Add some throttles
 	_, err = applier1.adminClient.UpdateTopicConfig(
@@ -442,7 +454,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = applier2.adminClient.UpdateTopicConfig(
 		ctx,
 		topicName2,
@@ -454,7 +466,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	_, err = applier1.adminClient.UpdateBrokerConfig(
 		ctx,
@@ -467,7 +479,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = applier1.adminClient.UpdateBrokerConfig(
 		ctx,
 		2,
@@ -479,20 +491,20 @@ func TestApplyExistingThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Acquire lock to simulate ongoing migration
 	lock, _, err := applier2.acquireClusterLock(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Reapply topic1 with new applier (to pick up updated brokers)
 	updatedApplier1 := testApplier(ctx, t, topicConfig1)
 	defer updatedApplier1.adminClient.Close()
 	err = updatedApplier1.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	updatedTopic, err := updatedApplier1.adminClient.GetTopic(ctx, topicName1, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Topic1 is still throttled because the lock is in place
 	assert.True(t, updatedTopic.IsThrottled())
@@ -500,16 +512,16 @@ func TestApplyExistingThrottles(t *testing.T) {
 	// Remove the lock and reapply
 	require.Nil(t, lock.Unlock())
 	err = updatedApplier1.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	updatedTopic, err = updatedApplier1.adminClient.GetTopic(ctx, topicName1, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Topic1 throttle has been removed
 	assert.False(t, updatedTopic.IsThrottled())
 
 	brokers, err := updatedApplier1.adminClient.GetBrokers(ctx, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// But throttles are still on brokers because of the throttle on topic2
 	assert.Equal(t, 2, len(admin.ThrottledBrokerIDs(brokers)))
@@ -526,12 +538,12 @@ func TestApplyExistingThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = updatedApplier1.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	brokers, err = updatedApplier1.adminClient.GetBrokers(ctx, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Broker throttles now removed
 	assert.Equal(t, 0, len(admin.ThrottledBrokerIDs(brokers)))
@@ -568,20 +580,20 @@ func TestApplyDryRun(t *testing.T) {
 	defer applier.adminClient.Close()
 	applier.config.DryRun = true
 	err := applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Dry-run on, topic not created
 	topics, err := applier.adminClient.GetTopics(ctx, []string{topicName}, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 0, len(topics))
 
 	applier.config.DryRun = false
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Dry-run off, topic created
 	topic, err := applier.adminClient.GetTopic(ctx, topicName, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, topicName, topic.Name)
 
 	// Try modifications with dry-run set to true again
@@ -591,11 +603,11 @@ func TestApplyDryRun(t *testing.T) {
 
 	applier.config.DryRun = true
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Changes not made
 	updatedTopic, err := applier.adminClient.GetTopic(ctx, topicName, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, topicName, topic.Name)
 	require.Equal(t, 500, int(updatedTopic.Retention().Minutes()))
 	require.Equal(t, 9, len(updatedTopic.Partitions))
@@ -639,10 +651,10 @@ func TestApplyThrottles(t *testing.T) {
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	kafkaTopicConfig, err := topicConfig.ToNewTopicConfig()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = applier.adminClient.CreateTopic(ctx, kafkaTopicConfig)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	time.Sleep(250 * time.Millisecond)
 
 	// Creating new partitions- don't throttle
@@ -661,7 +673,7 @@ func TestApplyThrottles(t *testing.T) {
 		},
 		false,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.False(t, throttledTopic)
 	assert.Equal(t, 0, len(throttledBrokers))
 
@@ -690,7 +702,7 @@ func TestApplyThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.False(t, throttledTopic)
 	assert.Equal(t, 0, len(throttledBrokers))
 
@@ -719,7 +731,7 @@ func TestApplyThrottles(t *testing.T) {
 		},
 		false,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.False(t, throttledTopic)
 	assert.Equal(t, 0, len(throttledBrokers))
 
@@ -741,7 +753,7 @@ func TestApplyThrottles(t *testing.T) {
 		},
 		true,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	defer func() {
 		applier.adminClient.UpdateBrokerConfig(
@@ -777,46 +789,53 @@ func TestApplyThrottles(t *testing.T) {
 		},
 		false,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.True(t, throttledTopic)
-	assert.Equal(t, 4, len(throttledBrokers))
+
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		assert.Equal(t, 4, len(throttledBrokers))
+	}
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotEqual(t, "", topicInfo.Config[admin.LeaderReplicasThrottledKey])
 	assert.NotEqual(t, "", topicInfo.Config[admin.FollowerReplicasThrottledKey])
 
-	brokers, err := applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
-	require.Nil(t, err)
-	for _, broker := range brokers {
-		if broker.ID == 5 {
-			// Existing values are kept in-place
-			assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
-		} else {
-			assert.Equal(t, "20000000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "20000000", broker.Config[admin.FollowerThrottledKey])
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		brokers, err := applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
+		require.NoError(t, err)
+		for _, broker := range brokers {
+			if broker.ID == 5 {
+				// Existing values are kept in-place
+				assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
+			} else {
+				assert.Equal(t, "20000000", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "20000000", broker.Config[admin.FollowerThrottledKey])
+			}
 		}
 	}
 
 	err = applier.removeThottles(ctx, throttledTopic, throttledBrokers)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "", topicInfo.Config[admin.LeaderReplicasThrottledKey])
 	assert.Equal(t, "", topicInfo.Config[admin.FollowerReplicasThrottledKey])
 
-	brokers, err = applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
-	require.Nil(t, err)
-	for _, broker := range brokers {
-		if broker.ID == 5 {
-			// Existing values are kept in place
-			assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
-		} else {
-			assert.Equal(t, "", broker.Config[admin.LeaderThrottledKey])
-			assert.Equal(t, "", broker.Config[admin.FollowerThrottledKey])
+	if applier.adminClient.GetSupportedFeatures().DynamicBrokerConfigs {
+		brokers, err := applier.adminClient.GetBrokers(ctx, []int{1, 2, 3, 4, 5})
+		require.NoError(t, err)
+		for _, broker := range brokers {
+			if broker.ID == 5 {
+				// Existing values are kept in place
+				assert.Equal(t, "500000", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "500000", broker.Config[admin.FollowerThrottledKey])
+			} else {
+				assert.Equal(t, "", broker.Config[admin.LeaderThrottledKey])
+				assert.Equal(t, "", broker.Config[admin.FollowerThrottledKey])
+			}
 		}
 	}
 }
@@ -860,8 +879,8 @@ func TestApplyOverrides(t *testing.T) {
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false)
-	require.Nil(t, err)
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	require.NoError(t, err)
 
 	applier, err := NewTopicApplier(
 		ctx,
@@ -876,7 +895,7 @@ func TestApplyOverrides(t *testing.T) {
 			PartitionBatchSizeOverride: 8,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, int64(50000000), applier.throttleBytes)
 	assert.Equal(t, applier.maxBatchSize, 8)
 }
@@ -903,8 +922,8 @@ func testApplier(
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false)
-	require.Nil(t, err)
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	require.NoError(t, err)
 
 	applier, err := NewTopicApplier(
 		ctx,
@@ -917,6 +936,6 @@ func testApplier(
 			SleepLoopDuration: 500 * time.Millisecond,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return applier
 }

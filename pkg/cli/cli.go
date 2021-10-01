@@ -29,15 +29,14 @@ const (
 
 // CLIRunner is a utility that runs commands from either the command-line or the repl.
 type CLIRunner struct {
-	adminClient  *admin.Client
-	groupsClient *groups.Client
-	printer      func(f string, a ...interface{})
-	spinnerObj   *spinner.Spinner
+	adminClient admin.Client
+	printer     func(f string, a ...interface{})
+	spinnerObj  *spinner.Spinner
 }
 
 // NewCLIRunner creates and returns a new CLIRunner instance.
 func NewCLIRunner(
-	adminClient *admin.Client,
+	adminClient admin.Client,
 	printer func(f string, a ...interface{}),
 	showSpinner bool,
 ) *CLIRunner {
@@ -57,9 +56,6 @@ func NewCLIRunner(
 		adminClient: adminClient,
 		printer:     printer,
 		spinnerObj:  spinnerObj,
-	}
-	if adminClient != nil {
-		cliRunner.groupsClient = groups.NewClient(adminClient.GetBootstrapAddrs()[0])
 	}
 
 	return cliRunner
@@ -317,7 +313,7 @@ func (c *CLIRunner) GetConfig(ctx context.Context, brokerOrTopic string) error {
 func (c *CLIRunner) GetGroups(ctx context.Context) error {
 	c.startSpinner()
 
-	groupCoordinators, err := c.groupsClient.GetGroups(ctx)
+	groupCoordinators, err := groups.GetGroups(ctx, c.adminClient.GetConnector())
 	c.stopSpinner()
 	if err != nil {
 		return err
@@ -331,7 +327,11 @@ func (c *CLIRunner) GetGroups(ctx context.Context) error {
 func (c *CLIRunner) GetGroupMembers(ctx context.Context, groupID string, full bool) error {
 	c.startSpinner()
 
-	groupDetails, err := c.groupsClient.GetGroupDetails(ctx, groupID)
+	groupDetails, err := groups.GetGroupDetails(
+		ctx,
+		c.adminClient.GetConnector(),
+		groupID,
+	)
 	c.stopSpinner()
 	if err != nil {
 		return err
@@ -370,7 +370,12 @@ func (c *CLIRunner) GetMemberLags(
 		return fmt.Errorf("Error fetching topic info: %+v", err)
 	}
 
-	memberLags, err := c.groupsClient.GetMemberLags(ctx, topic, groupID)
+	memberLags, err := groups.GetMemberLags(
+		ctx,
+		c.adminClient.GetConnector(),
+		topic,
+		groupID,
+	)
 	c.stopSpinner()
 
 	if err != nil {
@@ -431,7 +436,7 @@ func (c *CLIRunner) GetOffsets(ctx context.Context, topic string) error {
 
 	bounds, err := messages.GetAllPartitionBounds(
 		ctx,
-		c.adminClient.GetBootstrapAddrs()[0],
+		c.adminClient.GetConnector(),
 		topic,
 		nil,
 	)
@@ -487,7 +492,13 @@ func (c *CLIRunner) ResetOffsets(
 	partitionOffsets map[int]int64,
 ) error {
 	c.startSpinner()
-	err := c.groupsClient.ResetOffsets(ctx, topic, groupID, partitionOffsets)
+	err := groups.ResetOffsets(
+		ctx,
+		c.adminClient.GetConnector(),
+		topic,
+		groupID,
+		partitionOffsets,
+	)
 	c.stopSpinner()
 	if err != nil {
 		return err
@@ -520,7 +531,7 @@ func (c *CLIRunner) Tail(
 	log.Debugf("Tailing partitions %+v", partitions)
 
 	tailer := messages.NewTopicTailer(
-		c.adminClient.GetBootstrapAddrs()[0],
+		c.adminClient.GetConnector(),
 		topic,
 		partitions,
 		offset,

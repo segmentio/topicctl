@@ -48,6 +48,10 @@ var (
 			Description: "Get all brokers",
 		},
 		{
+			Text:        "config",
+			Description: "Get config for broker or topic",
+		},
+		{
 			Text:        "groups",
 			Description: "Get all consumer groups",
 		},
@@ -85,7 +89,10 @@ type Repl struct {
 }
 
 // NewRepl initializes and returns a Repl instance.
-func NewRepl(ctx context.Context, adminClient *admin.Client) (*Repl, error) {
+func NewRepl(
+	ctx context.Context,
+	adminClient admin.Client,
+) (*Repl, error) {
 	cliRunner := NewCLIRunner(
 		adminClient,
 		func(f string, a ...interface{}) {
@@ -149,8 +156,7 @@ func NewRepl(ctx context.Context, adminClient *admin.Client) (*Repl, error) {
 	}
 
 	log.Debug("Loading consumer groups for auto-complete")
-	groupsClient := groups.NewClient(adminClient.GetBootstrapAddrs()[0])
-	groupCoordinators, err := groupsClient.GetGroups(ctx)
+	groupCoordinators, err := groups.GetGroups(ctx, adminClient.GetConnector())
 	if err != nil {
 		log.Warnf(
 			"Error getting groups for auto-complete: %+v; auto-complete might not be fully functional",
@@ -196,7 +202,7 @@ func (r *Repl) executor(in string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan

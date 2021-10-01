@@ -4,22 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/topicctl/pkg/admin"
-)
-
-// KafkaVersionMajor is a string type for storing Kafka versions.
-type KafkaVersionMajor string
-
-const (
-	// KafkaVersionMajor010 represents kafka v0.10 and its associated minor versions.
-	KafkaVersionMajor010 KafkaVersionMajor = "v0.10"
-
-	// KafkaVersionMajor2 represents kafka v2 and its associated minor versions.
-	KafkaVersionMajor2 KafkaVersionMajor = "v2"
+	log "github.com/sirupsen/logrus"
 )
 
 // ClusterConfig stores information about a cluster that's referred to by one
@@ -28,6 +19,9 @@ const (
 type ClusterConfig struct {
 	Meta ClusterMeta `json:"meta"`
 	Spec ClusterSpec `json:"spec"`
+
+	// RootDir is the root relative to which paths are evaluated. Set by loader.
+	RootDir string `json:"-"`
 }
 
 // ClusterMeta contains (mostly immutable) metadata about the cluster. Inspired
@@ -46,7 +40,7 @@ type ClusterSpec struct {
 	BootstrapAddrs []string `json:"bootstrapAddrs"`
 
 	// ZKAddrs is a list of one or more zookeeper addresses. These can use IPs
-	// or DNS names.
+	// or DNS names. If these are omitted, then the tool will use broker APIs exclusively.
 	ZKAddrs []string `json:"zkAddrs"`
 
 	// ZKPrefix is the prefix under which all zk nodes for the cluster are stored. If blank,
@@ -62,11 +56,6 @@ type ClusterSpec struct {
 	// this check isn't done.
 	ClusterID string `json:"clusterID"`
 
-	// VersionMajor stores the major version of the cluster. This isn't currently
-	// used for any logic in the tool, but it may be used in the future to adjust API calls
-	// and/or decide whether to use zk or brokers for certain information.
-	VersionMajor KafkaVersionMajor `json:"versionMajor"`
-
 	// DefaultThrottleMB is the default broker throttle used for migrations in this
 	// cluster. If unset, then a reasonable default is used instead.
 	DefaultThrottleMB int64 `json:"defaultThrottleMB"`
@@ -74,6 +63,30 @@ type ClusterSpec struct {
 	// DefaultRetentionDropStepDuration is the default amount of time that retention drops will be
 	// limited by. If unset, no retention drop limiting will be applied.
 	DefaultRetentionDropStepDurationStr string `json:"defaultRetentionDropStepDuration"`
+
+	// TLS stores how we should use TLS with broker connections, if appropriate. Only
+	// applies if using the broker admin.
+	TLS TLSConfig `json:"tls"`
+
+	// SASL stores how we should use SASL with broker connections, if appropriate. Only
+	// applies if using the broker admin.
+	SASL SASLConfig `json:"sasl"`
+}
+
+type TLSConfig struct {
+	Enabled    bool   `json:"enabled"`
+	CACertPath string `json:"caCertPath"`
+	CertPath   string `json:"certPath"`
+	KeyPath    string `json:"keyPath"`
+	ServerName string `json:"serverName"`
+	SkipVerify bool   `json:"skipVerify"`
+}
+
+type SASLConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Mechanism string `json:"mechanism"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -96,13 +109,6 @@ func (c ClusterConfig) Validate() error {
 			errors.New("At least one bootstrap broker address must be set"),
 		)
 	}
-	if len(c.Spec.ZKAddrs) == 0 {
-		err = multierror.Append(err, errors.New("At least one zookeeper address must be set"))
-	}
-	if c.Spec.VersionMajor != KafkaVersionMajor010 &&
-		c.Spec.VersionMajor != KafkaVersionMajor2 {
-		multierror.Append(err, errors.New("MajorVersion must be v0.10 or v2"))
-	}
 
 	_, parseErr := c.GetDefaultRetentionDropStepDuration()
 	if parseErr != nil {
@@ -110,6 +116,25 @@ func (c ClusterConfig) Validate() error {
 			err,
 			fmt.Errorf("Error parsing retention drop step retention: %+v", parseErr),
 		)
+	}
+
+	if c.Spec.TLS.Enabled && len(c.Spec.ZKAddrs) > 0 {
+		err = multierror.Append(
+			err,
+			errors.New("TLS not supported with zk access mode; omit zk addresses to fix"),
+		)
+	}
+	if c.Spec.SASL.Enabled && len(c.Spec.ZKAddrs) > 0 {
+		err = multierror.Append(
+			err,
+			errors.New("SASL not supported with zk access mode; omit zk addresses to fix"),
+		)
+	}
+
+	if c.Spec.SASL.Enabled {
+		if saslErr := admin.ValidateSASLMechanism(c.Spec.SASL.Mechanism); saslErr != nil {
+			err = multierror.Append(err, saslErr)
+		}
 	}
 
 	return err
@@ -128,16 +153,71 @@ func (c ClusterConfig) NewAdminClient(
 	ctx context.Context,
 	sess *session.Session,
 	readOnly bool,
-) (*admin.Client, error) {
-	return admin.NewClient(
-		ctx,
-		admin.ClientConfig{
-			ZKAddrs:           c.Spec.ZKAddrs,
-			ZKPrefix:          c.Spec.ZKPrefix,
-			BootstrapAddrs:    c.Spec.BootstrapAddrs,
-			ExpectedClusterID: c.Spec.ClusterID,
-			Sess:              sess,
-			ReadOnly:          readOnly,
-		},
-	)
+	usernameOverride string,
+	passwordOverride string,
+) (admin.Client, error) {
+	if len(c.Spec.ZKAddrs) == 0 {
+		log.Debug("No ZK addresses provided, using broker admin client")
+
+		var saslUsername string
+		var saslPassword string
+		if usernameOverride != "" {
+			log.Debugf("Setting SASL username from override value")
+			saslUsername = usernameOverride
+		} else {
+			saslUsername = c.Spec.SASL.Username
+		}
+
+		if passwordOverride != "" {
+			log.Debugf("Setting SASL password from override value")
+			saslPassword = passwordOverride
+		} else {
+			saslPassword = c.Spec.SASL.Password
+		}
+
+		return admin.NewBrokerAdminClient(
+			ctx,
+			admin.BrokerAdminClientConfig{
+				ConnectorConfig: admin.ConnectorConfig{
+					BrokerAddr: c.Spec.BootstrapAddrs[0],
+					TLS: admin.TLSConfig{
+						Enabled:    c.Spec.TLS.Enabled,
+						CACertPath: c.absPath(c.Spec.TLS.CACertPath),
+						KeyPath:    c.absPath(c.Spec.TLS.KeyPath),
+						ServerName: c.Spec.TLS.ServerName,
+						SkipVerify: c.Spec.TLS.SkipVerify,
+					},
+					SASL: admin.SASLConfig{
+						Enabled:   c.Spec.SASL.Enabled,
+						Mechanism: c.Spec.SASL.Mechanism,
+						Username:  saslUsername,
+						Password:  saslPassword,
+					},
+				},
+				ExpectedClusterID: c.Spec.ClusterID,
+				ReadOnly:          readOnly,
+			},
+		)
+	} else {
+		log.Debug("ZK addresses provided, using zk admin client")
+		return admin.NewZKAdminClient(
+			ctx,
+			admin.ZKAdminClientConfig{
+				ZKAddrs:           c.Spec.ZKAddrs,
+				ZKPrefix:          c.Spec.ZKPrefix,
+				BootstrapAddrs:    c.Spec.BootstrapAddrs,
+				ExpectedClusterID: c.Spec.ClusterID,
+				Sess:              sess,
+				ReadOnly:          readOnly,
+			},
+		)
+	}
+}
+
+func (c ClusterConfig) absPath(relPath string) string {
+	if relPath == "" || c.RootDir == "" || filepath.IsAbs(relPath) {
+		return relPath
+	}
+
+	return filepath.Join(c.RootDir, relPath)
 }

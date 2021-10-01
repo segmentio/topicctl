@@ -28,7 +28,6 @@ var applyCmd = &cobra.Command{
 type applyCmdConfig struct {
 	brokersToRemove              []int
 	brokerThrottleMBsOverride    int
-	clusterConfig                string
 	dryRun                       bool
 	partitionBatchSizeOverride   int
 	pathPrefix                   string
@@ -36,6 +35,8 @@ type applyCmdConfig struct {
 	retentionDropStepDurationStr string
 	skipConfirm                  bool
 	sleepLoopDuration            time.Duration
+
+	shared sharedOptions
 
 	retentionDropStepDuration time.Duration
 }
@@ -54,12 +55,6 @@ func init() {
 		"broker-throttle-mb",
 		0,
 		"Broker throttle override (MB/sec)",
-	)
-	applyCmd.Flags().StringVar(
-		&applyConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config path",
 	)
 	applyCmd.Flags().BoolVar(
 		&applyConfig.dryRun,
@@ -104,6 +99,7 @@ func init() {
 		"Amount of time to wait between partition checks",
 	)
 
+	addSharedConfigOnlyFlags(applyCmd, &applyConfig.shared)
 	RootCmd.AddCommand(applyCmd)
 }
 
@@ -126,7 +122,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
@@ -134,7 +130,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Keep a cache of the admin clients with the cluster config path as the key
-	adminClients := map[string]*admin.Client{}
+	adminClients := map[string]admin.Client{}
 
 	defer func() {
 		for _, adminClient := range adminClients {
@@ -172,7 +168,7 @@ func applyRun(cmd *cobra.Command, args []string) error {
 func applyTopic(
 	ctx context.Context,
 	topicConfigPath string,
-	adminClients map[string]*admin.Client,
+	adminClients map[string]admin.Client,
 ) error {
 	clusterConfigPath, err := clusterConfigForTopicApply(topicConfigPath)
 	if err != nil {
@@ -191,7 +187,13 @@ func applyTopic(
 
 	adminClient, ok := adminClients[clusterConfigPath]
 	if !ok {
-		adminClient, err = clusterConfig.NewAdminClient(ctx, nil, applyConfig.dryRun)
+		adminClient, err = clusterConfig.NewAdminClient(
+			ctx,
+			nil,
+			applyConfig.dryRun,
+			applyConfig.shared.saslUsername,
+			applyConfig.shared.saslPassword,
+		)
 		if err != nil {
 			return err
 		}
@@ -231,8 +233,8 @@ func applyTopic(
 }
 
 func clusterConfigForTopicApply(topicConfigPath string) (string, error) {
-	if applyConfig.clusterConfig != "" {
-		return applyConfig.clusterConfig, nil
+	if applyConfig.shared.clusterConfig != "" {
+		return applyConfig.shared.clusterConfig, nil
 	}
 
 	return filepath.Abs(

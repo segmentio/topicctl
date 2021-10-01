@@ -1,14 +1,12 @@
 package util
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,29 +38,13 @@ func TestKafkaAddr() string {
 	return testKafkaAddr
 }
 
-// TestKafkaConn returns a kafka-go connection for unit testing purposes.
-func TestKafkaConn(ctx context.Context, t *testing.T) *kafka.Conn {
-	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", TestKafkaAddr())
-	require.Nil(t, err)
-	return conn
-}
+func CanTestBrokerAdmin() bool {
+	value, ok := os.LookupEnv("KAFKA_TOPICS_TEST_BROKER_ADMIN")
+	if ok && value != "" {
+		return true
+	}
 
-// TestKafkaContollerConn returns a kafka-go connection to the cluster controller
-// for unit testing purposes.
-func TestKafkaContollerConn(ctx context.Context, t *testing.T) *kafka.Conn {
-	conn := TestKafkaConn(ctx, t)
-	defer conn.Close()
-
-	broker, err := conn.Controller()
-	require.Nil(t, err)
-
-	controllerConn, err := kafka.DefaultDialer.DialContext(
-		ctx,
-		"tcp",
-		fmt.Sprintf("%s:%d", broker.Host, broker.Port),
-	)
-	require.Nil(t, err)
-	return controllerConn
+	return false
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -77,4 +59,22 @@ func RandomString(prefix string, length int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return fmt.Sprintf("%s-%s", prefix, string(b))
+}
+
+func RetryUntil(t *testing.T, timeout time.Duration, f func() error) {
+	sleepTime := 100 * time.Millisecond
+	end := time.Now().Add(timeout)
+	var err error
+
+	for time.Now().Before(end) {
+		time.Sleep(sleepTime)
+		sleepTime = sleepTime * 2
+
+		err = f()
+		if err == nil {
+			return
+		}
+	}
+
+	require.NoError(t, err)
 }

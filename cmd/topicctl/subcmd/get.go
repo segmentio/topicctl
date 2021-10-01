@@ -2,15 +2,11 @@ package subcmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -33,22 +29,15 @@ var getCmd = &cobra.Command{
 }
 
 type getCmdConfig struct {
-	clusterConfig string
-	full          bool
-	sortValues    bool
-	zkAddr        string
-	zkPrefix      string
+	full       bool
+	sortValues bool
+
+	shared sharedOptions
 }
 
 var getConfig getCmdConfig
 
 func init() {
-	getCmd.Flags().StringVar(
-		&getConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	getCmd.Flags().BoolVar(
 		&getConfig.full,
 		"full",
@@ -61,64 +50,22 @@ func init() {
 		false,
 		"Sort by value instead of name; only applies for lags at the moment",
 	)
-	getCmd.Flags().StringVarP(
-		&getConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	getCmd.Flags().StringVar(
-		&getConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(getCmd, &getConfig.shared)
 	RootCmd.AddCommand(getCmd)
 }
 
 func getPreRun(cmd *cobra.Command, args []string) error {
-	if getConfig.clusterConfig == "" && getConfig.zkAddr == "" {
-		return errors.New("Must set either cluster-config or zk address")
-	}
-	if getConfig.clusterConfig != "" &&
-		(getConfig.zkAddr != "" || getConfig.zkPrefix != "") {
-		log.Warn("zk-addr and zk-prefix flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return getConfig.shared.validate()
 }
 
 func getRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	sess := session.Must(session.NewSession())
 
-	var adminClient *admin.Client
-	var clientErr error
-
-	if getConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(getConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, sess, true)
-	} else {
-		adminClient, clientErr = admin.NewClient(
-			ctx,
-			admin.ClientConfig{
-				ZKAddrs:  []string{getConfig.zkAddr},
-				ZKPrefix: getConfig.zkPrefix,
-				Sess:     sess,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
-				ReadOnly: true,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

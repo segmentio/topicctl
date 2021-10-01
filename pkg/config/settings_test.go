@@ -202,7 +202,7 @@ func TestConfigMapDiffs(t *testing.T) {
 		"retention.ms":                            "1234",
 	}
 	diffKeys, missingKeys, err := settings.ConfigMapDiffs(configMap)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.ElementsMatch(
 		t,
 		[]string{"follower.replication.throttled.replicas", "preallocate"},

@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,22 +21,15 @@ var resetOffsetsCmd = &cobra.Command{
 }
 
 type resetOffsetsCmdConfig struct {
-	clusterConfig string
-	offset        int64
-	partitions    []int
-	zkAddr        string
-	zkPrefix      string
+	offset     int64
+	partitions []int
+
+	shared sharedOptions
 }
 
 var resetOffsetsConfig resetOffsetsCmdConfig
 
 func init() {
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	resetOffsetsCmd.Flags().Int64Var(
 		&resetOffsetsConfig.offset,
 		"offset",
@@ -52,61 +42,22 @@ func init() {
 		[]int{},
 		"Partition (defaults to all)",
 	)
-	resetOffsetsCmd.Flags().StringVarP(
-		&resetOffsetsConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	resetOffsetsCmd.Flags().StringVar(
-		&resetOffsetsConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(resetOffsetsCmd, &resetOffsetsConfig.shared)
 	RootCmd.AddCommand(resetOffsetsCmd)
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	if resetOffsetsConfig.clusterConfig == "" && resetOffsetsConfig.zkAddr == "" {
-		return errors.New("Must set either cluster-config or zk address")
-	}
-	if resetOffsetsConfig.clusterConfig != "" &&
-		(resetOffsetsConfig.zkAddr != "" || resetOffsetsConfig.zkPrefix != "") {
-		log.Warn("zk-addr and zk-prefix flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return resetOffsetsConfig.shared.validate()
 }
 
 func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var adminClient *admin.Client
-	var clientErr error
-
-	if resetOffsetsConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(resetOffsetsConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, false)
-	} else {
-		adminClient, clientErr = admin.NewClient(
-			ctx,
-			admin.ClientConfig{
-				ZKAddrs:  []string{resetOffsetsConfig.zkAddr},
-				ZKPrefix: resetOffsetsConfig.zkPrefix,
-				ReadOnly: false,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := replConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

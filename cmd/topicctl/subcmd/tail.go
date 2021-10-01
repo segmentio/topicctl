@@ -2,16 +2,13 @@ package subcmd
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -25,23 +22,16 @@ var tailCmd = &cobra.Command{
 }
 
 type tailCmdConfig struct {
-	clusterConfig string
-	offset        int64
-	partitions    []int
-	raw           bool
-	zkAddr        string
-	zkPrefix      string
+	offset     int64
+	partitions []int
+	raw        bool
+
+	shared sharedOptions
 }
 
 var tailConfig tailCmdConfig
 
 func init() {
-	tailCmd.Flags().StringVar(
-		&tailConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	tailCmd.Flags().Int64Var(
 		&tailConfig.offset,
 		"offset",
@@ -60,20 +50,8 @@ func init() {
 		false,
 		"Output raw values only",
 	)
-	tailCmd.Flags().StringVarP(
-		&tailConfig.zkAddr,
-		"zk-addr",
-		"z",
-		"",
-		"ZooKeeper address",
-	)
-	tailCmd.Flags().StringVar(
-		&tailConfig.zkPrefix,
-		"zk-prefix",
-		"",
-		"Prefix for cluster-related nodes in zk",
-	)
 
+	addSharedFlags(tailCmd, &tailConfig.shared)
 	RootCmd.AddCommand(tailCmd)
 }
 
@@ -82,53 +60,23 @@ func tailPreRun(cmd *cobra.Command, args []string) error {
 		// In raw mode, only log out errors
 		log.SetLevel(log.ErrorLevel)
 	}
-
-	if tailConfig.clusterConfig == "" && tailConfig.zkAddr == "" {
-		return errors.New("Must set either cluster-config or zk address")
-	}
-	if tailConfig.clusterConfig != "" &&
-		(tailConfig.zkAddr != "" || tailConfig.zkPrefix != "") {
-		log.Warn("zk-addr and zk-prefix flags are ignored when using cluster-config")
-	}
-
-	return nil
+	return tailConfig.shared.validate()
 }
 
 func tailRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
 		cancel()
 	}()
 
-	var adminClient *admin.Client
-	var clientErr error
-
-	if tailConfig.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(tailConfig.clusterConfig)
-		if err != nil {
-			return err
-		}
-		adminClient, clientErr = clusterConfig.NewAdminClient(ctx, nil, true)
-	} else {
-		adminClient, clientErr = admin.NewClient(
-			ctx,
-			admin.ClientConfig{
-				ZKAddrs:  []string{tailConfig.zkAddr},
-				ZKPrefix: tailConfig.zkPrefix,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
-				ReadOnly: true,
-			},
-		)
-	}
-
-	if clientErr != nil {
-		return clientErr
+	adminClient, err := tailConfig.shared.getAdminClient(ctx, nil, true)
+	if err != nil {
+		return err
 	}
 	defer adminClient.Close()
 

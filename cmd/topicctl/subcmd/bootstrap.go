@@ -2,7 +2,6 @@ package subcmd
 
 import (
 	"context"
-	"os"
 
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -17,22 +16,17 @@ var bootstrapCmd = &cobra.Command{
 }
 
 type bootstrapCmdConfig struct {
-	clusterConfig string
 	matchRegexp   string
 	excludeRegexp string
 	outputDir     string
 	overwrite     bool
+
+	shared sharedOptions
 }
 
 var bootstrapConfig bootstrapCmdConfig
 
 func init() {
-	bootstrapCmd.Flags().StringVar(
-		&bootstrapConfig.clusterConfig,
-		"cluster-config",
-		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
-		"Cluster config",
-	)
 	bootstrapCmd.Flags().StringVar(
 		&bootstrapConfig.matchRegexp,
 		"match",
@@ -59,8 +53,8 @@ func init() {
 		"Overwrite existing configs in output directory",
 	)
 
+	addSharedConfigOnlyFlags(bootstrapCmd, &bootstrapConfig.shared)
 	bootstrapCmd.MarkFlagRequired("cluster-config")
-
 	RootCmd.AddCommand(bootstrapCmd)
 }
 
@@ -68,11 +62,17 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clusterConfig, err := config.LoadClusterFile(bootstrapConfig.clusterConfig)
+	clusterConfig, err := config.LoadClusterFile(bootstrapConfig.shared.clusterConfig)
 	if err != nil {
 		return err
 	}
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, true)
+	adminClient, err := clusterConfig.NewAdminClient(
+		ctx,
+		nil,
+		true,
+		bootstrapConfig.shared.saslUsername,
+		bootstrapConfig.shared.saslPassword,
+	)
 	if err != nil {
 		return err
 	}

@@ -28,8 +28,8 @@ func TestCheck(t *testing.T) {
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false)
-	require.Nil(t, err)
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	require.NoError(t, err)
 
 	topicName := util.RandomString("check-topic-", 6)
 	topicConfig := config.TopicConfig{
@@ -65,10 +65,10 @@ func TestCheck(t *testing.T) {
 			SleepLoopDuration: 500 * time.Millisecond,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = applier.Apply(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type testCase struct {
 		description      string
