@@ -274,8 +274,7 @@ workflows:
             branches:
               only:
                 - master
-                - v1
-                - yolken-v1-fix-group-lags
+                - v0
       - publish-dockerhub:
           context: docker-publish
           requires:
