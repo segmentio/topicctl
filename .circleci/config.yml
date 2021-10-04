@@ -242,7 +242,7 @@ jobs:
       - run:
           name: Build and push image
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            docker login -u $DOCKER_USER -p $DOCKER_PASS docker.io
             docker build \
               -t segment/topicctl:${CIRCLE_TAG} \
               -t segment/topicctl:latest \
@@ -276,8 +276,8 @@ workflows:
                 - v0
       - publish-dockerhub:
           context: docker-publish
-          requires:
-            - test241
+          #requires:
+          #  - test241
           filters:
             # Never publish from a branch event
             branches:
