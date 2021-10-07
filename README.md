@@ -26,7 +26,7 @@ more details.
 ## 🆕 Upgrading from v0
 
 We recently revamped `topicctl` to support ZooKeeper-less cluster access as well as some
-additional security options (SSL and SASL)! All changes should be backwards compatible, but
+additional security options (TLS/SSL and SASL)! All changes should be backwards compatible, but
 you'll need to update your cluster configs if you want to take advantage of these new features; see
 the [clusters section below](#clusters) for more details on the latest config format.
 
