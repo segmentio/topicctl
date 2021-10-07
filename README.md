@@ -23,6 +23,17 @@ non-Kafka-related contexts.
 See [this blog post](https://segment.com/blog/easier-management-of-Kafka-topics-with-topicctl/) for
 more details.
 
+## 🆕 Upgrading from v0
+
+We recently revamped `topicctl` to support ZooKeeper-less cluster access as well as some
+additional security options (SSL and SASL)! All changes should be backwards compatible, but
+you'll need to update your cluster configs if you want to take advantage of these new features; see
+the ["Clusters" section below](#clusters) for more details on the latest config format.
+
+The code for the old version has been preserved in the
+[v0 branch](https://github.com/segmentio/topicctl/tree/v0) if you run into problems and need to
+revert.
+
 ## Related projects
 
 Check out the [data-digger](https://github.com/segmentio/data-digger) for a command-line tool
@@ -241,7 +252,8 @@ spec:
     - my-cluster.example.com:9092
   clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as safety check only)
 
-  # ZooKeeper access settings (only required for pre-v2 clusters)
+  # ZooKeeper access settings (only required for pre-v2 clusters; leave off to force exclusive use
+  # of broker APIs)
   zkAddrs:                              # One or more cluster zookeeper addresses; if these are
     - zk.example.com:2181               # omitted, then the cluster will only be accessed via broker APIs;
                                         # see the section below on cluster access for more details.
