@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -19,6 +20,8 @@ func LoadClusterFile(path string) (ClusterConfig, error) {
 	if err != nil {
 		return ClusterConfig{}, err
 	}
+
+	contents = []byte(os.ExpandEnv(string(contents)))
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
@@ -47,6 +50,8 @@ func LoadTopicsFile(path string) ([]TopicConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	contents = []byte(os.ExpandEnv(string(contents)))
 
 	trimmedFile := strings.TrimSpace(string(contents))
 	topicStrs := sep.Split(trimmedFile, -1)
