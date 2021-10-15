@@ -26,9 +26,13 @@ more details.
 ## 🆕 Upgrading from v0
 
 We recently revamped `topicctl` to support ZooKeeper-less cluster access as well as some
-additional security options (TLS/SSL and SASL)! All changes should be backwards compatible, but
-you'll need to update your cluster configs if you want to take advantage of these new features; see
-the [clusters section below](#clusters) for more details on the latest config format.
+additional security options (TLS/SSL and SASL)! See
+[this blog post](https://segment.com/blog/topicctl-v1/) to learn more about why and how we did
+this.
+
+All changes should be backwards compatible, but you'll need to update your cluster configs if you
+want to take advantage of these new features; see the [clusters section below](#clusters) for more
+details on the latest config format.
 
 The code for the old version has been preserved in the
 [v0 branch](https://github.com/segmentio/topicctl/tree/v0) if you run into problems and need to
