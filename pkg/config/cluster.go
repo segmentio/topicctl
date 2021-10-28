@@ -183,6 +183,7 @@ func (c ClusterConfig) NewAdminClient(
 					TLS: admin.TLSConfig{
 						Enabled:    c.Spec.TLS.Enabled,
 						CACertPath: c.absPath(c.Spec.TLS.CACertPath),
+						CertPath:   c.absPath(c.Spec.TLS.CertPath),
 						KeyPath:    c.absPath(c.Spec.TLS.KeyPath),
 						ServerName: c.Spec.TLS.ServerName,
 						SkipVerify: c.Spec.TLS.SkipVerify,
