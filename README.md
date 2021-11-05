@@ -331,6 +331,7 @@ The tool supports the following per-partition, replica placement strategies:
 | `any` | Allow any replica placement |
 | `balanced-leaders` | Ensure that the leaders of each partition are evenly distributed across the broker racks  |
 | `in-rack` | Ensure that the followers for each partition are in the same rack as the leader; generally this is done when the leaders are already balanced, but this isn't required |
+| `cross-rack` | Ensure that the replicas for each partition are all in different racks; generally this is done when the leaders are already balanced, but this isn't required |
 | `static` | Specify the placement manually, via an extra `staticAssignments` field |
 | `static-in-rack` | Specify the rack placement per partition manually, via an extra `staticRackAssignments` field |
 
