@@ -671,7 +671,8 @@ func (t *TopicApplier) updatePlacement(
 		}
 		if !result {
 			log.Infof(
-				"Desired strategy is #{desiredPlacement}, but leaders aren't balanced. It is strongly suggested to do the latter first.",
+				"Desired strategy is %s, but leaders aren't balanced. It is strongly suggested to do the latter first.",
+				desiredPlacement,
 			)
 
 			ok, _ := Confirm(
