@@ -60,8 +60,7 @@ func EvaluateAssignments(
 	case config.PlacementStrategyCrossRack:
 		brokerRacks := admin.BrokerRacks(brokers)
 		for _, assignment := range assignments {
-			distinctRacks := assignment.DistinctRacks(brokerRacks)
-			if len(assignment.Replicas) != len(distinctRacks) {
+			if len(assignment.Replicas) != len(assignment.DistinctRacks(brokerRacks)) {
 				return false, nil
 			}
 		}
