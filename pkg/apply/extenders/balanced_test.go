@@ -1,7 +1,6 @@
 package extenders
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/segmentio/topicctl/pkg/admin"
@@ -47,17 +46,6 @@ func TestBalancedExtenderCrossRack(t *testing.T) {
 			},
 			checker: checker,
 		},
-		{
-			description: "Can't balance",
-			curr: [][]int{
-				{1, 2, 3},
-				{2, 3, 4},
-				{3, 4, 5},
-			},
-			extraPartitions: 1,
-			err:             errors.New(""),
-			checker:         checker,
-		},
 	}
 
 	for _, testCase := range testCases {
@@ -99,6 +87,51 @@ func TestBalancedExtenderInRack(t *testing.T) {
 				{10, 7, 1},
 				{5, 8, 11},
 				{12, 9, 6},
+			},
+			checker: checker,
+		},
+	}
+
+	for _, testCase := range testCases {
+		testCase.evaluate(t, extender)
+	}
+}
+
+func TestBalancedExtenderInRackPartitionCountNotMultipleOfRacks(t *testing.T) {
+	brokers := testBrokers(12, 3)
+	extender := NewBalancedExtender(brokers, true, pickers.NewRandomizedPicker())
+	checker := func(result []admin.PartitionAssignment) bool {
+		ok, _ := assigners.EvaluateAssignments(
+			result,
+			brokers,
+			config.TopicPlacementConfig{
+				Strategy: config.PlacementStrategyInRack,
+			},
+		)
+		return ok
+	}
+
+	testCases := []extenderTestCase{
+		{
+			description: "Add partitions",
+			topic:       "test-topic",
+			curr: [][]int{
+				{1, 4, 7},
+				{2, 5, 8},
+				{3, 6, 9},
+				{7, 10, 4},
+			},
+			extraPartitions: 5,
+			expected: [][]int{
+				{1, 4, 7},
+				{2, 5, 8},
+				{3, 6, 9},
+				{7, 10, 4},
+				{4, 1, 10},
+				{5, 2, 11},
+				{12, 9, 6},
+				{10, 7, 1},
+				{11, 8, 5},
 			},
 			checker: checker,
 		},
