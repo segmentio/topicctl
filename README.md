@@ -49,7 +49,7 @@ that makes it easy to tail and summarize structured data in Kafka.
 
 Either:
 
-1. Run `GO111MODULE="on" go get github.com/segmentio/topicctl/cmd/topicctl`
+1. Run `go install github.com/segmentio/topicctl/cmd/topicctl@latest`
 2. Clone this repo and run `make install` in the repo root
 3. Use the Docker image: `docker pull segment/topicctl`
 
