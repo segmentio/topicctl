@@ -254,13 +254,15 @@ meta:
 spec:
   bootstrapAddrs:                       # One or more broker bootstrap addresses
     - my-cluster.example.com:9092
-  clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional, used as safety check only)
+  clusterID: abc-123-xyz                # Expected cluster ID for cluster (optional,
+                                        # used as safety check only)
 
   # ZooKeeper access settings (only required for pre-v2 clusters; leave off to force exclusive use
   # of broker APIs)
   zkAddrs:                              # One or more cluster zookeeper addresses; if these are
-    - zk.example.com:2181               # omitted, then the cluster will only be accessed via broker APIs;
-                                        # see the section below on cluster access for more details.
+    - zk.example.com:2181               # omitted, then the cluster will only be accessed via
+                                        # broker APIs; see the section below on cluster access for
+                                        # more details.
   zkPrefix: my-cluster                  # Prefix for zookeeper nodes if using zookeeper access
   zkLockPath: /topicctl/locks           # Path used for apply locks (optional)
 
@@ -274,15 +276,20 @@ spec:
   # SASL settings (optional, not supported if using ZooKeeper)
   sasl:
     enabled: true                       # Whether SASL is enabled
-    mechanism: SCRAM-SHA-512            # Mechanism to use; choices are PLAIN, SCRAM-SHA-256, and SCRAM-SHA-512
-    username: my-username               # Username; can also be set via TOPICCTL_SASL_USERNAME environment variable
-    password: my-password               # Password; can also be set via TOPICCTL_SASL_PASSWORD environment variable
+    mechanism: SCRAM-SHA-512            # Mechanism to use;
+                                        # choices are PLAIN, SCRAM-SHA-256, and SCRAM-SHA-512
+    username: my-username               # SASL username
+    password: my-password               # SASL password
 ```
 
 Note that the `name`, `environment`, `region`, and `description` fields are used
 for description/identification only, and don't appear in any API calls. They can
 be set arbitrarily, provided that they match up with the values set in the
 associated topic configs.
+
+If the tool is run with the `--expand-env` option, then the cluster config will be run through
+[`os.ExpandEnv`](https://pkg.go.dev/os#ExpandEnv) at load time. The latter will replace references
+of the form `$ENV_VAR_NAME` with the associated values from the environment.
 
 ### Topics
 
