@@ -292,9 +292,10 @@ for description/identification only, and don't appear in any API calls. They can
 be set arbitrarily, provided that they match up with the values set in the
 associated topic configs.
 
-If the tool is run with the `--expand-env` option, then the cluster config will be run through
-[`os.ExpandEnv`](https://pkg.go.dev/os#ExpandEnv) at load time. The latter will replace references
-of the form `$ENV_VAR_NAME` or `${ENV_VAR_NAME}` with the associated values from the environment.
+If the tool is run with the `--expand-env` option, then the cluster config will be prepreocessed
+using [`os.ExpandEnv`](https://pkg.go.dev/os#ExpandEnv) at load time. The latter will replace
+references of the form `$ENV_VAR_NAME` or `${ENV_VAR_NAME}` with the associated values from the
+environment.
 
 ### Topics
 
