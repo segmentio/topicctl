@@ -57,6 +57,14 @@ func EvaluateAssignments(
 		return balanced, nil
 	case config.PlacementStrategyInRack:
 		return minRacks == 1 && maxRacks == 1, nil
+	case config.PlacementStrategyCrossRack:
+		brokerRacks := admin.BrokerRacks(brokers)
+		for _, assignment := range assignments {
+			if len(assignment.Replicas) != len(assignment.DistinctRacks(brokerRacks)) {
+				return false, nil
+			}
+		}
+		return true, nil
 	default:
 		return false, fmt.Errorf(
 			"Unrecognized placementStrategy: %s",
