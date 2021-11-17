@@ -233,6 +233,8 @@ Note, however, that clusters at versions prior to `2.4.0` cannot use broker APIs
 thus also require ZooKeeper API access for full functionality. See the
 [#cluster-access-details](cluster access details) section below for more details.
 
+If you run into any unexpected compatibility issues, please file a bug.
+
 ## Config formats
 
 `topicctl` uses structured, YAML-formatted configs for clusters and topics. These are
