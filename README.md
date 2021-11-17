@@ -231,7 +231,7 @@ We've tested `topicctl` on Kafka clusters with versions between `0.10.1` and `2.
 
 Note, however, that clusters at versions prior to `2.4.0` cannot use broker APIs for applying and
 thus also require ZooKeeper API access for full functionality. See the
-[#cluster-access-details](cluster access details) section below for more details.
+[cluster access details](#cluster-access-details) section below for more details.
 
 If you run into any unexpected compatibility issues, please file a bug.
 
