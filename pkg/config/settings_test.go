@@ -119,7 +119,7 @@ func TestSettingsToConfigEntries(t *testing.T) {
 	}
 
 	configEntries, err := settings.ToConfigEntries(nil)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.ElementsMatch(
 		t,
 		[]kafka.ConfigEntry{
@@ -154,7 +154,7 @@ func TestSettingsToConfigEntries(t *testing.T) {
 	configEntries, err = settings.ToConfigEntries(
 		[]string{"cleanup.policy", "retention.ms"},
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.ElementsMatch(
 		t,
 		configEntries,
@@ -173,7 +173,7 @@ func TestSettingsToConfigEntries(t *testing.T) {
 	_, err = settings.ToConfigEntries(
 		[]string{"cleanup.policy", "invalid-key"},
 	)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 
 	badSettings := TopicSettings{
 		"key": map[string]int{
@@ -181,7 +181,7 @@ func TestSettingsToConfigEntries(t *testing.T) {
 		},
 	}
 	_, err = badSettings.ToConfigEntries(nil)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestConfigMapDiffs(t *testing.T) {

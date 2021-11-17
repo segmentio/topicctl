@@ -16,6 +16,7 @@ import (
 type sharedOptions struct {
 	brokerAddr    string
 	clusterConfig string
+	expandEnv     bool
 	saslMechanism string
 	saslPassword  string
 	saslUsername  string
@@ -76,7 +77,7 @@ func (s sharedOptions) getAdminClient(
 	readOnly bool,
 ) (admin.Client, error) {
 	if s.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(s.clusterConfig)
+		clusterConfig, err := config.LoadClusterFile(s.clusterConfig, s.expandEnv)
 		if err != nil {
 			return nil, err
 		}
@@ -140,6 +141,13 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"b",
 		"",
 		"Broker address",
+	)
+	cmd.Flags().BoolVarP(
+		&options.expandEnv,
+		"expand-env",
+		"",
+		false,
+		"Expand environment in cluster config",
 	)
 	cmd.Flags().StringVar(
 		&options.clusterConfig,
@@ -222,6 +230,13 @@ func addSharedConfigOnlyFlags(cmd *cobra.Command, options *sharedOptions) {
 		"cluster-config",
 		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
 		"Cluster config",
+	)
+	cmd.Flags().BoolVarP(
+		&options.expandEnv,
+		"expand-env",
+		"",
+		false,
+		"Expand environment in cluster config",
 	)
 	cmd.Flags().StringVar(
 		&options.saslPassword,

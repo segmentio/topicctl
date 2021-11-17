@@ -15,13 +15,15 @@ import (
 var sep = regexp.MustCompile("(?:^|\\s*\n)---\\s*")
 
 // LoadClusterFile loads a ClusterConfig from a path to a YAML file.
-func LoadClusterFile(path string) (ClusterConfig, error) {
+func LoadClusterFile(path string, expandEnv bool) (ClusterConfig, error) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
 		return ClusterConfig{}, err
 	}
 
-	contents = []byte(os.ExpandEnv(string(contents)))
+	if expandEnv {
+		contents = []byte(os.ExpandEnv(string(contents)))
+	}
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {

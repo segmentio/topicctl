@@ -1,7 +1,7 @@
 meta:
   name: test-cluster
   environment: test-env
-  region: test-region
+  region: $K2_TEST_ENV_VAR
   description: |
     Test cluster
 

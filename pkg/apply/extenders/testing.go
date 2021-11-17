@@ -26,13 +26,13 @@ func (e extenderTestCase) evaluate(t *testing.T, extender Extender) {
 		e.extraPartitions,
 	)
 	if e.err != nil {
-		assert.NotNil(t, err, e.description)
+		assert.Error(t, err, e.description)
 	} else {
 		replicas, err := admin.AssignmentsToReplicas(desired)
 		require.Nil(t, err, e.description)
 
-		assert.Nil(t, err, e.description)
-		assert.Nil(t, admin.CheckAssignments(desired), e.description)
+		assert.NoError(t, err, e.description)
+		assert.NoError(t, admin.CheckAssignments(desired), e.description)
 		assert.Equal(
 			t,
 			e.expected,

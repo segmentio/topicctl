@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,8 +9,11 @@ import (
 )
 
 func TestLoadCluster(t *testing.T) {
-	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml")
-	assert.Nil(t, err)
+	os.Setenv("K2_TEST_ENV_VAR", "test-region")
+	defer os.Unsetenv("K2_TEST_ENV_VAR")
+
+	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml", true)
+	assert.NoError(t, err)
 
 	// Empty RootDir since this will vary based on where test is run.
 	clusterConfig.RootDir = ""
@@ -36,11 +40,11 @@ func TestLoadCluster(t *testing.T) {
 		},
 		clusterConfig,
 	)
-	assert.Nil(t, clusterConfig.Validate())
+	assert.NoError(t, clusterConfig.Validate())
 
-	clusterConfig, err = LoadClusterFile("testdata/test-cluster/cluster-invalid.yaml")
-	assert.Nil(t, err)
-	assert.NotNil(t, clusterConfig.Validate())
+	clusterConfig, err = LoadClusterFile("testdata/test-cluster/cluster-invalid.yaml", true)
+	assert.NoError(t, err)
+	assert.Error(t, clusterConfig.Validate())
 }
 
 func TestLoadTopicsFile(t *testing.T) {
@@ -83,13 +87,13 @@ func TestLoadTopicsFile(t *testing.T) {
 		},
 		topicConfig,
 	)
-	assert.Nil(t, topicConfig.Validate(3))
+	assert.NoError(t, topicConfig.Validate(3))
 
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-invalid.yaml")
 	assert.Equal(t, 1, len(topicConfigs))
 	topicConfig = topicConfigs[0]
 	require.NoError(t, err)
-	assert.NotNil(t, topicConfig.Validate(3))
+	assert.Error(t, topicConfig.Validate(3))
 
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-multi.yaml")
 	assert.Equal(t, 2, len(topicConfigs))
@@ -98,16 +102,19 @@ func TestLoadTopicsFile(t *testing.T) {
 }
 
 func TestCheckConsistency(t *testing.T) {
-	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml")
-	assert.Nil(t, err)
-	assert.Nil(t, clusterConfig.Validate())
+	os.Setenv("K2_TEST_ENV_VAR", "test-region")
+	defer os.Unsetenv("K2_TEST_ENV_VAR")
+
+	clusterConfig, err := LoadClusterFile("testdata/test-cluster/cluster.yaml", true)
+	assert.NoError(t, err)
+	assert.NoError(t, clusterConfig.Validate())
 
 	topicConfigs, err := LoadTopicsFile("testdata/test-cluster/topics/topic-test.yaml")
 	assert.Equal(t, 1, len(topicConfigs))
 	topicConfig := topicConfigs[0]
 	topicConfig.SetDefaults()
-	assert.Nil(t, err)
-	assert.Nil(t, topicConfig.Validate(3))
+	assert.NoError(t, err)
+	assert.NoError(t, topicConfig.Validate(3))
 
 	topicConfigNoMatchs, err := LoadTopicsFile(
 		"testdata/test-cluster/topics/topic-test-no-match.yaml",
@@ -115,9 +122,9 @@ func TestCheckConsistency(t *testing.T) {
 	assert.Equal(t, 1, len(topicConfigNoMatchs))
 	topicConfigNoMatch := topicConfigNoMatchs[0]
 	topicConfigNoMatch.SetDefaults()
-	assert.Nil(t, err)
-	assert.Nil(t, topicConfig.Validate(3))
+	assert.NoError(t, err)
+	assert.NoError(t, topicConfig.Validate(3))
 
-	assert.Nil(t, CheckConsistency(topicConfig, clusterConfig))
-	assert.NotNil(t, CheckConsistency(topicConfigNoMatch, clusterConfig))
+	assert.NoError(t, CheckConsistency(topicConfig, clusterConfig))
+	assert.Error(t, CheckConsistency(topicConfigNoMatch, clusterConfig))
 }

@@ -156,9 +156,9 @@ func TestEvaluateAssignmentsNonStatic(t *testing.T) {
 				},
 			)
 			if testCase.expectedErr[strategy] {
-				assert.NotNil(t, err)
+				assert.Error(t, err)
 			} else {
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				assert.Equal(
 					t,
 					expectedResult,

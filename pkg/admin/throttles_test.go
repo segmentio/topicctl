@@ -328,7 +328,7 @@ func TestParseBrokerThrottles(t *testing.T) {
 		},
 	}
 	_, _, err = ParseBrokerThrottles(badBrokers)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestParsePartitionThrottles(t *testing.T) {
@@ -385,5 +385,5 @@ func TestParsePartitionThrottles(t *testing.T) {
 		},
 	}
 	_, _, err = ParsePartitionThrottles(badTopic)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }

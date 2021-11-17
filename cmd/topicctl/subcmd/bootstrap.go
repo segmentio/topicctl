@@ -62,7 +62,10 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clusterConfig, err := config.LoadClusterFile(bootstrapConfig.shared.clusterConfig)
+	clusterConfig, err := config.LoadClusterFile(
+		bootstrapConfig.shared.clusterConfig,
+		bootstrapConfig.shared.expandEnv,
+	)
 	if err != nil {
 		return err
 	}

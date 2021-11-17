@@ -142,19 +142,19 @@ func TestPooledClientRead(t *testing.T) {
 		ctx,
 		fmt.Sprintf("/%s/parent1/parent2/child1/subchild1", prefix),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, exists)
 
 	exists, _, err = pooledClient.Exists(
 		ctx,
 		fmt.Sprintf("/%s/parent1/parent2/child1/non-existent-path", prefix),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, exists)
 
 	// Writes not allowed
 	err = pooledClient.Create(ctx, fmt.Sprintf("/%s/parent4", prefix), []byte("test"), true)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestPooledClientWrites(t *testing.T) {
@@ -201,7 +201,7 @@ func TestPooledClientWrites(t *testing.T) {
 
 	var testStr string
 	_, err = pooledClient.GetJSON(ctx, testPath, &testStr)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "hello", testStr)
 
 	stats, err := pooledClient.SetJSON(
@@ -217,7 +217,7 @@ func TestPooledClientWrites(t *testing.T) {
 
 	testObj := map[string]string{}
 	_, err = pooledClient.GetJSON(ctx, testPath, &testObj)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(
 		t,
 		map[string]string{
@@ -271,7 +271,7 @@ func TestPooledClientSequentialWrites(t *testing.T) {
 	}
 
 	children, _, err := pooledClient.Children(ctx, fmt.Sprintf("/%s", prefix))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 5, len(children))
 }
 
@@ -313,13 +313,13 @@ func TestPooledClientLocks(t *testing.T) {
 	require.NotNil(t, lock)
 
 	children, _, err := pooledClient.Children(ctx, lockPath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, len(children))
 
 	require.Nil(t, lock.Unlock())
 
 	children, _, err = pooledClient.Children(ctx, lockPath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, len(children))
 }
 

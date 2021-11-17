@@ -37,7 +37,7 @@ func (p pickNewTestCase) evaluate(t *testing.T, picker Picker) {
 		p.index,
 	)
 	if p.expectedErr {
-		assert.NotNil(t, err, p.description)
+		assert.Error(t, err, p.description)
 	} else {
 		require.Nil(t, err, p.description)
 
@@ -81,7 +81,7 @@ func (s sortRemovalsTestCase) evaluate(t *testing.T, picker Picker) {
 		s.index,
 	)
 	if s.expectedErr {
-		assert.NotNil(t, err, s.description)
+		assert.Error(t, err, s.description)
 	} else {
 		require.Nil(t, err, s.description)
 

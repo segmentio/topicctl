@@ -116,7 +116,7 @@ func checkTopicFile(
 		return false, err
 	}
 
-	clusterConfig, err := config.LoadClusterFile(clusterConfigPath)
+	clusterConfig, err := config.LoadClusterFile(clusterConfigPath, checkConfig.shared.expandEnv)
 	if err != nil {
 		return false, err
 	}

@@ -736,7 +736,7 @@ func TestApplyThrottles(t *testing.T) {
 	assert.Equal(t, 0, len(throttledBrokers))
 
 	err = applier.removeThottles(ctx, throttledTopic, throttledBrokers)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	_, err = applier.adminClient.UpdateBrokerConfig(
 		ctx,
