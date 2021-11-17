@@ -228,7 +228,10 @@ independently of an `apply` workflow.
 ### Version compatibility
 
 We've tested `topicctl` on Kafka clusters with versions between `0.10.1` and `2.7.1`, inclusive.
-If you run into any compatibility issues, please file a bug.
+
+Note, however, that clusters at versions prior to `2.4.0` cannot use broker APIs for applying and
+thus also require ZooKeeper API access for full functionality. See the
+[#cluster-access-details](cluster access details) section below for more details.
 
 ## Config formats
 
@@ -289,7 +292,7 @@ associated topic configs.
 
 If the tool is run with the `--expand-env` option, then the cluster config will be run through
 [`os.ExpandEnv`](https://pkg.go.dev/os#ExpandEnv) at load time. The latter will replace references
-of the form `$ENV_VAR_NAME` with the associated values from the environment.
+of the form `$ENV_VAR_NAME` or `${ENV_VAR_NAME}` with the associated values from the environment.
 
 ### Topics
 
