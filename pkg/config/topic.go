@@ -27,6 +27,10 @@ const (
 	// and the replicas for each partition are in the same rack as the leader.
 	PlacementStrategyInRack PlacementStrategy = "in-rack"
 
+	// PlacementStrategyCrossRack is a strategy in which the leaders are balanced
+	// and the replicas in each partition are spread to separate racks.
+	PlacementStrategyCrossRack PlacementStrategy = "cross-rack"
+
 	// PlacementStrategyStatic uses a static placement defined in the config. This is for
 	// testing only and should generally not be used in production.
 	PlacementStrategyStatic PlacementStrategy = "static"
@@ -41,6 +45,7 @@ var allPlacementStrategies = []PlacementStrategy{
 	PlacementStrategyAny,
 	PlacementStrategyBalancedLeaders,
 	PlacementStrategyInRack,
+	PlacementStrategyCrossRack,
 	PlacementStrategyStatic,
 	PlacementStrategyStaticInRack,
 }
@@ -257,6 +262,17 @@ func (t TopicConfig) Validate(numRacks int) error {
 				fmt.Errorf(
 					"Number of partitions (%d) is not a multiple of the number of racks (%d)",
 					t.Spec.Partitions,
+					numRacks,
+				),
+			)
+		}
+	case PlacementStrategyCrossRack:
+		if t.Spec.ReplicationFactor > numRacks {
+			err = multierror.Append(
+				err,
+				fmt.Errorf(
+					"Replication factor (%d) cannot be larger than the number of racks (%d)",
+					t.Spec.ReplicationFactor,
 					numRacks,
 				),
 			)

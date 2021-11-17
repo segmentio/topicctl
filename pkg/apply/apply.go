@@ -656,8 +656,8 @@ func (t *TopicApplier) updatePlacement(
 			batchSize,
 			newTopic,
 		)
-	case config.PlacementStrategyInRack:
-		// If we want in-rack, first check that the leaders are balanced; we don't
+	case config.PlacementStrategyInRack, config.PlacementStrategyCrossRack:
+		// If we want in-rack or cross-rack, first check that the leaders are balanced; we don't
 		// block this, but we should at least warn the user before continuing.
 		result, err = assigners.EvaluateAssignments(
 			currAssignments,
@@ -670,12 +670,13 @@ func (t *TopicApplier) updatePlacement(
 			return err
 		}
 		if !result {
-			log.Info(
-				"Desired strategy is in-rack, but leaders aren't balanced. It is strongly suggested to do the latter first.",
+			log.Infof(
+				"Desired strategy is %s, but leaders aren't balanced. It is strongly suggested to do the latter first.",
+				desiredPlacement,
 			)
 
 			ok, _ := Confirm(
-				"OK to apply in-rack despite having unbalanced leaders?",
+				fmt.Sprintf("OK to apply %s despite having unbalanced leaders?", desiredPlacement),
 				t.config.SkipConfirm || t.config.DryRun,
 			)
 			if !ok {
@@ -764,6 +765,8 @@ func (t *TopicApplier) updatePlacementHelper(
 		assigner = assigners.NewBalancedLeaderAssigner(t.brokers, picker)
 	case config.PlacementStrategyInRack:
 		assigner = assigners.NewSingleRackAssigner(t.brokers, picker)
+	case config.PlacementStrategyCrossRack:
+		assigner = assigners.NewCrossRackAssigner(t.brokers, picker)
 	case config.PlacementStrategyStatic:
 		assigner = &assigners.StaticAssigner{
 			Assignments: admin.ReplicasToAssignments(
