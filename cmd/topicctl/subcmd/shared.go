@@ -48,8 +48,12 @@ func (s sharedOptions) validate() error {
 	}
 	if s.clusterConfig != "" &&
 		(s.zkAddr != "" || s.zkPrefix != "" || s.brokerAddr != "" || s.tlsCACert != "" ||
-			s.tlsCert != "" || s.tlsKey != "" || s.saslMechanism != "") {
+			s.tlsCert != "" || s.tlsKey != "" || s.tlsServerName != "" || s.saslMechanism != "") {
 		log.Warn("Broker and zk flags are ignored when using cluster-config")
+	}
+
+	if s.clusterConfig != "" {
+		return err
 	}
 
 	useTLS := s.tlsEnabled || s.tlsCACert != "" || s.tlsCert != "" || s.tlsKey != ""
@@ -84,7 +88,7 @@ func (s sharedOptions) getAdminClient(
 		return clusterConfig.NewAdminClient(
 			ctx,
 			sess,
-			true,
+			readOnly,
 			s.saslUsername,
 			s.saslPassword,
 		)
@@ -126,8 +130,6 @@ func (s sharedOptions) getAdminClient(
 				ZKAddrs:  []string{s.zkAddr},
 				ZKPrefix: s.zkPrefix,
 				Sess:     sess,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
 				ReadOnly: readOnly,
 			},
 		)
