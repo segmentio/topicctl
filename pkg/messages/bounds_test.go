@@ -62,7 +62,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 	require.NoError(t, err)
 
 	bounds, err := GetAllPartitionBounds(ctx, connector, topicName, nil)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// The first partition gets 3 messages
 	assert.Equal(t, 4, len(bounds))
@@ -83,7 +83,7 @@ func TestGetAllPartitionBounds(t *testing.T) {
 			0: 1,
 		},
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, 4, len(boundsWithOffsets))
 

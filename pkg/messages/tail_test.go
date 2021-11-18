@@ -83,7 +83,7 @@ outerLoop:
 	for {
 		select {
 		case message := <-messagesChan:
-			assert.Nil(t, message.Err)
+			assert.NoError(t, message.Err)
 			seenKeys[string(message.Message.Key)] = struct{}{}
 			messageCount++
 

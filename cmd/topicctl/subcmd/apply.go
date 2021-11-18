@@ -180,7 +180,7 @@ func applyTopic(
 		return err
 	}
 
-	clusterConfig, err := config.LoadClusterFile(clusterConfigPath)
+	clusterConfig, err := config.LoadClusterFile(clusterConfigPath, applyConfig.shared.expandEnv)
 	if err != nil {
 		return err
 	}

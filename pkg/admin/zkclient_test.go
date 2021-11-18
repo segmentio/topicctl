@@ -154,7 +154,7 @@ func TestZkClientGetBrokers(t *testing.T) {
 	defer adminClient.Close()
 
 	brokers, err := adminClient.GetBrokers(ctx, nil)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, len(brokers))
 
 	assert.Equal(
@@ -322,7 +322,7 @@ func TestZkClientGetTopics(t *testing.T) {
 	defer adminClient.Close()
 
 	topics, err := adminClient.GetTopics(ctx, nil, true)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, len(topics))
 	assert.Equal(
 		t,
@@ -382,7 +382,7 @@ func TestZkClientGetTopics(t *testing.T) {
 	)
 
 	topic1, err := adminClient.GetTopic(ctx, "topic1", true)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(
 		t,
 		TopicInfo{
@@ -418,7 +418,7 @@ func TestZkClientGetTopics(t *testing.T) {
 	)
 
 	_, err = adminClient.GetTopic(ctx, "non-existent-topic", true)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestZkClientUpdateTopicConfig(t *testing.T) {
@@ -541,7 +541,7 @@ func TestZkClientUpdateTopicConfig(t *testing.T) {
 		ctx,
 		fmt.Sprintf("/%s/config/topics/topic1", clusterName),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.JSONEq(
 		t,
 		`{"config":{"key1":"value1","key2":"value2-updated","key3":"value3","key5":"new-value"},"version":1}`,
@@ -552,14 +552,14 @@ func TestZkClientUpdateTopicConfig(t *testing.T) {
 		ctx,
 		fmt.Sprintf("/%s/config/changes", clusterName),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Greater(t, len(changes), 0)
 
 	change, _, err := adminClient.zkClient.Get(
 		ctx,
 		fmt.Sprintf("/%s/config/changes/%s", clusterName, changes[len(changes)-1]),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.JSONEq(
 		t,
 		`{"entity_path":"topics/topic1","version":2}`,
@@ -668,7 +668,7 @@ func TestZkClientUpdateBrokerConfig(t *testing.T) {
 		ctx,
 		fmt.Sprintf("/%s/config/brokers/1", clusterName),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.JSONEq(
 		t,
 		`{"config":{"key2":"value2-updated","key3":"value3","key5":"new-value"},"version":1}`,
@@ -679,14 +679,14 @@ func TestZkClientUpdateBrokerConfig(t *testing.T) {
 		ctx,
 		fmt.Sprintf("/%s/config/changes", clusterName),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Greater(t, len(changes), 0)
 
 	change, _, err := adminClient.zkClient.Get(
 		ctx,
 		fmt.Sprintf("/%s/config/changes/%s", clusterName, changes[len(changes)-1]),
 	)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.JSONEq(
 		t,
 		`{"entity_path":"brokers/1","version":2}`,
@@ -764,7 +764,7 @@ func TestZkClientUpdateAssignments(t *testing.T) {
 	defer adminClient.Close()
 
 	exists, err := adminClient.assignmentInProgress(ctx)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, exists)
 
 	err = adminClient.AssignPartitions(
@@ -801,7 +801,7 @@ func TestZkClientUpdateAssignments(t *testing.T) {
 	)
 
 	exists, err = adminClient.assignmentInProgress(ctx)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, exists)
 }
 
@@ -872,7 +872,7 @@ func TestZkClientAddPartitions(t *testing.T) {
 	defer adminClient.Close()
 
 	exists, err := adminClient.assignmentInProgress(ctx)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, exists)
 
 	err = adminClient.AddPartitions(
@@ -977,7 +977,7 @@ func TestZkClientRunLeaderElection(t *testing.T) {
 	defer adminClient.Close()
 
 	exists, err := adminClient.electionInProgress(ctx)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, exists)
 
 	err = adminClient.RunLeaderElection(
@@ -1006,7 +1006,7 @@ func TestZkClientRunLeaderElection(t *testing.T) {
 	)
 
 	exists, err = adminClient.electionInProgress(ctx)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, exists)
 }
 
@@ -1024,19 +1024,19 @@ func TestZkClientLocking(t *testing.T) {
 
 	lockPath := fmt.Sprintf("/locks/%s", util.RandomString("", 8))
 	held, err := adminClient.LockHeld(ctx, lockPath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, held)
 
 	lock, err := adminClient.AcquireLock(ctx, lockPath)
 	require.NoError(t, err)
 
 	held, err = adminClient.LockHeld(ctx, lockPath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, held)
 
 	lock.Unlock()
 	held, err = adminClient.LockHeld(ctx, lockPath)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, held)
 }
 

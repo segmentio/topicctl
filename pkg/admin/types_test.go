@@ -155,16 +155,16 @@ func TestTopicRackHelpers(t *testing.T) {
 
 	brokerRacks := BrokerRacks(testBrokers)
 	minRacks, maxRacks, err := testTopic.RackCounts(brokerRacks)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, minRacks, 1)
 	assert.Equal(t, maxRacks, 3)
 
 	numRacks, err := testTopic.Partitions[0].NumRacks(brokerRacks)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 3, numRacks)
 
 	racks, err := testTopic.Partitions[0].Racks(brokerRacks)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, []string{"rack1", "rack2", "rack3"}, racks)
 }
 
@@ -343,7 +343,7 @@ func TestPartitionAssignmentHelpers(t *testing.T) {
 		result,
 	)
 	replicas, err := AssignmentsToReplicas(result)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(
 		t,

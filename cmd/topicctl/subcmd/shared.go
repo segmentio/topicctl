@@ -16,6 +16,7 @@ import (
 type sharedOptions struct {
 	brokerAddr    string
 	clusterConfig string
+	expandEnv     bool
 	saslMechanism string
 	saslPassword  string
 	saslUsername  string
@@ -47,8 +48,12 @@ func (s sharedOptions) validate() error {
 	}
 	if s.clusterConfig != "" &&
 		(s.zkAddr != "" || s.zkPrefix != "" || s.brokerAddr != "" || s.tlsCACert != "" ||
-			s.tlsCert != "" || s.tlsKey != "" || s.saslMechanism != "") {
+			s.tlsCert != "" || s.tlsKey != "" || s.tlsServerName != "" || s.saslMechanism != "") {
 		log.Warn("Broker and zk flags are ignored when using cluster-config")
+	}
+
+	if s.clusterConfig != "" {
+		return err
 	}
 
 	useTLS := s.tlsEnabled || s.tlsCACert != "" || s.tlsCert != "" || s.tlsKey != ""
@@ -76,14 +81,14 @@ func (s sharedOptions) getAdminClient(
 	readOnly bool,
 ) (admin.Client, error) {
 	if s.clusterConfig != "" {
-		clusterConfig, err := config.LoadClusterFile(s.clusterConfig)
+		clusterConfig, err := config.LoadClusterFile(s.clusterConfig, s.expandEnv)
 		if err != nil {
 			return nil, err
 		}
 		return clusterConfig.NewAdminClient(
 			ctx,
 			sess,
-			true,
+			readOnly,
 			s.saslUsername,
 			s.saslPassword,
 		)
@@ -125,8 +130,6 @@ func (s sharedOptions) getAdminClient(
 				ZKAddrs:  []string{s.zkAddr},
 				ZKPrefix: s.zkPrefix,
 				Sess:     sess,
-				// Run in read-only mode to ensure that tailing doesn't make any changes
-				// in the cluster
 				ReadOnly: readOnly,
 			},
 		)
@@ -140,6 +143,13 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"b",
 		"",
 		"Broker address",
+	)
+	cmd.Flags().BoolVarP(
+		&options.expandEnv,
+		"expand-env",
+		"",
+		false,
+		"Expand environment in cluster config",
 	)
 	cmd.Flags().StringVar(
 		&options.clusterConfig,
@@ -222,6 +232,13 @@ func addSharedConfigOnlyFlags(cmd *cobra.Command, options *sharedOptions) {
 		"cluster-config",
 		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
 		"Cluster config",
+	)
+	cmd.Flags().BoolVarP(
+		&options.expandEnv,
+		"expand-env",
+		"",
+		false,
+		"Expand environment in cluster config",
 	)
 	cmd.Flags().StringVar(
 		&options.saslPassword,

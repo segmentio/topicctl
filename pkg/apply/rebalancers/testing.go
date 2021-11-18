@@ -32,7 +32,7 @@ func (r rebalancerTestCase) evaluate(t *testing.T, rebalancer Rebalancer) {
 		replicas, err := admin.AssignmentsToReplicas(desired)
 		require.NoError(t, err)
 
-		assert.Nil(t, admin.CheckAssignments(desired), r.description)
+		assert.NoError(t, admin.CheckAssignments(desired), r.description)
 		assert.Equal(
 			t,
 			r.expected,
