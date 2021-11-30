@@ -41,8 +41,6 @@ func (s sharedOptions) validate() error {
 	}
 
 	if s.clusterConfig != "" {
-		log.Infof("Validating cluster config...")
-
 		clusterConfig, clusterConfigErr := config.LoadClusterFile(s.clusterConfig, s.expandEnv)
 		if clusterConfigErr != nil {
 			err = multierror.Append(
