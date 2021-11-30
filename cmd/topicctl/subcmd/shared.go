@@ -40,6 +40,27 @@ func (s sharedOptions) validate() error {
 		)
 	}
 
+	if s.clusterConfig != "" {
+		log.Infof("Validating cluster config...")
+
+		clusterConfig, clusterConfigErr := config.LoadClusterFile(s.clusterConfig, s.expandEnv)
+		if clusterConfigErr != nil {
+			err = multierror.Append(
+				err,
+				clusterConfigErr,
+			)
+		} else {
+			clusterConfigValidateErr := clusterConfig.Validate()
+
+			if clusterConfigValidateErr != nil {
+				err = multierror.Append(
+					err,
+					clusterConfigValidateErr,
+				)
+			}
+		}
+	}
+
 	if s.zkAddr != "" && s.brokerAddr != "" {
 		err = multierror.Append(
 			err,

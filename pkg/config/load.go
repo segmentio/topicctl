@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -42,7 +44,7 @@ func LoadClusterFile(path string, expandEnv bool) (ClusterConfig, error) {
 // LoadClusterBytes loads a ClusterConfig from YAML bytes.
 func LoadClusterBytes(contents []byte) (ClusterConfig, error) {
 	config := ClusterConfig{}
-	err := yaml.Unmarshal(contents, &config)
+	err := unmarshalYAMLStrict(contents, &config)
 	return config, err
 }
 
@@ -80,7 +82,7 @@ func LoadTopicsFile(path string) ([]TopicConfig, error) {
 // LoadTopicBytes loads a TopicConfig from YAML bytes.
 func LoadTopicBytes(contents []byte) (TopicConfig, error) {
 	config := TopicConfig{}
-	err := yaml.Unmarshal(contents, &config)
+	err := unmarshalYAMLStrict(contents, &config)
 	return config, err
 }
 
@@ -121,4 +123,14 @@ func isEmpty(contents string) bool {
 	}
 
 	return true
+}
+
+func unmarshalYAMLStrict(y []byte, o interface{}) error {
+	jsonBytes, err := yaml.YAMLToJSON(y)
+	if err != nil {
+		return err
+	}
+	dec := json.NewDecoder(bytes.NewReader(jsonBytes))
+	dec.DisallowUnknownFields()
+	return dec.Decode(o)
 }

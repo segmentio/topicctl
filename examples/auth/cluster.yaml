@@ -27,3 +27,4 @@ spec:
     # topicctl.
     username: adminscram
     password: admin-secret-512
+
