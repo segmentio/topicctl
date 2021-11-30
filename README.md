@@ -281,9 +281,8 @@ spec:
   # SASL settings (optional, not supported if using ZooKeeper)
   sasl:
     enabled: true                       # Whether SASL is enabled
-    mechanism: SCRAM-SHA-512            # Mechanism to use;
-                                        # choices are AWS-MSK-IAM, PLAIN, SCRAM-SHA-256,
-                                        # and SCRAM-SHA-512
+    mechanism: SCRAM-SHA-512            # Mechanism to use; choices are AWS-MSK-IAM, PLAIN,
+                                        # SCRAM-SHA-256, and SCRAM-SHA-512
     username: my-username               # SASL username; ignored for AWS-MSK-IAM
     password: my-password               # SASL password; ignored for AWS-MSK-IAM
 ```
