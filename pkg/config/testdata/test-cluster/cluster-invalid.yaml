@@ -4,7 +4,7 @@ meta:
   region: test-region
   description: |
     Test cluster
-  clusterId: test-cluster-id
+  clusterID: test-cluster-id
 
 spec:
   zkAddrs:
