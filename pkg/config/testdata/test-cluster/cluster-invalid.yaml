@@ -4,9 +4,9 @@ meta:
   region: test-region
   description: |
     Test cluster
-  clusterId: test-cluster-id
 
 spec:
+  clusterID: test-cluster-id
   zkAddrs:
     - localhost:2181
   tls:

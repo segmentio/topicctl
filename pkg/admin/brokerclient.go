@@ -39,12 +39,15 @@ type BrokerAdminClient struct {
 
 var _ Client = (*BrokerAdminClient)(nil)
 
+// BrokerAdminClientConfig contains the configuration settings to construct a BrokerAdminClient
+// instance.
 type BrokerAdminClientConfig struct {
 	ConnectorConfig
 	ReadOnly          bool
 	ExpectedClusterID string
 }
 
+// NewBrokerAdminClient constructs a new BrokerAdminClient instance.
 func NewBrokerAdminClient(
 	ctx context.Context,
 	config BrokerAdminClientConfig,
@@ -120,6 +123,7 @@ func NewBrokerAdminClient(
 	return adminClient, nil
 }
 
+// GetClusterID gets the ID of the cluster.
 func (c *BrokerAdminClient) GetClusterID(ctx context.Context) (string, error) {
 	resp, err := c.getMetadata(ctx, nil)
 	if err != nil {
@@ -128,6 +132,7 @@ func (c *BrokerAdminClient) GetClusterID(ctx context.Context) (string, error) {
 	return resp.ClusterID, nil
 }
 
+// GetBrokers gets information about all brokers in the cluster.
 func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	[]BrokerInfo,
 	error,
@@ -212,6 +217,7 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	return brokerInfos, nil
 }
 
+// GetBrokerIDs get the IDs of all brokers in the cluster.
 func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	resp, err := c.getMetadata(ctx, nil)
 	if err != nil {
@@ -225,10 +231,12 @@ func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
+// GetConnector gets the Connector instance for this cluster.
 func (c *BrokerAdminClient) GetConnector() *Connector {
 	return c.connector
 }
 
+// GetTopics gets full information about each topic in the cluster.
 func (c *BrokerAdminClient) GetTopics(
 	ctx context.Context,
 	names []string,
@@ -328,6 +336,7 @@ func (c *BrokerAdminClient) GetTopics(
 	return topicInfos, nil
 }
 
+// GetTopicNames gets just the names of each topic in the cluster.
 func (c *BrokerAdminClient) GetTopicNames(ctx context.Context) ([]string, error) {
 	topicInfos, err := c.GetTopics(ctx, nil, false)
 	if err != nil {
@@ -341,6 +350,7 @@ func (c *BrokerAdminClient) GetTopicNames(ctx context.Context) ([]string, error)
 	return topicNames, nil
 }
 
+// GetTopic gets the details of a single topic in the cluster.
 func (c *BrokerAdminClient) GetTopic(
 	ctx context.Context,
 	name string,
@@ -361,6 +371,8 @@ func (c *BrokerAdminClient) GetTopic(
 	return topicInfos[0], nil
 }
 
+// UpdateTopicConfig updates the configuration for the argument topic. It returns the config
+// keys that were updated.
 func (c *BrokerAdminClient) UpdateTopicConfig(
 	ctx context.Context,
 	name string,
@@ -397,6 +409,8 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	return updated, nil
 }
 
+// UpdateBrokerConfig updates the configuration for the argument broker.  It returns the config
+// keys that were updated.
 func (c *BrokerAdminClient) UpdateBrokerConfig(
 	ctx context.Context,
 	id int,
@@ -433,6 +447,7 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	return updated, nil
 }
 
+// CreateTopic creates a topic in the cluster.
 func (c *BrokerAdminClient) CreateTopic(
 	ctx context.Context,
 	config kafka.TopicConfig,
@@ -451,6 +466,7 @@ func (c *BrokerAdminClient) CreateTopic(
 	return err
 }
 
+// AssignPartitions sets the replica broker IDs for one or more partitions in a topic.
 func (c *BrokerAdminClient) AssignPartitions(
 	ctx context.Context,
 	topic string,
@@ -481,6 +497,7 @@ func (c *BrokerAdminClient) AssignPartitions(
 	return err
 }
 
+// AddPartitions extends a topic by adding one or more new partitions to it.
 func (c *BrokerAdminClient) AddPartitions(
 	ctx context.Context,
 	topic string,
@@ -528,6 +545,7 @@ func (c *BrokerAdminClient) AddPartitions(
 	return err
 }
 
+// RunLeaderElection triggers a leader election for one or more partitions in a topic.
 func (c *BrokerAdminClient) RunLeaderElection(
 	ctx context.Context,
 	topic string,
@@ -550,6 +568,8 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	return err
 }
 
+// AcquireLock acquires a lock that can be used to prevent simultaneous changes to a topic.
+// NOTE: Not implemented for broker-based clients.
 func (c *BrokerAdminClient) AcquireLock(ctx context.Context, path string) (
 	zk.Lock,
 	error,
@@ -558,15 +578,19 @@ func (c *BrokerAdminClient) AcquireLock(ctx context.Context, path string) (
 	return nil, nil
 }
 
+// LockHeld returns whether a lock is currently held for the given path.
+// NOTE: Not implemented for broker-based clients.
 func (c *BrokerAdminClient) LockHeld(ctx context.Context, path string) (bool, error) {
 	// Not implemented since we don't have access to zookeeper.
 	return false, nil
 }
 
+// GetSupportedFeatures gets the features supported by the cluster for this client.
 func (c *BrokerAdminClient) GetSupportedFeatures() SupportedFeatures {
 	return c.supportedFeatures
 }
 
+// Close closes the client.
 func (c *BrokerAdminClient) Close() error {
 	return nil
 }

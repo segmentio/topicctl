@@ -6,7 +6,7 @@ go 1.17
 // replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
 
 require (
-	github.com/aws/aws-sdk-go v1.20.6
+	github.com/aws/aws-sdk-go v1.41.3
 	github.com/briandowns/spinner v1.11.1
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/fatih/color v1.9.0
@@ -14,7 +14,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.4.21-0.20211001205616-c03923d67699
+	github.com/segmentio/kafka-go v0.4.25
+	github.com/segmentio/kafka-go/sasl/aws_msk_iam v0.0.0-20211124042555-e88d48aa0b68
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
@@ -27,7 +28,7 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.9.8 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
@@ -43,9 +44,8 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
-	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
-	golang.org/x/text v0.3.0 // indirect
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
+	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect

@@ -1,0 +1,16 @@
+meta:
+  name: test-cluster
+  environment: test-env
+  region: $K2_TEST_ENV_VAR
+  description: |
+    Test cluster
+  extraField: value1
+  anotherExtraField: value2
+
+spec:
+  bootstrapAddrs:
+    - bootstrap-addr:9092
+  zkAddrs:
+    - zk-addr:2181
+  zkPrefix: "/test-cluster-id"
+  zkLockPath: /topicctl/locks

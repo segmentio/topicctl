@@ -73,20 +73,43 @@ type ClusterSpec struct {
 	SASL SASLConfig `json:"sasl"`
 }
 
+// TLSConfig contains the details required to use TLS in communication with broker clients.
 type TLSConfig struct {
-	Enabled    bool   `json:"enabled"`
+	// Enabled is whether TLS is enabled.
+	Enabled bool `json:"enabled"`
+
+	// CACertPath is the path the CA certificate file
 	CACertPath string `json:"caCertPath"`
-	CertPath   string `json:"certPath"`
-	KeyPath    string `json:"keyPath"`
+
+	// CertPath is the path to the client certificate file
+	CertPath string `json:"certPath"`
+
+	// KeyPath is the path to the client secret key
+	KeyPath string `json:"keyPath"`
+
+	// ServerName is the name that should be used to validate the server certificate. Optional,
+	// if not set defaults to the name in the broker address.
 	ServerName string `json:"serverName"`
-	SkipVerify bool   `json:"skipVerify"`
+
+	// SkipVerify indicates whether we should skip all verification of the server TLS
+	// certificate.
+	SkipVerify bool `json:"skipVerify"`
 }
 
+// SASLConfig contains the details required to use SASL to authenticate cluster clients.
 type SASLConfig struct {
-	Enabled   bool   `json:"enabled"`
+	// Enabled is whether SASL is enabled.
+	Enabled bool `json:"enabled"`
+
+	// Mechanism is the name of the SASL mechanism. Valid values are AWS-MSK-IAM, PLAIN,
+	// SCRAM-SHA-256, and SCRAM-SHA-512 (case insensitive).
 	Mechanism string `json:"mechanism"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
+
+	// Username is the SASL username. Ignored if mechanism is AWS-MSK-IAM.
+	Username string `json:"username"`
+
+	// Password is the SASL password. Ignored if mechanism is AWS-MSK-IAM.
+	Password string `json:"password"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -132,14 +155,22 @@ func (c ClusterConfig) Validate() error {
 	}
 
 	if c.Spec.SASL.Enabled {
-		if saslErr := admin.ValidateSASLMechanism(c.Spec.SASL.Mechanism); saslErr != nil {
+		saslMechanism, saslErr := admin.SASLNameToMechanism(c.Spec.SASL.Mechanism)
+		if saslErr != nil {
 			err = multierror.Append(err, saslErr)
+		}
+
+		if saslMechanism == admin.SASLMechanismAWSMSKIAM &&
+			(c.Spec.SASL.Username != "" || c.Spec.SASL.Password != "") {
+			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
 		}
 	}
 
 	return err
 }
 
+// GetDefaultRetentionDropStepDuration gets the default step size to use when reducing
+// the message retention in a topic.
 func (c ClusterConfig) GetDefaultRetentionDropStepDuration() (time.Duration, error) {
 	if c.Spec.DefaultRetentionDropStepDurationStr == "" {
 		return 0, nil
@@ -175,6 +206,16 @@ func (c ClusterConfig) NewAdminClient(
 			saslPassword = c.Spec.SASL.Password
 		}
 
+		var saslMechanism admin.SASLMechanism
+		var err error
+
+		if c.Spec.SASL.Mechanism != "" {
+			saslMechanism, err = admin.SASLNameToMechanism(c.Spec.SASL.Mechanism)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
@@ -190,7 +231,7 @@ func (c ClusterConfig) NewAdminClient(
 					},
 					SASL: admin.SASLConfig{
 						Enabled:   c.Spec.SASL.Enabled,
-						Mechanism: c.Spec.SASL.Mechanism,
+						Mechanism: saslMechanism,
 						Username:  saslUsername,
 						Password:  saslPassword,
 					},

@@ -40,6 +40,25 @@ func (s sharedOptions) validate() error {
 		)
 	}
 
+	if s.clusterConfig != "" {
+		clusterConfig, clusterConfigErr := config.LoadClusterFile(s.clusterConfig, s.expandEnv)
+		if clusterConfigErr != nil {
+			err = multierror.Append(
+				err,
+				clusterConfigErr,
+			)
+		} else {
+			clusterConfigValidateErr := clusterConfig.Validate()
+
+			if clusterConfigValidateErr != nil {
+				err = multierror.Append(
+					err,
+					clusterConfigValidateErr,
+				)
+			}
+		}
+	}
+
 	if s.zkAddr != "" && s.brokerAddr != "" {
 		err = multierror.Append(
 			err,
@@ -67,8 +86,14 @@ func (s sharedOptions) validate() error {
 	}
 
 	if useSASL {
-		if saslErr := admin.ValidateSASLMechanism(s.saslMechanism); saslErr != nil {
+		saslMechanism, saslErr := admin.SASLNameToMechanism(s.saslMechanism)
+		if saslErr != nil {
 			err = multierror.Append(err, saslErr)
+		}
+
+		if saslMechanism == admin.SASLMechanismAWSMSKIAM &&
+			(s.saslUsername != "" || s.saslPassword != "") {
+			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
 		}
 	}
 
@@ -100,6 +125,17 @@ func (s sharedOptions) getAdminClient(
 		saslEnabled := (s.saslMechanism != "" ||
 			s.saslPassword != "" ||
 			s.saslUsername != "")
+
+		var saslMechanism admin.SASLMechanism
+		var err error
+
+		if s.saslMechanism != "" {
+			saslMechanism, err = admin.SASLNameToMechanism(s.saslMechanism)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
@@ -115,7 +151,7 @@ func (s sharedOptions) getAdminClient(
 					},
 					SASL: admin.SASLConfig{
 						Enabled:   saslEnabled,
-						Mechanism: s.saslMechanism,
+						Mechanism: saslMechanism,
 						Password:  s.saslPassword,
 						Username:  s.saslUsername,
 					},
@@ -161,7 +197,7 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		&options.saslMechanism,
 		"sasl-mechanism",
 		"",
-		"SASL mechanism if using SASL (choices: PLAIN, SCRAM-SHA-256, or SCRAM-SHA-512)",
+		"SASL mechanism if using SASL (choices: AWS-MSK-IAM, PLAIN, SCRAM-SHA-256, or SCRAM-SHA-512)",
 	)
 	cmd.Flags().StringVar(
 		&options.saslPassword,

@@ -89,7 +89,7 @@ func TestPooledClientRead(t *testing.T) {
 	pooledClient, err := NewPooledClient(
 		[]string{testZkAddress},
 		5*time.Second,
-		&ZKDebugLogger{},
+		&DebugLogger{},
 		2,
 		true,
 	)
@@ -180,7 +180,7 @@ func TestPooledClientWrites(t *testing.T) {
 	pooledClient, err := NewPooledClient(
 		[]string{testZkAddress},
 		5*time.Second,
-		&ZKDebugLogger{},
+		&DebugLogger{},
 		2,
 		false,
 	)
@@ -250,7 +250,7 @@ func TestPooledClientSequentialWrites(t *testing.T) {
 	pooledClient, err := NewPooledClient(
 		[]string{testZkAddress},
 		5*time.Second,
-		&ZKDebugLogger{},
+		&DebugLogger{},
 		2,
 		false,
 	)
@@ -297,7 +297,7 @@ func TestPooledClientLocks(t *testing.T) {
 	pooledClient, err := NewPooledClient(
 		[]string{testZkAddress},
 		5*time.Second,
-		&ZKDebugLogger{},
+		&DebugLogger{},
 		2,
 		false,
 	)

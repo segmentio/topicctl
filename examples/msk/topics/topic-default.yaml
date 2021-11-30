@@ -1,0 +1,17 @@
+meta:
+  name: topic-default
+  cluster: msk-cluster
+  environment: aws-env
+  region: aws-region
+  description: |
+    Topic that uses default (any) strategy for assigning partition brokers.
+
+spec:
+  partitions: 3
+  replicationFactor: 3
+  retentionMinutes: 100
+  placement:
+    strategy: any
+  settings:
+    cleanup.policy: delete
+    max.message.bytes: 5542880
