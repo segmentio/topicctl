@@ -21,10 +21,13 @@ spec:
     enabled: true
     mechanism: SCRAM-SHA-512
 
-    # As an alternative to storing these in the config (probably not super-secure), these can be
-    # set by using the --sasl-username and --sasl-password flags or the
-    # TOPICCTL_SASL_USERNAME and TOPICCTL_SASL_PASSWORD environment variables when running
-    # topicctl.
+    # As an alternative to storing these in plain text in the config (probably not super-secure),
+    # these can also be set via:
+    #
+    #   1. The --sasl-username and --sasl-password command-line flags
+    #   2. The TOPICCTL_SASL_USERNAME and TOPICCTL_SASL_PASSWORD environment variables, or
+    #   3. Setting placeholder strings in the config and running with the `--expand-env` flag as
+    #      described in the README.
+    #
     username: adminscram
     password: admin-secret-512
-

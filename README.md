@@ -282,9 +282,10 @@ spec:
   sasl:
     enabled: true                       # Whether SASL is enabled
     mechanism: SCRAM-SHA-512            # Mechanism to use;
-                                        # choices are PLAIN, SCRAM-SHA-256, and SCRAM-SHA-512
-    username: my-username               # SASL username
-    password: my-password               # SASL password
+                                        # choices are AWS-MSK-IAM, PLAIN, SCRAM-SHA-256,
+                                        # and SCRAM-SHA-512
+    username: my-username               # SASL username; ignored for AWS-MSK-IAM
+    password: my-password               # SASL password; ignored for AWS-MSK-IAM
 ```
 
 Note that the `name`, `environment`, `region`, and `description` fields are used
@@ -477,17 +478,21 @@ command-line or in a cluster config. See [this config](examples/auth/cluster.yam
 ### SASL
 
 `topicctl` supports SASL authentication when running in the exclusive broker API mode. To use this,
-either set the `--sasl-mechanism`, `--sasl-username`, and `--sasl-password` flags on the command
-line or fill out the `SASL` section of the cluster config.
+either set the `--sasl-mechanism` and other appropriate `--sasl-*` flags on the command line or
+fill out the `SASL` section of the cluster config.
 
-If using the cluster config, the username and password can still be set on the command-line
-or via the `TOPICCTL_SASL_USERNAME` and `TOPICCTL_SASL_PASSWORD` environment variables.
+The following mechanisms can be used:
 
-The tool currently supports the following SASL mechanisms:
+1. `AWS-MSK-IAM`
+2. `PLAIN`
+3. `SCRAM-SHA-256`
+4. `SCRAM-SHA-512`
 
-1. `PLAIN`
-2. `SCRAM-SHA-256`
-3. `SCRAM-SHA-512`
+If using `AWS-MSK-IAM`, then `topicctl` will attempt to discover your AWS credentials in the
+locations and order described [here](https://docs.aws.amazon.com/sdk-for-go/api/aws/session/).
+The other mechanisms require a username and password to be set in either the cluster config
+or on the command-line. See the cluster configs in the [/examples/auth](/examples/auth) and
+[/examples/msk](/examples/msk) directories for some specific examples.
 
 Note that SASL can be run either with or without TLS, although the former is generally more
 secure.

@@ -11,12 +11,13 @@ spec:
   - "b-1.my-cluster.kafka.aws-region.amazonaws.com:9098"
   - "b-2.my-cluster.kafka.aws-region.amazonaws.com:9098"
   - "b-3.my-cluster.kafka.aws-region.amazonaws.com:9098"
+
   tls:
+    # TLS is enabled on the IAM-authenticated broker endpoints by default
     enabled: true
   sasl:
-    enabled: true
-    mechanism: AWS-MSK-IAM
-
-    # No credentials are set in the cluster config; instead, they'll be pulled from
+    # No credentials are set here; instead, they'll be pulled from
     # the environment, a shared credentials file, a shared configuration file, or the EC2 metadata
     # service as described here: https://docs.aws.amazon.com/sdk-for-go/api/aws/session/.
+    enabled: true
+    mechanism: AWS-MSK-IAM
