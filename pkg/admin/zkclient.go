@@ -72,7 +72,7 @@ func NewZKAdminClient(
 	zkClient, err := zk.NewPooledClient(
 		config.ZKAddrs,
 		time.Minute,
-		&zk.ZKDebugLogger{},
+		&zk.DebugLogger{},
 		10,
 		config.ReadOnly,
 	)
@@ -293,6 +293,7 @@ func (c *ZKAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	return brokerIDs, nil
 }
 
+// GetConnector returns the Connector instance associated with this client.
 func (c *ZKAdminClient) GetConnector() *Connector {
 	return c.Connector
 }
@@ -746,6 +747,7 @@ func (c *ZKAdminClient) LockHeld(
 	return len(children) > 0, nil
 }
 
+// GetSupportedFeatures returns the features that are supported by this client.
 func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
 	// The zk-based client supports everything.
 	return SupportedFeatures{

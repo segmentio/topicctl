@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SASLMechanism is the name of a SASL mechanism that will be used for client authentication
+// SASLMechanism is the name of a SASL mechanism that will be used for client authentication.
 type SASLMechanism string
 
 const (
@@ -29,14 +29,14 @@ const (
 	SASLMechanismScramSHA512 SASLMechanism = "scram-sha-512"
 )
 
-// ConnectorConfig
+// ConnectorConfig contains the configuration used to contruct a connector.
 type ConnectorConfig struct {
 	BrokerAddr string
 	TLS        TLSConfig
 	SASL       SASLConfig
 }
 
-// TLSConfig
+// TLSConfig stores the TLS-related configuration for a connection.
 type TLSConfig struct {
 	Enabled    bool
 	CertPath   string
@@ -46,6 +46,7 @@ type TLSConfig struct {
 	SkipVerify bool
 }
 
+// SASLConfig stores the SASL-related configuration for a connection.
 type SASLConfig struct {
 	Enabled   bool
 	Mechanism SASLMechanism
@@ -53,12 +54,14 @@ type SASLConfig struct {
 	Password  string
 }
 
+// Connector is a wrapper around the low-level, kafka-go dialer and client.
 type Connector struct {
 	Config      ConnectorConfig
 	Dialer      *kafka.Dialer
 	KafkaClient *kafka.Client
 }
 
+// NewConnector contructs a new Connector instance given the argument config.
 func NewConnector(config ConnectorConfig) (*Connector, error) {
 	connector := &Connector{
 		Config: config,
@@ -171,6 +174,8 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 	return connector, nil
 }
 
+// SASLNameToMechanism converts the argument SASL mechanism name string to a valid instance of
+// the SASLMechanism enum.
 func SASLNameToMechanism(name string) (SASLMechanism, error) {
 	normalizedName := strings.ReplaceAll(strings.ToLower(name), "_", "-")
 	mechanism := SASLMechanism(normalizedName)

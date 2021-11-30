@@ -38,6 +38,7 @@ func TestKafkaAddr() string {
 	return testKafkaAddr
 }
 
+// CanTestBrokerAdmin returns whether we can test the broker-only admin client.
 func CanTestBrokerAdmin() bool {
 	value, ok := os.LookupEnv("KAFKA_TOPICS_TEST_BROKER_ADMIN")
 	if ok && value != "" {
@@ -61,6 +62,8 @@ func RandomString(prefix string, length int) string {
 	return fmt.Sprintf("%s-%s", prefix, string(b))
 }
 
+// RetryUntil is a helper that will re-run the argument function multiple times (up to a
+// duration limit) until it no longer produces an error.
 func RetryUntil(t *testing.T, timeout time.Duration, f func() error) {
 	sleepTime := 100 * time.Millisecond
 	end := time.Now().Add(timeout)

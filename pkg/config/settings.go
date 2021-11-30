@@ -373,6 +373,8 @@ func (t TopicSettings) ConfigMapDiffs(
 	return diffKeys, missingKeys, nil
 }
 
+// ReduceRetentionDrop updates the retention in this TopicSettings instance so that it's dropping
+// by no more than the argument retentionDropStepDuration.
 func (t TopicSettings) ReduceRetentionDrop(
 	configMap map[string]string,
 	retentionDropStepDuration time.Duration,
