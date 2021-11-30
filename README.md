@@ -491,8 +491,8 @@ The following mechanisms can be used:
 If using `AWS-MSK-IAM`, then `topicctl` will attempt to discover your AWS credentials in the
 locations and order described [here](https://docs.aws.amazon.com/sdk-for-go/api/aws/session/).
 The other mechanisms require a username and password to be set in either the cluster config
-or on the command-line. See the cluster configs in the [/examples/auth](/examples/auth) and
-[/examples/msk](/examples/msk) directories for some specific examples.
+or on the command-line. See the cluster configs in the [examples/auth](/examples/auth) and
+[examples/msk](/examples/msk) directories for some specific examples.
 
 Note that SASL can be run either with or without TLS, although the former is generally more
 secure.
