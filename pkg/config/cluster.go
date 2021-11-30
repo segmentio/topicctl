@@ -132,8 +132,14 @@ func (c ClusterConfig) Validate() error {
 	}
 
 	if c.Spec.SASL.Enabled {
-		if saslErr := admin.ValidateSASLMechanism(c.Spec.SASL.Mechanism); saslErr != nil {
+		saslMechanism, saslErr := admin.SASLNameToMechanism(c.Spec.SASL.Mechanism)
+		if saslErr != nil {
 			err = multierror.Append(err, saslErr)
+		}
+
+		if saslMechanism == admin.SASLMechanismAWSMSKIAM &&
+			(c.Spec.SASL.Username != "" || c.Spec.SASL.Password != "") {
+			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
 		}
 	}
 
@@ -175,6 +181,16 @@ func (c ClusterConfig) NewAdminClient(
 			saslPassword = c.Spec.SASL.Password
 		}
 
+		var saslMechanism admin.SASLMechanism
+		var err error
+
+		if c.Spec.SASL.Mechanism != "" {
+			saslMechanism, err = admin.SASLNameToMechanism(c.Spec.SASL.Mechanism)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
@@ -190,7 +206,7 @@ func (c ClusterConfig) NewAdminClient(
 					},
 					SASL: admin.SASLConfig{
 						Enabled:   c.Spec.SASL.Enabled,
-						Mechanism: c.Spec.SASL.Mechanism,
+						Mechanism: saslMechanism,
 						Username:  saslUsername,
 						Password:  saslPassword,
 					},
