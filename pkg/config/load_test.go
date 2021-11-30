@@ -45,6 +45,9 @@ func TestLoadCluster(t *testing.T) {
 	clusterConfig, err = LoadClusterFile("testdata/test-cluster/cluster-invalid.yaml", true)
 	assert.NoError(t, err)
 	assert.Error(t, clusterConfig.Validate())
+
+	clusterConfig, err = LoadClusterFile("testdata/test-cluster/cluster-extra-fields.yaml", true)
+	assert.Error(t, err)
 }
 
 func TestLoadTopicsFile(t *testing.T) {
