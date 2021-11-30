@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "github.com/segmentio/kafka-go/sasl/aws_msk_iam"
 	"github.com/segmentio/topicctl/cmd/topicctl/subcmd"
 )
 
