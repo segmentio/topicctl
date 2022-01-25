@@ -20,7 +20,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/crypto v0.0.0-20200204104054-c9f3fb736b72
+	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 )
 
 require (
