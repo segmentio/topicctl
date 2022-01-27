@@ -30,6 +30,7 @@ type ClusterMeta struct {
 	Name        string `json:"name"`
 	Region      string `json:"region"`
 	Environment string `json:"environment"`
+	Shard       int    `json:"shard"`
 	Description string `json:"description"`
 }
 

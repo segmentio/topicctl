@@ -253,6 +253,7 @@ meta:
   name: my-cluster                      # Name of the cluster
   environment: stage                    # Cluster environment
   region: us-west-2                     # Cloud region of the cluster
+  shard: 1                              # Shard index of this cluster, if it is sharded.
   description: |                        # A free-text description of the cluster (optional)
     Test cluster for topicctl.
 
