@@ -55,7 +55,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	adminClient, err := replConfig.shared.getAdminClient(ctx, nil, true)
+	adminClient, err := resetOffsetsConfig.shared.getAdminClient(ctx, nil, true)
 	if err != nil {
 		return err
 	}
