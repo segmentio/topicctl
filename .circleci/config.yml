@@ -1,9 +1,9 @@
 version: 2
 jobs:
   test010:
-    working_directory: /go/src/github.com/segmentio/topicctl
+    working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18
         environment:
           GO111MODULE: "on"
           ECR_ENABLED: True
@@ -100,12 +100,12 @@ jobs:
       - save_cache:
           key: go-modules-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - "/home/circleci/go/pkg/mod"
 
   test241:
-    working_directory: /go/src/github.com/segmentio/topicctl
+    working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18
         environment:
           GO111MODULE: "on"
           ECR_ENABLED: True
@@ -202,12 +202,12 @@ jobs:
       - save_cache:
           key: go-modules-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - "/home/circleci/go/pkg/mod"
 
   publish-ecr:
-    working_directory: /go/src/github.com/segmentio/topicctl
+    working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18
 
     steps:
       - checkout
@@ -231,9 +231,9 @@ jobs:
             docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_GIT_SHA}
 
   publish-dockerhub:
-    working_directory: /go/src/github.com/segmentio/topicctl
+    working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18
 
     steps:
       - checkout
