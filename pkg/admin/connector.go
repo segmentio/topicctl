@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/segmentio/kafka-go"
@@ -76,7 +78,14 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		switch config.SASL.Mechanism {
 		case SASLMechanismAWSMSKIAM:
 			sess := session.Must(session.NewSession())
-			signer := sigv4.NewSigner(sess.Config.Credentials)
+			var creds *credentials.Credentials
+			if config.SASL.AssumeRole != "" {
+				creds = stscreds.NewCredentials(sess, config.SASL.AssumeRole)
+			} else {
+				creds = sess.Config.Credentials
+			}
+
+			signer := sigv4.NewSigner(creds)
 			region := aws.StringValue(sess.Config.Region)
 
 			mechanismClient = &aws_msk_iam.Mechanism{

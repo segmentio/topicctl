@@ -61,7 +61,7 @@ func getPreRun(cmd *cobra.Command, args []string) error {
 
 func getRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
-	sess := session.Must(session.NewSession())
+	sess, _ := session.NewSession()
 
 	adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 	if err != nil {
