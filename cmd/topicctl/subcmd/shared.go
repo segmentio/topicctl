@@ -14,20 +14,21 @@ import (
 )
 
 type sharedOptions struct {
-	brokerAddr    string
-	clusterConfig string
-	expandEnv     bool
-	saslMechanism string
-	saslPassword  string
-	saslUsername  string
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	zkAddr        string
-	zkPrefix      string
+	brokerAddr     string
+	clusterConfig  string
+	expandEnv      bool
+	saslMechanism  string
+	saslPassword   string
+	saslUsername   string
+	saslAssumeRole string
+	tlsCACert      string
+	tlsCert        string
+	tlsEnabled     bool
+	tlsKey         string
+	tlsSkipVerify  bool
+	tlsServerName  string
+	zkAddr         string
+	zkPrefix       string
 }
 
 func (s sharedOptions) validate() error {
@@ -95,6 +96,10 @@ func (s sharedOptions) validate() error {
 			(s.saslUsername != "" || s.saslPassword != "") {
 			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
 		}
+
+		if saslMechanism != admin.SASLMechanismAWSMSKIAM && s.saslAssumeRole != "" {
+			log.Warn("AssumeRole is ignored unless using SASL AWS-MSK-IAM")
+		}
 	}
 
 	return err
@@ -150,10 +155,11 @@ func (s sharedOptions) getAdminClient(
 						SkipVerify: s.tlsSkipVerify,
 					},
 					SASL: admin.SASLConfig{
-						Enabled:   saslEnabled,
-						Mechanism: saslMechanism,
-						Password:  s.saslPassword,
-						Username:  s.saslUsername,
+						Enabled:    saslEnabled,
+						Mechanism:  saslMechanism,
+						Password:   s.saslPassword,
+						Username:   s.saslUsername,
+						AssumeRole: s.saslAssumeRole,
 					},
 				},
 				ReadOnly: readOnly,
@@ -210,6 +216,12 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"sasl-username",
 		os.Getenv("TOPICCTL_SASL_USERNAME"),
 		"SASL username if using SASL; will override value set in cluster config",
+	)
+	cmd.Flags().StringVar(
+		&options.saslAssumeRole,
+		"sasl-assume-role",
+		"",
+		"Intermediate role to assume if using SASL AWS-MSK-IAM",
 	)
 	cmd.Flags().StringVar(
 		&options.tlsCACert,

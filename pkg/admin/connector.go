@@ -48,10 +48,11 @@ type TLSConfig struct {
 
 // SASLConfig stores the SASL-related configuration for a connection.
 type SASLConfig struct {
-	Enabled   bool
-	Mechanism SASLMechanism
-	Username  string
-	Password  string
+	Enabled    bool
+	Mechanism  SASLMechanism
+	Username   string
+	Password   string
+	AssumeRole string
 }
 
 // Connector is a wrapper around the low-level, kafka-go dialer and client.

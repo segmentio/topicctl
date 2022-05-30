@@ -111,6 +111,9 @@ type SASLConfig struct {
 
 	// Password is the SASL password. Ignored if mechanism is AWS-MSK-IAM.
 	Password string `json:"password"`
+
+	// Intermediate role ARN to assume. Only used if mechanism is AWS-MSK-IAM.
+	AssumeRole string `json:"assumeRole"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -164,6 +167,10 @@ func (c ClusterConfig) Validate() error {
 		if saslMechanism == admin.SASLMechanismAWSMSKIAM &&
 			(c.Spec.SASL.Username != "" || c.Spec.SASL.Password != "") {
 			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
+		}
+
+		if saslMechanism != admin.SASLMechanismAWSMSKIAM && c.Spec.SASL.AssumeRole != "" {
+			log.Warn("AssumeRole is ignored unless using SASL AWS-MSK-IAM")
 		}
 	}
 
@@ -231,10 +238,11 @@ func (c ClusterConfig) NewAdminClient(
 						SkipVerify: c.Spec.TLS.SkipVerify,
 					},
 					SASL: admin.SASLConfig{
-						Enabled:   c.Spec.SASL.Enabled,
-						Mechanism: saslMechanism,
-						Username:  saslUsername,
-						Password:  saslPassword,
+						Enabled:    c.Spec.SASL.Enabled,
+						Mechanism:  saslMechanism,
+						Username:   saslUsername,
+						Password:   saslPassword,
+						AssumeRole: c.Spec.SASL.AssumeRole,
 					},
 				},
 				ExpectedClusterID: c.Spec.ClusterID,
