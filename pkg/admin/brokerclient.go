@@ -85,9 +85,10 @@ func NewBrokerAdminClient(
 		)
 	}
 
-	// If we have AlterPartitionReassignments support, then we're good for applying (other needed
+	// If we have ListPartitionReassignments support, then we're good for applying (other needed
 	// APIs are older). This should be satisfied by versions >= 2.4.
-	if _, ok := maxVersions["AlterPartitionReassignments"]; ok {
+
+	if _, ok := maxVersions["ListPartitionReassignments"]; ok {
 		supportedFeatures.Applies = true
 	}
 
