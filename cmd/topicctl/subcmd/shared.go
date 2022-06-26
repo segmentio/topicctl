@@ -121,6 +121,7 @@ func (s sharedOptions) getAdminClient(
 			readOnly,
 			s.saslUsername,
 			s.saslPassword,
+			s.saslAssumeRole,
 		)
 	} else if s.brokerAddr != "" {
 		tlsEnabled := (s.tlsEnabled ||
@@ -299,5 +300,11 @@ func addSharedConfigOnlyFlags(cmd *cobra.Command, options *sharedOptions) {
 		"sasl-username",
 		os.Getenv("TOPICCTL_SASL_USERNAME"),
 		"SASL username if using SASL; will override value set in cluster config",
+	)
+	cmd.Flags().StringVar(
+		&options.saslAssumeRole,
+		"sasl-assume-role",
+		os.Getenv("TOPICCTL_SASL_ASSUME_ROLE"),
+		"SASL assume role if using SASL AWS-MSK-IAM; will override value set in cluster config",
 	)
 }

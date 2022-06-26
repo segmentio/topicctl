@@ -194,12 +194,14 @@ func (c ClusterConfig) NewAdminClient(
 	readOnly bool,
 	usernameOverride string,
 	passwordOverride string,
+	assumeRoleOverride string,
 ) (admin.Client, error) {
 	if len(c.Spec.ZKAddrs) == 0 {
 		log.Debug("No ZK addresses provided, using broker admin client")
 
 		var saslUsername string
 		var saslPassword string
+		var saslAssumeRole string
 		if usernameOverride != "" {
 			log.Debugf("Setting SASL username from override value")
 			saslUsername = usernameOverride
@@ -212,6 +214,13 @@ func (c ClusterConfig) NewAdminClient(
 			saslPassword = passwordOverride
 		} else {
 			saslPassword = c.Spec.SASL.Password
+		}
+
+		if assumeRoleOverride != "" {
+			log.Debugf("Setting SASL assume role from override value")
+			saslAssumeRole = assumeRoleOverride
+		} else {
+			saslAssumeRole = c.Spec.SASL.AssumeRole
 		}
 
 		var saslMechanism admin.SASLMechanism
@@ -242,7 +251,7 @@ func (c ClusterConfig) NewAdminClient(
 						Mechanism:  saslMechanism,
 						Username:   saslUsername,
 						Password:   saslPassword,
-						AssumeRole: c.Spec.SASL.AssumeRole,
+						AssumeRole: saslAssumeRole,
 					},
 				},
 				ExpectedClusterID: c.Spec.ClusterID,

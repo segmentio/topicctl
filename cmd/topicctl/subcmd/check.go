@@ -138,6 +138,7 @@ func checkTopicFile(
 				true,
 				checkConfig.shared.saslUsername,
 				checkConfig.shared.saslPassword,
+				checkConfig.shared.saslAssumeRole,
 			)
 			if err != nil {
 				return false, err

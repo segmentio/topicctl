@@ -75,6 +75,7 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 		true,
 		bootstrapConfig.shared.saslUsername,
 		bootstrapConfig.shared.saslPassword,
+		bootstrapConfig.shared.saslAssumeRole,
 	)
 	if err != nil {
 		return err
