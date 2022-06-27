@@ -26,7 +26,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka2
@@ -39,7 +41,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka3
@@ -52,7 +56,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka4
@@ -65,7 +71,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka5
@@ -78,7 +86,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka6
@@ -91,7 +101,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
     steps:
       - checkout
@@ -140,7 +152,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka2
@@ -153,7 +167,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka3
@@ -166,7 +182,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka4
@@ -179,7 +197,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka5
@@ -192,7 +212,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka6
@@ -205,7 +227,9 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
         command:
-          sleep 10 && ./start-kafka.sh
+          - '/bin/sh'
+          - '-c'
+          - 'sleep 10 && ./start-kafka.sh'
 
     steps:
       - checkout
