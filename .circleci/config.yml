@@ -28,7 +28,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka2
@@ -43,7 +43,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka3
@@ -58,7 +58,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka4
@@ -73,7 +73,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka5
@@ -88,7 +88,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.11-0.10.2.2
         name: kafka6
@@ -103,7 +103,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
     steps:
       - checkout
@@ -154,7 +154,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka2
@@ -169,7 +169,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka3
@@ -184,7 +184,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka4
@@ -199,7 +199,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka5
@@ -214,7 +214,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
       - image: wurstmeister/kafka:2.12-2.4.1
         name: kafka6
@@ -229,7 +229,7 @@ jobs:
         command:
           - '/bin/sh'
           - '-c'
-          - 'sleep 10 && ./start-kafka.sh'
+          - 'sleep 10 && /usr/bin/start-kafka.sh'
 
     steps:
       - checkout
