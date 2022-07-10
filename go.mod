@@ -2,9 +2,6 @@ module github.com/segmentio/topicctl
 
 go 1.18
 
-// Use something like this to use a local kafka-go (useful for testing purposes).
-// replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
-
 require (
 	github.com/aws/aws-sdk-go v1.41.3
 	github.com/briandowns/spinner v1.11.1
@@ -14,11 +11,11 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.4.31
+	github.com/segmentio/kafka-go v0.4.32
 	github.com/segmentio/kafka-go/sasl/aws_msk_iam v0.0.0-20220211180808-78889264d070
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.1
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
 )
@@ -48,5 +45,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99 // indirect
 )
