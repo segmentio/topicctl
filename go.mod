@@ -2,9 +2,6 @@ module github.com/segmentio/topicctl
 
 go 1.18
 
-// Use something like this to use a local kafka-go (useful for testing purposes).
-// replace github.com/segmentio/kafka-go => /Users/benjamin.yolken/dev/src/github.com/segmentio/kafka-go
-
 require (
 	github.com/aws/aws-sdk-go v1.44.51
 	github.com/briandowns/spinner v1.11.1
