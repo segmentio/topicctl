@@ -1,12 +1,14 @@
 package rebalancers
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply/pickers"
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFrequencyRebalancerAnyLowestIndex(t *testing.T) {
@@ -217,6 +219,55 @@ func TestFrequencyRebalancerAnyInRack(t *testing.T) {
 
 	for _, testCase := range testCases {
 		testCase.evaluate(t, rebalancer)
+	}
+}
+
+func TestFrequencyRebalancerSpreadsAcrossAllBrokers(t *testing.T) {
+	// numPartitions is intentionally not divisible by numRacks
+	var numBrokers, numRacks, numPartitions = 39, 3, 100
+	brokers := testBrokers(numBrokers, numRacks)
+	rebalancer := NewFrequencyRebalancer(
+		brokers,
+		pickers.NewRandomizedPicker(),
+		config.TopicPlacementConfig{
+			Strategy: config.PlacementStrategyAny,
+		},
+	)
+
+	partitions := make([][]int, numPartitions)
+
+	for i := 0; i < numPartitions; i++ {
+		// every partition starts very unevenly spread across 3 brokers
+		partitions[i] = []int{1, 2, 3}
+	}
+
+	desired, err := rebalancer.Rebalance(
+		"test-topics",
+		admin.ReplicasToAssignments(partitions),
+		nil,
+	)
+
+	replicas, err := admin.AssignmentsToReplicas(desired)
+	require.NoError(t, err)
+
+	if err != nil {
+		require.NotNil(t, err)
+	}
+
+	brokerCounter := map[int]int{}
+
+	for _, replica := range replicas {
+		for _, broker := range replica {
+			if val, ok := brokerCounter[broker]; ok {
+				brokerCounter[broker] = val + 1
+			} else {
+				brokerCounter[broker] = 1
+			}
+		}
+	}
+
+	for i := 1; i <= numBrokers; i++ {
+		assert.Contains(t, brokerCounter, i, fmt.Sprintf("Broker %d contains not partitions", i))
 	}
 }
 
