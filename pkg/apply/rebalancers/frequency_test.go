@@ -267,7 +267,7 @@ func TestFrequencyRebalancerSpreadsAcrossAllBrokers(t *testing.T) {
 	}
 
 	for i := 1; i <= numBrokers; i++ {
-		assert.Contains(t, brokerCounter, i, fmt.Sprintf("Broker %d contains not partitions", i))
+		assert.Contains(t, brokerCounter, i, fmt.Sprintf("Broker %d contains no partitions", i))
 	}
 }
 
