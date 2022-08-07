@@ -253,8 +253,8 @@ jobs:
               -t segment/topicctl:latest \
               --build-arg VERSION=${CIRCLE_TAG} \
               .
-            docker push segment/topicctl:${CIRCLE_TAG}
-            docker push segment/topicctl:latest
+            # docker push segment/topicctl:${CIRCLE_TAG}
+            # docker push segment/topicctl:latest
 
 workflows:
   version: 2
@@ -283,10 +283,10 @@ workflows:
           context: docker-publish
           requires:
             - test241
-          filters:
+          #filters:
             # Never publish from a branch event
-            branches:
-              ignore: /.*/
+          #  branches:
+          #    ignore: /.*/
             # Release only on tag push events like vX[.Y.Z...][-whatever]
-            tags:
-              only: /v[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9-]+)?/
+          #  tags:
+          #    only: /v[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9-]+)?/

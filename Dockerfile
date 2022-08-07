@@ -14,6 +14,6 @@ RUN cd /go/src/${SRC} && \
 FROM scratch
 
 COPY --from=builder \
-    /go/src/github.com/segmentio/topicctl/bin/topicctl \
+    /go/src/github.com/segmentio/topicctl/build/topicctl \
     /bin/topicctl
 ENTRYPOINT ["/bin/topicctl"]
