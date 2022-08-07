@@ -274,13 +274,16 @@ workflows:
               only: /.*/
       - publish-ecr:
           context: segmentio-org-global
+          filters:
+            tags:
+              only: /.*/
           requires:
             - test241
-          filters:
-            branches:
-              only:
-                - master
-                - v0
+          #filters:
+          #  branches:
+          #    only:
+          #      - master
+          #      - v0
       - publish-dockerhub:
           context: docker-publish
           requires:
