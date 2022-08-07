@@ -3,7 +3,7 @@ jobs:
   test010:
     working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
         environment:
           GO111MODULE: "on"
           ECR_ENABLED: True
@@ -105,7 +105,7 @@ jobs:
   test241:
     working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
         environment:
           GO111MODULE: "on"
           ECR_ENABLED: True
@@ -207,7 +207,7 @@ jobs:
   publish-ecr:
     working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
 
     steps:
       - checkout
@@ -233,7 +233,7 @@ jobs:
   publish-dockerhub:
     working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
 
     steps:
       - checkout
