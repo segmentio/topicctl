@@ -244,7 +244,11 @@ jobs:
           name: Build and push image
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
-            docker build \
+
+            docker context create buildx-build
+            docker buildx create --use buildx-build
+            docker buildx build \
+              --platform=linux/amd64,linux/arm64 \
               -t segment/topicctl:${CIRCLE_TAG} \
               -t segment/topicctl:latest \
               --build-arg VERSION=${CIRCLE_TAG} \
