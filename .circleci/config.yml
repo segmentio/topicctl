@@ -224,11 +224,14 @@ jobs:
           name: Build and push image
           command: |
             export SHORT_GIT_SHA=$(echo ${CIRCLE_SHA1} | cut -c -7)
-            docker build \
+
+            docker context create buildx-build
+            docker buildx create --use buildx-build
+            docker buildx build \
               -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_GIT_SHA} \
               --build-arg VERSION=${SHORT_GIT_SHA} \
+              --push \
               .
-            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_GIT_SHA}
 
   publish-dockerhub:
     working_directory: /home/circleci/go/src/github.com/segmentio/topicctl
