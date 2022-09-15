@@ -107,18 +107,18 @@ func NewTopicApplier(
 
 // Apply runs a single "apply" run on the configured topic. The general flow is:
 //
-// 1. Validate configs
-// 2. Acquire topic lock
-// 3. Check if topic already exists
-// 4. If new:
-//   a. Create the topic
-//   b. Update the placement in accordance with the configured strategy
-// 5. If exists:
-//   a. Check retention and update if needed
-//   b. Check replication factor (can't be updated by topicctl)
-//   c. Check partition count and extend if needed
-//   d. Check partition placement and update/migrate if needed
-//   e. Check partition leaders and update if needed
+//  1. Validate configs
+//  2. Acquire topic lock
+//  3. Check if topic already exists
+//  4. If new:
+//     a. Create the topic
+//     b. Update the placement in accordance with the configured strategy
+//  5. If exists:
+//     a. Check retention and update if needed
+//     b. Check replication factor (can't be updated by topicctl)
+//     c. Check partition count and extend if needed
+//     d. Check partition placement and update/migrate if needed
+//     e. Check partition leaders and update if needed
 func (t *TopicApplier) Apply(ctx context.Context) error {
 	log.Info("Validating configs...")
 	brokerRacks := admin.DistinctRacks(t.brokers)
@@ -673,8 +673,8 @@ func (t *TopicApplier) updatePlacement(
 		}
 		if !result {
 			log.Infof(
-				"Desired strategy is %s, but leaders aren't balanced. It is strongly suggested to do the latter first. " +
-				"This can be done using the \"balanced-leaders\" strategy.",
+				"Desired strategy is %s, but leaders aren't balanced. It is strongly suggested to do the latter first. "+
+					"This can be done using the \"balanced-leaders\" strategy.",
 				desiredPlacement,
 			)
 
@@ -860,7 +860,7 @@ func (t *TopicApplier) updatePlacementRunner(
 		)
 	}
 
-	numRounds := ( len(assignmentsToUpdate) + batchSize - 1 ) / batchSize	// Ceil() with integer math
+	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
 	round := 0
 	for i := 0; i < len(assignmentsToUpdate); i += batchSize {
 		end := i + batchSize
@@ -873,7 +873,7 @@ func (t *TopicApplier) updatePlacementRunner(
 		round += 1
 		log.Infof(
 			"Balancing round %s",
-				roundScoreboard("%d of %d", round, numRounds),
+			roundScoreboard("%d of %d", round, numRounds),
 		)
 
 		err := t.updatePartitionsIteration(
