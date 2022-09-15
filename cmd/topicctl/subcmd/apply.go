@@ -32,6 +32,7 @@ type applyCmdConfig struct {
 	partitionBatchSizeOverride   int
 	pathPrefix                   string
 	rebalance                    bool
+	autoContinueRebalance        bool
 	retentionDropStepDurationStr string
 	skipConfirm                  bool
 	sleepLoopDuration            time.Duration
@@ -79,6 +80,12 @@ func init() {
 		"rebalance",
 		false,
 		"Explicitly rebalance broker partition assignments",
+	)
+	applyCmd.Flags().BoolVar(
+		&applyConfig.autoContinueRebalance,
+		"auto-continue-rebalance",
+		false,
+		"Continue rebalancing without prompting (WARNING: user discretion advised)",
 	)
 	applyCmd.Flags().StringVar(
 		&applyConfig.retentionDropStepDurationStr,
@@ -218,6 +225,7 @@ func applyTopic(
 			DryRun:                     applyConfig.dryRun,
 			PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
 			Rebalance:                  applyConfig.rebalance,
+			AutoContinueRebalance:      applyConfig.autoContinueRebalance,
 			RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
 			SkipConfirm:                applyConfig.skipConfirm,
 			SleepLoopDuration:          applyConfig.sleepLoopDuration,

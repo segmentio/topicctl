@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
@@ -30,6 +31,7 @@ type TopicApplierConfig struct {
 	DryRun                     bool
 	PartitionBatchSizeOverride int
 	Rebalance                  bool
+	AutoContinueRebalance      bool
 	RetentionDropStepDuration  time.Duration
 	SkipConfirm                bool
 	SleepLoopDuration          time.Duration
@@ -835,6 +837,10 @@ func (t *TopicApplier) updatePlacementRunner(
 		return nil
 	}
 
+	if t.config.AutoContinueRebalance {
+		log.Infof("Autocontinue flag detected, user will not be prompted each round")
+	}
+
 	ok, _ := Confirm("OK to apply?", t.config.SkipConfirm)
 	if !ok {
 		return errors.New("Stopping because of user response")
@@ -854,12 +860,21 @@ func (t *TopicApplier) updatePlacementRunner(
 		)
 	}
 
+	numRounds := ( len(assignmentsToUpdate) + batchSize - 1 ) / batchSize	// Ceil() with integer math
+	round := 0
 	for i := 0; i < len(assignmentsToUpdate); i += batchSize {
 		end := i + batchSize
 
 		if end > len(assignmentsToUpdate) {
 			end = len(assignmentsToUpdate)
 		}
+
+		roundScoreboard := color.New(color.FgYellow, color.Bold).SprintfFunc()
+		round += 1
+		log.Infof(
+			"Balancing round %s",
+				roundScoreboard("%d of %d", round, numRounds),
+		)
 
 		err := t.updatePartitionsIteration(
 			ctx,
@@ -871,9 +886,13 @@ func (t *TopicApplier) updatePlacementRunner(
 			return err
 		}
 
-		ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
-		if !ok {
-			return errors.New("Stopping because of user response")
+		if t.config.AutoContinueRebalance {
+			log.Infof("Autocontinuing to next round")
+		} else {
+			ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
+			if !ok {
+				return errors.New("Stopping because of user response")
+			}
 		}
 	}
 
