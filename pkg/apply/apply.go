@@ -862,7 +862,7 @@ func (t *TopicApplier) updatePlacementRunner(
 
 	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
 	roundScoreboard := color.New(color.FgYellow, color.Bold).SprintfFunc()
-	for i, round := 0, 1 ; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
+	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
 		end := i + batchSize
 
 		if end > len(assignmentsToUpdate) {
