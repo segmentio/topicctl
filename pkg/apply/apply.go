@@ -838,7 +838,7 @@ func (t *TopicApplier) updatePlacementRunner(
 	}
 
 	if t.config.AutoContinueRebalance {
-		log.Infof("Autocontinue flag detected, user will not be prompted each round")
+		log.Warnf("Autocontinue flag detected, user will not be prompted each round")
 	}
 
 	ok, _ := Confirm("OK to apply?", t.config.SkipConfirm)
@@ -861,6 +861,7 @@ func (t *TopicApplier) updatePlacementRunner(
 	}
 
 	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
+	roundScoreboard := color.New(color.FgYellow, color.Bold).SprintfFunc()
 	round := 0
 	for i := 0; i < len(assignmentsToUpdate); i += batchSize {
 		end := i + batchSize
@@ -869,7 +870,6 @@ func (t *TopicApplier) updatePlacementRunner(
 			end = len(assignmentsToUpdate)
 		}
 
-		roundScoreboard := color.New(color.FgYellow, color.Bold).SprintfFunc()
 		round += 1
 		log.Infof(
 			"Balancing round %s",
