@@ -527,5 +527,4 @@ details on the available versions.
 To run the `get`, `repl`, and `tail` subcommands against the local cluster,
 set `--zk-addr=localhost:2181` and leave the `--zk-prefix` flag unset.
 
-To test out `apply`, you can use the configs in
-`pkg/config/test-configs/local`.
+To test out `apply`, you can use the configs in `examples/local-cluster/`.

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
@@ -30,6 +31,7 @@ type TopicApplierConfig struct {
 	DryRun                     bool
 	PartitionBatchSizeOverride int
 	Rebalance                  bool
+	AutoContinueRebalance      bool
 	RetentionDropStepDuration  time.Duration
 	SkipConfirm                bool
 	SleepLoopDuration          time.Duration
@@ -105,18 +107,18 @@ func NewTopicApplier(
 
 // Apply runs a single "apply" run on the configured topic. The general flow is:
 //
-// 1. Validate configs
-// 2. Acquire topic lock
-// 3. Check if topic already exists
-// 4. If new:
-//   a. Create the topic
-//   b. Update the placement in accordance with the configured strategy
-// 5. If exists:
-//   a. Check retention and update if needed
-//   b. Check replication factor (can't be updated by topicctl)
-//   c. Check partition count and extend if needed
-//   d. Check partition placement and update/migrate if needed
-//   e. Check partition leaders and update if needed
+//  1. Validate configs
+//  2. Acquire topic lock
+//  3. Check if topic already exists
+//  4. If new:
+//     a. Create the topic
+//     b. Update the placement in accordance with the configured strategy
+//  5. If exists:
+//     a. Check retention and update if needed
+//     b. Check replication factor (can't be updated by topicctl)
+//     c. Check partition count and extend if needed
+//     d. Check partition placement and update/migrate if needed
+//     e. Check partition leaders and update if needed
 func (t *TopicApplier) Apply(ctx context.Context) error {
 	log.Info("Validating configs...")
 	brokerRacks := admin.DistinctRacks(t.brokers)
@@ -671,8 +673,8 @@ func (t *TopicApplier) updatePlacement(
 		}
 		if !result {
 			log.Infof(
-				"Desired strategy is %s, but leaders aren't balanced. It is strongly suggested to do the latter first. " +
-				"This can be done using the \"balanced-leaders\" strategy.",
+				"Desired strategy is %s, but leaders aren't balanced. It is strongly suggested to do the latter first. "+
+					"This can be done using the \"balanced-leaders\" strategy.",
 				desiredPlacement,
 			)
 
@@ -835,6 +837,10 @@ func (t *TopicApplier) updatePlacementRunner(
 		return nil
 	}
 
+	if t.config.AutoContinueRebalance {
+		log.Warnf("Autocontinue flag detected, user will not be prompted each round")
+	}
+
 	ok, _ := Confirm("OK to apply?", t.config.SkipConfirm)
 	if !ok {
 		return errors.New("Stopping because of user response")
@@ -854,12 +860,19 @@ func (t *TopicApplier) updatePlacementRunner(
 		)
 	}
 
-	for i := 0; i < len(assignmentsToUpdate); i += batchSize {
+	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
+	roundScoreboard := color.New(color.FgYellow, color.Bold).SprintfFunc()
+	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
 		end := i + batchSize
 
 		if end > len(assignmentsToUpdate) {
 			end = len(assignmentsToUpdate)
 		}
+
+		log.Infof(
+			"Balancing round %s",
+			roundScoreboard("%d of %d", round, numRounds),
+		)
 
 		err := t.updatePartitionsIteration(
 			ctx,
@@ -871,9 +884,13 @@ func (t *TopicApplier) updatePlacementRunner(
 			return err
 		}
 
-		ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
-		if !ok {
-			return errors.New("Stopping because of user response")
+		if t.config.AutoContinueRebalance {
+			log.Infof("Autocontinuing to next round")
+		} else {
+			ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
+			if !ok {
+				return errors.New("Stopping because of user response")
+			}
 		}
 	}
 
