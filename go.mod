@@ -8,7 +8,7 @@ require (
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/fatih/color v1.9.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/hashicorp/go-multierror v1.1.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 	github.com/segmentio/kafka-go v0.4.33
