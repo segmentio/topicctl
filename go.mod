@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/aws/aws-sdk-go v1.44.106
-	github.com/briandowns/spinner v1.11.1
+	github.com/briandowns/spinner v1.19.0
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/fatih/color v1.13.0
 	github.com/ghodss/yaml v1.0.0
