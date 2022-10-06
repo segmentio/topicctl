@@ -484,6 +484,28 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	return nil
 }
 
+// DeleteTopic deletes a single topic.
+func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
+	confirm, err := apply.Confirm(fmt.Sprintf("Delete topic \"%s\"", topic), false)
+	if err != nil {
+		return err
+	}
+
+	if !confirm {
+		return nil
+	}
+
+	c.startSpinner()
+	err = c.adminClient.DeleteTopic(ctx, topic)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+	c.printer("Success")
+
+	return nil
+}
+
 // ResetOffsets resets the offsets for a single consumer group / topic combination.
 func (c *CLIRunner) ResetOffsets(
 	ctx context.Context,

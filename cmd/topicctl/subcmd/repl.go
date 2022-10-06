@@ -15,13 +15,24 @@ var replCmd = &cobra.Command{
 	RunE:    replRun,
 }
 
+type replCmdOptions struct {
+	readOnly bool
+}
+
 type replCmdConfig struct {
-	shared sharedOptions
+	options replCmdOptions
+	shared  sharedOptions
 }
 
 var replConfig replCmdConfig
 
 func init() {
+	replCmd.Flags().BoolVar(
+		&replConfig.options.readOnly,
+		"read-only-enabled",
+		true,
+		"Use read only mode")
+
 	addSharedFlags(replCmd, &replConfig.shared)
 	RootCmd.AddCommand(replCmd)
 }
@@ -34,7 +45,7 @@ func replRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	sess := session.Must(session.NewSession())
 
-	adminClient, err := replConfig.shared.getAdminClient(ctx, sess, true)
+	adminClient, err := replConfig.shared.getAdminClient(ctx, sess, replConfig.options.readOnly)
 	if err != nil {
 		return err
 	}

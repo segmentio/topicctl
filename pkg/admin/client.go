@@ -38,6 +38,9 @@ type Client interface {
 		detailed bool,
 	) (TopicInfo, error)
 
+	// DeleteTopic deletes a single topic in the cluster.
+	DeleteTopic(ctx context.Context, topic string) error
+
 	// UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 	// keys that were updated.
 	UpdateTopicConfig(

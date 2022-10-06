@@ -25,6 +25,10 @@ var (
 			Description: "Get information about one or more resources in the cluster",
 		},
 		{
+			Text:        "delete",
+			Description: "Delete a resource in the cluster",
+		},
+		{
 			Text:        "tail",
 			Description: "Tail all messages in a topic",
 		},
@@ -35,6 +39,13 @@ var (
 		{
 			Text:        "exit",
 			Description: "Quit the repl",
+		},
+	}
+
+	deleteSuggestions = []prompt.Suggest{
+		{
+			Text:        "topic",
+			Description: "Delete a single topic",
 		},
 	}
 
@@ -219,6 +230,25 @@ func (r *Repl) executor(in string) {
 	case "exit":
 		fmt.Println("Bye!")
 		os.Exit(0)
+	case "delete":
+		if len(command.args) == 1 {
+			log.Error("Unrecognized input. Run 'help' for details on available commands.")
+			return
+		}
+
+		switch command.args[1] {
+		case "topic":
+			if err := command.checkArgs(3, 3, nil); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+
+			topicName := command.args[2]
+			if err := r.cliRunner.DeleteTopic(ctx, topicName); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+		}
 	case "get":
 		if len(command.args) == 1 {
 			log.Error("Unrecognized input. Run 'help' for details on available commands.")
@@ -384,6 +414,10 @@ func (r *Repl) completer(doc prompt.Document) []prompt.Suggest {
 			suggestions = commandSuggestions
 		} else if len(words) == 2 && words[0] == "get" {
 			suggestions = getSuggestions
+		} else if len(words) == 2 && words[0] == "delete" {
+			suggestions = deleteSuggestions
+		} else if len(words) == 3 && words[0] == "delete" && (words[1] == "topic") {
+			suggestions = r.topicSuggestions
 		} else if len(words) == 3 && words[0] == "get" &&
 			(words[1] == "balance" ||
 				words[1] == "lags" ||
@@ -466,6 +500,10 @@ func helpTable() string {
 			{
 				"  get topics",
 				"Get all topics",
+			},
+			{
+				"  delete topic",
+				"Deletes a single topic",
 			},
 			{
 				"  tail [topic] [optional filter regexp] [--raw]",

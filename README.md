@@ -175,6 +175,18 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
 
+#### delete
+
+```
+topicctl delete [flags] [operation]
+```
+
+The `delete` subcommand deletes a particular resource type in the cluster.
+Currently, the following operations are supported:
+| Subcommand      | Description |
+| --------- | ----------- |
+| `delete topic [topic]` | Deletes a single topic in the cluster |
+
 #### repl
 
 ```
@@ -183,6 +195,8 @@ topicctl repl [flags]
 
 The `repl` subcommand starts up a shell that allows running the `get` and `tail`
 subcommands interactively.
+
+By default, `repl` is in read-only mode. Disable this behaviour with: `--read-only-enabled=false` 
 
 #### reset-offsets
 
