@@ -578,17 +578,9 @@ func (c *ZKAdminClient) CreateTopic(
 	if err != nil {
 		return err
 	}
-	var topicErrors bool
-	for _, err := range resp.Errors {
-		if err != nil {
-			topicErrors = true
-			break
-		}
+	if err = util.ErrorsHasError(resp.Errors); err != nil {
+		return err
 	}
-	if topicErrors {
-		return errors.New(fmt.Sprintf("Errors when creating topics: %+v", resp.Errors))
-	}
-
 	return nil
 }
 

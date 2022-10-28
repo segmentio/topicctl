@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/zk"
 	log "github.com/sirupsen/logrus"
 )
@@ -467,15 +468,8 @@ func (c *BrokerAdminClient) CreateTopic(
 	if err != nil {
 		return err
 	}
-	var topicErrors bool
-	for _, err := range resp.Errors {
-		if err != nil {
-			topicErrors = true
-			break
-		}
-	}
-	if topicErrors {
-		return errors.New(fmt.Sprintf("Errors when creating topics: %+v", resp.Errors))
+	if err = util.ErrorsHasError(resp.Errors); err != nil {
+		return err
 	}
 	return nil
 }
