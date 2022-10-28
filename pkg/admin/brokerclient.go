@@ -402,6 +402,9 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	if err != nil {
 		return nil, err
 	}
+	if err = util.IncrementalAlterConfigsResponseResourcesError(resp.Resources); err != nil {
+		return nil, err
+	}
 
 	updated := []string{}
 	for _, entry := range configEntries {
@@ -440,6 +443,9 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	if err != nil {
 		return nil, err
 	}
+	if err = util.IncrementalAlterConfigsResponseResourcesError(resp.Resources); err != nil {
+		return nil, err
+	}
 
 	updated := []string{}
 	for _, entry := range configEntries {
@@ -468,7 +474,7 @@ func (c *BrokerAdminClient) CreateTopic(
 	if err != nil {
 		return err
 	}
-	if err = util.ErrorsHasError(resp.Errors); err != nil {
+	if err = util.ErrorsToError(resp.Errors); err != nil {
 		return err
 	}
 	return nil
@@ -502,6 +508,13 @@ func (c *BrokerAdminClient) AssignPartitions(
 
 	resp, err := c.client.AlterPartitionReassignments(ctx, &req)
 	log.Debugf("AlterPartitionReassignments response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = resp.Error; err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -549,6 +562,12 @@ func (c *BrokerAdminClient) AddPartitions(
 
 	resp, err := c.client.CreatePartitions(ctx, &req)
 	log.Debugf("CreatePartitions response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = util.ErrorsToError(resp.Errors); err != nil {
+		return err
+	}
 
 	return err
 }
@@ -572,6 +591,12 @@ func (c *BrokerAdminClient) RunLeaderElection(
 
 	resp, err := c.client.ElectLeaders(ctx, &req)
 	log.Debugf("ElectLeaders response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = resp.Error; err != nil {
+		return err
+	}
 
 	return err
 }

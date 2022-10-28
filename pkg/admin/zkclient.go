@@ -578,10 +578,11 @@ func (c *ZKAdminClient) CreateTopic(
 	if err != nil {
 		return err
 	}
-	if err = util.ErrorsHasError(resp.Errors); err != nil {
+	if err = util.ErrorsToError(resp.Errors); err != nil {
 		return err
 	}
-	return nil
+
+	return err
 }
 
 // AssignPartitions notifies the cluster to begin a partition reassignment.
