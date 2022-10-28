@@ -464,7 +464,20 @@ func (c *BrokerAdminClient) CreateTopic(
 
 	resp, err := c.client.CreateTopics(ctx, &req)
 	log.Debugf("CreateTopics response: %+v (%+v)", resp, err)
-	return err
+	if err != nil {
+		return err
+	}
+	var topicErrors bool
+	for _, err := range resp.Errors {
+		if err != nil {
+			topicErrors = true
+			break
+		}
+	}
+	if topicErrors {
+		return errors.New(fmt.Sprintf("Errors when creating topics: %+v", resp.Errors))
+	}
+	return nil
 }
 
 // AssignPartitions sets the replica broker IDs for one or more partitions in a topic.

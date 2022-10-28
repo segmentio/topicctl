@@ -574,8 +574,22 @@ func (c *ZKAdminClient) CreateTopic(
 	}
 	log.Debugf("Creating topic with config %+v", config)
 
-	_, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
-	return err
+	resp, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	if err != nil {
+		return err
+	}
+	var topicErrors bool
+	for _, err := range resp.Errors {
+		if err != nil {
+			topicErrors = true
+			break
+		}
+	}
+	if topicErrors {
+		return errors.New(fmt.Sprintf("Errors when creating topics: %+v", resp.Errors))
+	}
+
+	return nil
 }
 
 // AssignPartitions notifies the cluster to begin a partition reassignment.

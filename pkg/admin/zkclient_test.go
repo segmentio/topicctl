@@ -725,6 +725,37 @@ func TestZkClientCreateTopic(t *testing.T) {
 	assert.Equal(t, topicName, topics[0].Name)
 }
 
+func TestZkClientCreateTopicError(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs:        []string{util.TestZKAddr()},
+			ZKPrefix:       "",
+			BootstrapAddrs: []string{util.TestKafkaAddr()},
+			ReadOnly:       false,
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	topicName := util.RandomString("topic-create-", 6)
+
+	config := kafka.TopicConfig{
+		Topic:             topicName,
+		NumPartitions:     2,
+		ReplicationFactor: 2,
+		ConfigEntries: []kafka.ConfigEntry{
+			{
+				ConfigName:  "invalid.config",
+				ConfigValue: "invalid.value",
+			},
+		},
+	}
+	err = adminClient.CreateTopic(ctx, config)
+	require.Error(t, err)
+}
+
 func TestZkClientUpdateAssignments(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
