@@ -2,6 +2,7 @@ package messages
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -56,6 +57,16 @@ func TestTailerGetMessages(t *testing.T) {
 			kafka.Message{
 				Key:   []byte(fmt.Sprintf("key%d", i)),
 				Value: []byte(fmt.Sprintf("value%d", i)),
+				Headers: []kafka.Header{
+					{
+						Key:   "h1",
+						Value: []byte("1234"),
+					},
+					{
+						Key:   "h2",
+						Value: []byte("5678"),
+					},
+				},
 			},
 		)
 	}
@@ -96,4 +107,45 @@ outerLoop:
 	}
 
 	assert.Equal(t, 10, len(seenKeys))
+}
+
+func TestFormatHeader(t *testing.T) {
+	tests := []struct {
+		headers  []kafka.Header
+		expected string
+	}{
+		{},
+		{
+			headers:  []kafka.Header{{Key: "foo"}},
+			expected: "foo=",
+		},
+		{
+			headers: []kafka.Header{
+				{Key: "foo", Value: []byte("123")},
+			},
+			expected: "foo=" + base64.StdEncoding.EncodeToString([]byte("123")),
+		},
+		{
+			headers: []kafka.Header{
+				{Key: "foo", Value: []byte("123")},
+				{Key: "bar", Value: []byte("456")},
+			},
+			expected: "foo=" + base64.StdEncoding.EncodeToString([]byte("123")) + ", " +
+				"bar=" + base64.StdEncoding.EncodeToString([]byte("456")),
+		},
+		{
+			headers: []kafka.Header{
+				{Key: "foo", Value: []byte("123")},
+				{Key: "bar", Value: []byte("456")},
+				{Key: "baz", Value: []byte("789")},
+			},
+			expected: "foo=" + base64.StdEncoding.EncodeToString([]byte("123")) + ", " +
+				"bar=" + base64.StdEncoding.EncodeToString([]byte("456")) + ", " +
+				"baz=" + base64.StdEncoding.EncodeToString([]byte("789")),
+		},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, formatHeaders(tt.headers))
+	}
 }
