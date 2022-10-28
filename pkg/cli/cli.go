@@ -518,6 +518,7 @@ func (c *CLIRunner) Tail(
 	maxMessages int,
 	filterRegexp string,
 	raw bool,
+	headers bool,
 ) error {
 	var err error
 	if len(partitions) == 0 {
@@ -538,7 +539,7 @@ func (c *CLIRunner) Tail(
 		10e3,
 		10e6,
 	)
-	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw)
+	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw, headers)
 	filtered := filterRegexp != ""
 
 	if !raw {

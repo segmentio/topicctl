@@ -162,6 +162,7 @@ func (t *TopicTailer) LogMessages(
 	maxMessages int,
 	filterRegexp string,
 	raw bool,
+	headers bool,
 ) (TailStats, error) {
 	var filterRegexpObj *regexp.Regexp
 	var err error
@@ -256,11 +257,13 @@ func (t *TopicTailer) LogMessages(
 				keyPrinter("Time:     "),
 				valuePrinter(tailMessage.Message.Time.Format(time.RFC3339)),
 			)
-			fmt.Printf(
-				"%s %s\n",
-				keyPrinter("Headers:  "),
-				valuePrinter(formatHeaders(tailMessage.Message.Headers)),
-			)
+			if headers {
+				fmt.Printf(
+					"%s %s\n",
+					keyPrinter("Headers:  "),
+					valuePrinter(formatHeaders(tailMessage.Message.Headers)),
+				)
+			}
 			fmt.Printf(
 				"%s %s\n",
 				keyPrinter("Key:      "),
