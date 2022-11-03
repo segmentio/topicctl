@@ -1,0 +1,25 @@
+meta:
+  name: topic-static-in-rack
+  cluster: local-cluster
+  environment: local-env
+  region: local-region
+  description: |
+    Topic that uses static-in-rack strategy for assigning brokers.
+
+spec:
+  partitions: 9
+  replicationFactor: 2
+  retentionMinutes: 100
+  placement:
+    strategy: static-in-rack
+    staticRackAssignments:
+      -  zone1
+      -  zone1
+      -  zone1
+      -  zone2
+      -  zone2
+      -  zone2
+      -  zone3
+      -  zone3
+      -  zone3
+

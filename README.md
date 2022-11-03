@@ -140,9 +140,9 @@ expected file formats.
 topicctl [flags] bootstrap
 ```
 
-The `bootstrap` subcommand creates apply topic configs from the existing topics
-in a cluster. The output can be sent to either a directory (if the `--output` flag
-is set) or `stdout`.
+The `bootstrap` subcommand creates apply topic configs from the existing topics in a
+cluster. This can be used to "import" topics not created or previously managed by topicctl.
+The output can be sent to either a directory (if the `--output` flag is set) or `stdout`.
 
 #### check
 
@@ -346,8 +346,8 @@ The tool supports the following per-partition, replica placement strategies:
 | `balanced-leaders` | Ensure that the leaders of each partition are evenly distributed across the broker racks  |
 | `in-rack` | Ensure that the followers for each partition are in the same rack as the leader; generally this is done when the leaders are already balanced, but this isn't required |
 | `cross-rack` | Ensure that the replicas for each partition are all in different racks; generally this is done when the leaders are already balanced, but this isn't required |
-| `static` | Specify the placement manually, via an extra `staticAssignments` field |
-| `static-in-rack` | Specify the rack placement per partition manually, via an extra `staticRackAssignments` field |
+| `static` | Specify the placement manually, via an extra `staticAssignments` field. ([example](examples/local-cluster/topics/topic-static.yaml)) |
+| `static-in-rack` | Specify the rack placement per partition manually, via an extra `staticRackAssignments` field ([example](examples/local-cluster/topics/topic-static-in-rack.yaml))|
 
 #### Picker methods
 
@@ -411,8 +411,9 @@ The `reset-offsets` command can also make changes in the cluster and should be u
 
 Apply runs are designed to be idemponent- the effects should be the same no matter how many
 times they are run, assuming everything else in the cluster remains constant (e.g., the number of
-brokers, each broker's rack, etc.). Changes in other topics should generally not effect idempotency,
-unless, possibly, if the topic is configured to use the `cluster-use` picker.
+brokers, each broker's rack, etc.). An exception is replica rebalance operations, which can be
+non-deterministic. Changes in other topics should generally not effect idempotency, unless,
+possibly, if the topic is configured to use the `cluster-use` picker.
 
 ### Interruptibility
 
@@ -527,4 +528,8 @@ details on the available versions.
 To run the `get`, `repl`, and `tail` subcommands against the local cluster,
 set `--zk-addr=localhost:2181` and leave the `--zk-prefix` flag unset.
 
-To test out `apply`, you can use the configs in `examples/local-cluster/`.
+To test out `apply`, you can use the configs in `examples/local-cluster/`. For example,
+to create all topics defined for that cluster:
+```
+topicctl apply examples/local-cluster/topics/*.yaml
+```
