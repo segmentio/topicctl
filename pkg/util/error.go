@@ -6,7 +6,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func ErrorsToError(errors map[string]error) error {
+func KafkaErrorsToErr(errors map[string]error) error {
 	var hasErrors bool
 	for _, err := range errors {
 		if err != nil {

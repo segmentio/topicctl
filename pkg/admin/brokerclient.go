@@ -474,7 +474,7 @@ func (c *BrokerAdminClient) CreateTopic(
 	if err != nil {
 		return err
 	}
-	if err = util.ErrorsToError(resp.Errors); err != nil {
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
 		return err
 	}
 	return nil
@@ -565,7 +565,7 @@ func (c *BrokerAdminClient) AddPartitions(
 	if err != nil {
 		return err
 	}
-	if err = util.ErrorsToError(resp.Errors); err != nil {
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
 		return err
 	}
 

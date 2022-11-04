@@ -578,7 +578,7 @@ func (c *ZKAdminClient) CreateTopic(
 	if err != nil {
 		return err
 	}
-	if err = util.ErrorsToError(resp.Errors); err != nil {
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
 		return err
 	}
 
