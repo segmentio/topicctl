@@ -363,6 +363,7 @@ func (r *Repl) executor(in string) {
 			-1,
 			filterRegexp,
 			command.getBoolValue("raw"),
+			command.getBoolValue("headers"),
 		)
 		if err != nil {
 			log.Errorf("Error: %+v", err)

@@ -2,6 +2,7 @@ package messages
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"regexp"
 	"strings"
@@ -161,6 +162,7 @@ func (t *TopicTailer) LogMessages(
 	maxMessages int,
 	filterRegexp string,
 	raw bool,
+	headers bool,
 ) (TailStats, error) {
 	var filterRegexpObj *regexp.Regexp
 	var err error
@@ -255,6 +257,13 @@ func (t *TopicTailer) LogMessages(
 				keyPrinter("Time:     "),
 				valuePrinter(tailMessage.Message.Time.Format(time.RFC3339)),
 			)
+			if headers {
+				fmt.Printf(
+					"%s %s\n",
+					keyPrinter("Headers:  "),
+					valuePrinter(formatHeaders(tailMessage.Message.Headers)),
+				)
+			}
 			fmt.Printf(
 				"%s %s\n",
 				keyPrinter("Key:      "),
@@ -279,4 +288,19 @@ func bytesToStr(input []byte) string {
 		return strings.TrimSpace(string(input))
 	}
 	return fmt.Sprintf("Binary [%+v]", input)
+}
+
+// formatHeaders creates a joined string with all the header keys and their
+// base64-encoded values.
+func formatHeaders(headers []kafka.Header) string {
+	builder := strings.Builder{}
+	for i, h := range headers {
+		if i > 0 {
+			builder.WriteString(", ")
+		}
+		builder.WriteString(h.Key)
+		builder.WriteString("=")
+		builder.WriteString(base64.StdEncoding.EncodeToString(h.Value))
+	}
+	return builder.String()
 }
