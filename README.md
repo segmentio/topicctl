@@ -311,6 +311,9 @@ meta:
   region: us-west-2                     # Region of the cluster
   description: |                        # Free-text description of the topic (optional)
     Test topic in my-cluster.
+  labels:                               # Custom key-value pairs purposed for topic bookkeeping (optional)
+    key1: value1
+    key2: value2
 
 spec:
   partitions: 9                         # Number of topic partitions

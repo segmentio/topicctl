@@ -84,11 +84,12 @@ type TopicConfig struct {
 // TopicMeta stores the (mostly immutable) metadata associated with a topic.
 // Inspired by the meta structs in Kubernetes objects.
 type TopicMeta struct {
-	Name        string `json:"name"`
-	Cluster     string `json:"cluster"`
-	Region      string `json:"region"`
-	Environment string `json:"environment"`
-	Description string `json:"description"`
+	Name        string            `json:"name"`
+	Cluster     string            `json:"cluster"`
+	Region      string            `json:"region"`
+	Environment string            `json:"environment"`
+	Description string            `json:"description"`
+	Labels      map[string]string `json:"labels"`
 
 	// Consumers is a list of consumers who are expected to consume from this
 	// topic.
