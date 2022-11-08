@@ -574,7 +574,14 @@ func (c *ZKAdminClient) CreateTopic(
 	}
 	log.Debugf("Creating topic with config %+v", config)
 
-	_, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	resp, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	if err != nil {
+		return err
+	}
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
+		return err
+	}
+
 	return err
 }
 

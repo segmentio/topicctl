@@ -539,3 +539,38 @@ func TestBrokerClientGetApiVersions(t *testing.T) {
 	_, err = client.getAPIVersions(ctx)
 	require.NoError(t, err)
 }
+
+func TestBrokerClientCreateTopicError(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	topicName := util.RandomString("topic-create-", 6)
+
+	err = client.CreateTopic(
+		ctx,
+		kafka.TopicConfig{
+			Topic:             topicName,
+			NumPartitions:     3,
+			ReplicationFactor: 2,
+			ConfigEntries: []kafka.ConfigEntry{
+				{
+					ConfigName:  "invalid.config",
+					ConfigValue: "invalid.value",
+				},
+			},
+		},
+	)
+	require.Error(t, err)
+}

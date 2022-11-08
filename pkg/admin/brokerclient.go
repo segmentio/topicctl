@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/zk"
 	log "github.com/sirupsen/logrus"
 )
@@ -401,6 +402,9 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	if err != nil {
 		return nil, err
 	}
+	if err = util.IncrementalAlterConfigsResponseResourcesError(resp.Resources); err != nil {
+		return nil, err
+	}
 
 	updated := []string{}
 	for _, entry := range configEntries {
@@ -439,6 +443,9 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	if err != nil {
 		return nil, err
 	}
+	if err = util.IncrementalAlterConfigsResponseResourcesError(resp.Resources); err != nil {
+		return nil, err
+	}
 
 	updated := []string{}
 	for _, entry := range configEntries {
@@ -464,7 +471,13 @@ func (c *BrokerAdminClient) CreateTopic(
 
 	resp, err := c.client.CreateTopics(ctx, &req)
 	log.Debugf("CreateTopics response: %+v (%+v)", resp, err)
-	return err
+	if err != nil {
+		return err
+	}
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
+		return err
+	}
+	return nil
 }
 
 // AssignPartitions sets the replica broker IDs for one or more partitions in a topic.
@@ -495,6 +508,13 @@ func (c *BrokerAdminClient) AssignPartitions(
 
 	resp, err := c.client.AlterPartitionReassignments(ctx, &req)
 	log.Debugf("AlterPartitionReassignments response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = resp.Error; err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -542,6 +562,12 @@ func (c *BrokerAdminClient) AddPartitions(
 
 	resp, err := c.client.CreatePartitions(ctx, &req)
 	log.Debugf("CreatePartitions response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
+		return err
+	}
 
 	return err
 }
@@ -565,6 +591,12 @@ func (c *BrokerAdminClient) RunLeaderElection(
 
 	resp, err := c.client.ElectLeaders(ctx, &req)
 	log.Debugf("ElectLeaders response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = resp.Error; err != nil {
+		return err
+	}
 
 	return err
 }
