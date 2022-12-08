@@ -156,7 +156,7 @@ func TestTopicValidate(t *testing.T) {
 			expError: true,
 		},
 		{
-			description: "double-setting local retention",
+			description: "all good double-setting local retention",
 			topicConfig: TopicConfig{
 				Meta: TopicMeta{
 					Name:        "test-topic",
@@ -172,31 +172,6 @@ func TestTopicValidate(t *testing.T) {
 					Settings: TopicSettings{
 						"local.retention.ms":    "1234",
 						"local.retention.bytes": "4567",
-						"remote.storage.enable": "true",
-					},
-					PlacementConfig: TopicPlacementConfig{
-						Strategy: PlacementStrategyAny,
-					},
-				},
-			},
-			expError: true,
-		},
-		{
-			description: "all good setting retention and local retention",
-			topicConfig: TopicConfig{
-				Meta: TopicMeta{
-					Name:        "test-topic",
-					Cluster:     "test-cluster",
-					Region:      "test-region",
-					Environment: "test-environment",
-					Description: "Bootstrapped via topicctl bootstrap",
-				},
-				Spec: TopicSpec{
-					Partitions:        2,
-					ReplicationFactor: 3,
-					RetentionMinutes:  120,
-					Settings: TopicSettings{
-						"local.retention.ms":    "1234",
 						"remote.storage.enable": "true",
 					},
 					PlacementConfig: TopicPlacementConfig{
