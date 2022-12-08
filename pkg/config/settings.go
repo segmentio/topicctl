@@ -216,6 +216,9 @@ var keyValidators = map[string]configValidator{
 		_, err := strconv.ParseBool(v)
 		return err == nil
 	},
+	"remote.log.msk.disable.policy": func(v string) bool {
+		return inValues(v, "Delete")
+	},
 	"segment.bytes": func(v string) bool {
 		intVal, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
