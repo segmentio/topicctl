@@ -3,8 +3,8 @@ package pickers
 import (
 	"sort"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/util"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/util"
 )
 
 // ClusterUsePicker is a picker that considers broker use across the entire cluster to break ties.

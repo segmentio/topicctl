@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/config"
 )
 
 // EvaluateAssignments determines whether the given assignments are consistent

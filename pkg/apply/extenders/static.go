@@ -1,6 +1,6 @@
 package extenders
 
-import "github.com/segmentio/topicctl/pkg/admin"
+import "github.com/efcloud/topicctl/pkg/admin"
 
 // StaticExtender is an Extender that ignores the current state and assigns
 // based on the value of the Assignments field. Generally intended for testing

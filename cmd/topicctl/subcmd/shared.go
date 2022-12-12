@@ -6,9 +6,9 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/config"
 	"github.com/hashicorp/go-multierror"
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

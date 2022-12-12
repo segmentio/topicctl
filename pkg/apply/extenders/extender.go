@@ -1,6 +1,6 @@
 package extenders
 
-import "github.com/segmentio/topicctl/pkg/admin"
+import "github.com/efcloud/topicctl/pkg/admin"
 
 // Extender is an interface for structs that determine how
 // to add new partitions to an existing topic.

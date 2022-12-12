@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/segmentio/topicctl/pkg/apply"
-	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/groups"
+	"github.com/efcloud/topicctl/pkg/apply"
+	"github.com/efcloud/topicctl/pkg/cli"
+	"github.com/efcloud/topicctl/pkg/groups"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

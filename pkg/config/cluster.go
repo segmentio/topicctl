@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/efcloud/topicctl/pkg/admin"
 	"github.com/hashicorp/go-multierror"
-	"github.com/segmentio/topicctl/pkg/admin"
 	log "github.com/sirupsen/logrus"
 )
 

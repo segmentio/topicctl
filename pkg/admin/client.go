@@ -3,8 +3,8 @@ package admin
 import (
 	"context"
 
+	"github.com/efcloud/topicctl/pkg/zk"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/zk"
 )
 
 // Client is an interface for interacting with a cluster for administrative tasks.

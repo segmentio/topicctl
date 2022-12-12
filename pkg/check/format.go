@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/efcloud/topicctl/pkg/util"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
-	"github.com/segmentio/topicctl/pkg/util"
 )
 
 // FormatResults generates a pretty table from topic check results.

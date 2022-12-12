@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/efcloud/topicctl/pkg/util"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
-	"github.com/segmentio/topicctl/pkg/util"
 )
 
 // FormatGroupCoordinators generates a pretty table from the results of a call to GetGroups.

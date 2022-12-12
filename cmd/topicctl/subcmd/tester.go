@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/efcloud/topicctl/pkg/apply"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/apply"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

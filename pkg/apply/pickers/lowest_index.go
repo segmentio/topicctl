@@ -1,8 +1,8 @@
 package pickers
 
 import (
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/util"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/util"
 )
 
 // LowestIndexPicker is a picker that uses broker index to break ties.

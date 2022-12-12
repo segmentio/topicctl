@@ -3,9 +3,9 @@ package assigners
 import (
 	"testing"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/apply/pickers"
-	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/apply/pickers"
+	"github.com/efcloud/topicctl/pkg/config"
 )
 
 func TestBalancedLeaderAssigner(t *testing.T) {

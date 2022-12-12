@@ -11,10 +11,10 @@ import (
 	"syscall"
 
 	"github.com/c-bata/go-prompt"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/groups"
 	"github.com/olekukonko/tablewriter"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/groups"
 	log "github.com/sirupsen/logrus"
 )
 

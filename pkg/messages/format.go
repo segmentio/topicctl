@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/efcloud/topicctl/pkg/util"
 	"github.com/olekukonko/tablewriter"
-	"github.com/segmentio/topicctl/pkg/util"
 )
 
 // FormatTailStats generates a pretty table from a TailStats instance.

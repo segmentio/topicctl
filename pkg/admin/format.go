@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/efcloud/topicctl/pkg/util"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
-	"github.com/segmentio/topicctl/pkg/util"
 )
 
 // FormatBrokers creates a pretty table from a list of brokers.

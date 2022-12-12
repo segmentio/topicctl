@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/efcloud/topicctl/pkg/cli"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

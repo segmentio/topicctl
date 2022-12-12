@@ -3,8 +3,8 @@ package assigners
 import (
 	"testing"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 

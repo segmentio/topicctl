@@ -1,7 +1,7 @@
 package assigners
 
 import (
-	"github.com/segmentio/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/admin"
 )
 
 // Assigner is an interface for structs that figure out how to

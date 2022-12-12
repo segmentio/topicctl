@@ -3,8 +3,8 @@ package subcmd
 import (
 	"context"
 
-	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/efcloud/topicctl/pkg/cli"
+	"github.com/efcloud/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

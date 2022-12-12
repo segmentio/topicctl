@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/apply/pickers"
-	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/apply/pickers"
+	"github.com/efcloud/topicctl/pkg/config"
 )
 
 func TestCrossRackAssignerThreeReplicas(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/segmentio/topicctl/pkg/util"
+	"github.com/efcloud/topicctl/pkg/util"
 )
 
 const (

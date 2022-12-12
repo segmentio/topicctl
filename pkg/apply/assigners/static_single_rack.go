@@ -3,8 +3,8 @@ package assigners
 import (
 	"fmt"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/apply/pickers"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/apply/pickers"
 )
 
 // StaticSingleRackAssigner is an Assigner that assigns replicas within a static rack per

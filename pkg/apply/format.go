@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/efcloud/topicctl/pkg/config"
 	"github.com/olekukonko/tablewriter"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 

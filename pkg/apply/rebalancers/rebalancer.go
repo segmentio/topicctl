@@ -1,7 +1,7 @@
 package rebalancers
 
 import (
-	"github.com/segmentio/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/admin"
 )
 
 // Rebalancer is an interface for structs that figure out how to

@@ -1,6 +1,6 @@
 package assigners
 
-import "github.com/segmentio/topicctl/pkg/admin"
+import "github.com/efcloud/topicctl/pkg/admin"
 
 // StaticAssigner is an Assigner that ignores the current state and assigns
 // based on the value of the Assignments field. Generally intended for

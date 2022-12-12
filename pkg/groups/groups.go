@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/messages"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/messages"
 	log "github.com/sirupsen/logrus"
 )
 

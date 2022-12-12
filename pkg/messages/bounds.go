@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/efcloud/topicctl/pkg/admin"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	log "github.com/sirupsen/logrus"
 
 	// Read snappy-compressed messages

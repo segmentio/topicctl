@@ -3,10 +3,10 @@ package extenders
 import (
 	"testing"
 
-	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/apply/assigners"
-	"github.com/segmentio/topicctl/pkg/apply/pickers"
-	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/efcloud/topicctl/pkg/admin"
+	"github.com/efcloud/topicctl/pkg/apply/assigners"
+	"github.com/efcloud/topicctl/pkg/apply/pickers"
+	"github.com/efcloud/topicctl/pkg/config"
 )
 
 func TestBalancedExtenderCrossRack(t *testing.T) {

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/efcloud/topicctl/pkg/admin"
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/admin"
 	log "github.com/sirupsen/logrus"
 )
 
