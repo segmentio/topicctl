@@ -216,7 +216,7 @@ func (t TopicConfig) Validate(numRacks int) error {
 	if (t.Spec.Settings["local.retention.bytes"] != nil || t.Spec.Settings["local.retention.ms"] != nil) && t.Spec.Settings["remote.storage.enable"] == nil {
 		err = multierror.Append(
 			err,
-			errors.New("Setting local storage retention requires remote.storage.enable to be set in settings"),
+			errors.New("Setting local retention parameters requires remote.storage.enable to be set in settings"),
 		)
 	}
 
