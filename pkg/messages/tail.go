@@ -234,7 +234,7 @@ func (t *TopicTailer) LogMessages(
 				messagePrinter = fmt.Sprintf
 			} else {
 				dividerPrinter = color.New(color.FgGreen, color.Faint).SprintfFunc()
-				keyPrinter = color.New(color.FgBlue, color.Bold).SprintfFunc()
+				keyPrinter = color.New(color.FgCyan, color.Bold).SprintfFunc()
 				valuePrinter = color.New(color.FgYellow).SprintfFunc()
 				messagePrinter = fmt.Sprintf
 			}

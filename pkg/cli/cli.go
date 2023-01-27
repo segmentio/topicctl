@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/fatih/color"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -91,11 +92,13 @@ func (c *CLIRunner) ApplyTopic(
 		return err
 	}
 
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
+
 	c.printer(
 		"Starting apply for topic %s in environment %s, cluster %s",
-		applierConfig.TopicConfig.Meta.Name,
-		applierConfig.TopicConfig.Meta.Environment,
-		applierConfig.TopicConfig.Meta.Cluster,
+		highlighter(applierConfig.TopicConfig.Meta.Name),
+		highlighter(applierConfig.TopicConfig.Meta.Environment),
+		highlighter(applierConfig.TopicConfig.Meta.Cluster),
 	)
 
 	err = applier.Apply(ctx)

@@ -475,7 +475,7 @@ func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) str
 		} else if !inSync {
 			statusPrinter = color.New(color.FgRed).SprintfFunc()
 		} else if !correctLeader {
-			statusPrinter = color.New(color.FgBlue).SprintfFunc()
+			statusPrinter = color.New(color.FgCyan).SprintfFunc()
 		}
 
 		var statusStr string
@@ -797,7 +797,7 @@ func assignmentRacksDiffStr(
 	elements := []string{}
 
 	added := color.New(color.FgRed).SprintfFunc()
-	moved := color.New(color.FgBlue).SprintfFunc()
+	moved := color.New(color.FgCyan).SprintfFunc()
 
 	for r, replica := range new.Replicas {
 		var element string
@@ -829,7 +829,7 @@ func partitionCountDiffStr(diffValue int) string {
 		decreasedSprintf = fmt.Sprintf
 	} else {
 		increasedSprintf = color.New(color.FgRed).SprintfFunc()
-		decreasedSprintf = color.New(color.FgBlue).SprintfFunc()
+		decreasedSprintf = color.New(color.FgCyan).SprintfFunc()
 	}
 
 	if diffValue > 0 {
