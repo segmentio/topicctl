@@ -1,0 +1,37 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "DP-556-migrate-topicctl-to-github-actions" ]
+  pull_request:
+    branches: [ "DP-556-migrate-topicctl-to-github-actions" ]
+
+jobs:
+
+  publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: setup env variables
+      id: vars
+      run: |
+        echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+        echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
+        echo "AWS_ACCOUNT_ID=528451384384" >> $GITHUB_ENV
+    - name: ECR Login
+      run: |
+        sudo apt-get update && sudo apt-get install --yes python3 python3-pip
+        pip3 install awscli
+        $(aws ecr get-login --no-include-email --region ${AWS_REGION} --registry-ids ${AWS_ACCOUNT_ID})
+    - name: Build and push image
+      run:  |
+        export SHORT_GIT_SHA=$(echo ${CIRCLE_SHA1} | cut -c -7)
+        docker context create buildx-build
+        docker buildx create --use buildx-build
+        docker buildx build \
+          -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_GIT_SHA} \
+          --build-arg VERSION=${SHORT_GIT_SHA} \
+          --push \
+          .
