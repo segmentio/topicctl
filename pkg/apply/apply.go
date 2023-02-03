@@ -1064,7 +1064,7 @@ func (t *TopicApplier) applyThrottles(
 	var throttledTopic bool
 
 	if len(topicConfigEntries) > 0 {
-		log.Infof("Applying topic throttles (%d MB/s): %+v", t.throttleBytes/1000000, topicConfigEntries)
+		log.Infof("Applying topic throttles (%d MB/sec): %+v", t.throttleBytes/1000000, topicConfigEntries)
 		_, err := t.adminClient.UpdateTopicConfig(
 			ctx,
 			t.topicName,
