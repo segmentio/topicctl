@@ -26,11 +26,10 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build and push image
       run:  |
-        export SHORT_GIT_SHA=$(echo ${SHORT_SHA} | cut -c -7)
         docker context create buildx-build
         docker buildx create --use buildx-build
         docker buildx build \
-          -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_SHA} \
-          --build-arg VERSION=${SHORT_GIT_SHA} \
+          -t ghcr.io//topicctl:${SHORT_SHA} \
+          --build-arg VERSION=${SHORT_SHA} \
           --push \
           .
