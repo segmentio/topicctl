@@ -18,20 +18,19 @@ jobs:
       id: vars
       run: |
         echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-        echo "AWS_REGION=us-west-2" >> $GITHUB_ENV
-        echo "AWS_ACCOUNT_ID=528451384384" >> $GITHUB_ENV
-    - name: ECR Login
-      run: |
-        sudo apt-get update && sudo apt-get install --yes python3 python3-pip
-        pip3 install awscli
-        $(aws ecr get-login --no-include-email --region ${AWS_REGION} --registry-ids ${AWS_ACCOUNT_ID})
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2.0.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build and push image
       run:  |
-        export SHORT_GIT_SHA=$(echo ${CIRCLE_SHA1} | cut -c -7)
+        export SHORT_GIT_SHA=$(echo ${SHORT_SHA} | cut -c -7)
         docker context create buildx-build
         docker buildx create --use buildx-build
         docker buildx build \
-          -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_GIT_SHA} \
+          -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/topicctl:${SHORT_SHA} \
           --build-arg VERSION=${SHORT_GIT_SHA} \
           --push \
           .
