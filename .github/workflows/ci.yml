@@ -38,7 +38,7 @@ jobs:
       kafka2:
         image: wurstmeister/kafka:2.11-0.10.2.2
         ports:
-          - "9092:9092"
+          - "9093:9092"
         env:
           KAFKA_BROKER_ID: 2
           KAFKA_BROKER_RACK: zone1
@@ -49,7 +49,7 @@ jobs:
       kafka3:
         image: wurstmeister/kafka:2.11-0.10.2.2
         ports:
-          - "9092:9092"
+          - "9094:9092"
         env:
           KAFKA_BROKER_ID: 3
           KAFKA_BROKER_RACK: zone2
@@ -60,7 +60,7 @@ jobs:
       kafka4:
         image: wurstmeister/kafka:2.11-0.10.2.2
         ports:
-          - "9092:9092"
+          - "9095:9092"
         env: 
           KAFKA_BROKER_ID: 4
           KAFKA_BROKER_RACK: zone2
@@ -71,7 +71,7 @@ jobs:
       kafka5:
         image: wurstmeister/kafka:2.11-0.10.2.2
         ports:
-          - "9092:9092"
+          - "9096:9092"
         env: 
           KAFKA_BROKER_ID: 5
           KAFKA_BROKER_RACK: zone3
@@ -82,7 +82,7 @@ jobs:
       kafka6:
         image: wurstmeister/kafka:2.11-0.10.2.2
         ports:
-          - "9092:9092"
+          - "9097:9092"
         env: 
           KAFKA_BROKER_ID: 6
           KAFKA_BROKER_RACK: zone3
