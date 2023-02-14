@@ -19,6 +19,8 @@ jobs:
           ECR_ENABLED: True
           KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
           KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+      
+      
       zookeeper:
         image: wurstmeister/zookeeper
         ports:
@@ -98,6 +100,9 @@ jobs:
     - name: Display Go version
       run: go version
     - name: Run tests
+      env:
+        KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+        KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
       run: make test
 
 
