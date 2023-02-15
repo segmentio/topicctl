@@ -31,13 +31,6 @@ func TestKafkaAddr() string {
 	// Inside docker-compose (i.e., in CI), we need to use a different
 	// address
 	testKafkaAddr, ok := os.LookupEnv("KAFKA_TOPICS_TEST_KAFKA_ADDR")
-	fmt.Printf("AAAAAAAAAAAAAAA\n")
-	fmt.Printf("AAAAAAAAAAAAAAA\n")
-	fmt.Printf("AAAAAAAAAAAAAAA\n")
-	fmt.Printf("%s\n", testKafkaAddr)
-	fmt.Printf("AAAAAAAAAAAAAAA\n")
-	fmt.Printf("AAAAAAAAAAAAAAA\n")
-	fmt.Printf("AAAAAAAAAAAAAAA\n")
 	if !ok {
 		return "169.254.123.123:9092"
 	}
