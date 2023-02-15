@@ -10,6 +10,7 @@ jobs:
   tests:
     uses: 
       ./.github/workflows/test010.yml
+      ./.github/workflows/test241.yml
   publish-ghcr:
     runs-on: ubuntu-latest
     needs: [tests]
