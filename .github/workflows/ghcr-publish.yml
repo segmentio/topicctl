@@ -8,9 +8,10 @@ on:
 
 jobs:
   tests:
-    uses: 
-      ./.github/workflows/test010.yml
-      ./.github/workflows/test241.yml
+    runs-on: ubuntu-latest
+    steps:
+    - uses:  ./.github/workflows/test010.yml
+    - uses:  ./.github/workflows/test241.yml
   publish-ghcr:
     runs-on: ubuntu-latest
     needs: [tests]
