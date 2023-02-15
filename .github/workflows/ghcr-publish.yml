@@ -7,14 +7,15 @@ on:
     branches: [ "DP-556-migrate-topicctl-to-github-actions" ]
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-    - uses:  ./.github/workflows/test010.yml
-    - uses:  ./.github/workflows/test241.yml
+  test010:
+    uses: 
+      ./.github/workflows/test010.yml
+  test241:
+    uses: 
+      ./.github/workflows/test241.yml
   publish-ghcr:
     runs-on: ubuntu-latest
-    needs: [tests]
+    needs: [test010, test241]
     steps:
     - uses: actions/checkout@v3
     - name: setup env variables
