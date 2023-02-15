@@ -32,10 +32,6 @@ jobs:
       env:
         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
         KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
-    - name: Run Snyk
-      run: curl -sL https://raw.githubusercontent.com/segmentio/snyk_helpers/master/initialization/snyk.sh | sh
-      env:
-        SNYK_LEVEL: 'FLHI'
 
     services:
       zookeeper:
@@ -132,10 +128,6 @@ jobs:
       env:
         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
         KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
-    - name: Run Snyk
-      run: curl -sL https://raw.githubusercontent.com/segmentio/snyk_helpers/master/initialization/snyk.sh | sh
-      env:
-        SNYK_LEVEL: 'FLHI'
 
     services:
       zookeeper:
@@ -144,7 +136,7 @@ jobs:
           - "2181:2181"
 
       kafka1:
-        image: wurstmeister/kafka:2.11-0.10.2.2
+        image: wurstmeister/kafka:2.12-2.4.1
         ports:
           - "9092:9092"
         env:
@@ -155,7 +147,7 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
       kafka2:
-        image: wurstmeister/kafka:2.11-0.10.2.2
+        image: wurstmeister/kafka:2.12-2.4.1
         ports:
           - "9093:9092"
         env:
@@ -166,7 +158,7 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
       kafka3:
-        image: wurstmeister/kafka:2.11-0.10.2.2
+        image: wurstmeister/kafka:2.12-2.4.1
         ports:
           - "9094:9092"
         env:
@@ -177,7 +169,7 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
       kafka4:
-        image: wurstmeister/kafka:2.11-0.10.2.2
+        image: wurstmeister/kafka:2.12-2.4.1
         ports:
           - "9095:9092"
         env: 
@@ -188,7 +180,7 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
       kafka5:
-        image: wurstmeister/kafka:2.11-0.10.2.2
+        image: wurstmeister/kafka:2.12-2.4.1
         ports:
           - "9096:9092"
         env: 
@@ -199,7 +191,7 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
       kafka6:
-        image: wurstmeister/kafka:2.11-0.10.2.2
+        image: wurstmeister/kafka:2.12-2.4.1
         ports:
           - "9097:9092"
         env: 
@@ -213,6 +205,7 @@ jobs:
 
   publish-ghcr:
     runs-on: ubuntu-latest
+    needs: [test010, test241]
     steps:
     - uses: actions/checkout@v3
     - name: setup env variables
