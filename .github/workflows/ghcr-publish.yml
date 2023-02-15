@@ -9,8 +9,8 @@ on:
 jobs:
   tests:
     uses: 
-      segmentio/topicctl/.github/workflows/test010.yml
-      segmentio/topicctl/.github/workflows/test241.yml
+      segmentio/topicctl/.github/workflows/test010.yml@DP-556-migrate-topicctl-to-github-actions
+      segmentio/topicctl/.github/workflows/test241.yml@DP-556-migrate-topicctl-to-github-actions
   publish-ghcr:
     runs-on: ubuntu-latest
     needs: [tests]
