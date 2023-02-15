@@ -27,7 +27,7 @@ jobs:
         docker context create buildx-build
         docker buildx create --use buildx-build
         docker buildx build \
-          -t ghcr.io/segmentio/topicctl:${SHORT_SHA} \
+          -t ghcr.io/segment/topicctl:${SHORT_SHA} \
           --build-arg VERSION=${SHORT_SHA} \
           --push \
           .
