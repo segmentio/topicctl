@@ -1,0 +1,101 @@
+name: test010
+
+on: [workflow_call]
+
+jobs:
+
+  test010:
+    runs-on: ubuntu-latest
+    container:
+      image: cimg/go:1.19
+      env:
+        GO111MODULE: "on"
+        ECR_ENABLED: True
+        KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
+        KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+    steps:
+    - name: Check out repository code 
+      uses: actions/checkout@v3
+    - name: Go setup
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+    - name: Display Go version
+      run: go version
+    - name: Run tests
+      run: make test
+      env:
+        KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
+        KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+
+    services:
+      zookeeper:
+        image: wurstmeister/zookeeper
+        ports:
+          - "2181:2181"
+
+      kafka1:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9092:9092"
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_BROKER_RACK: zone1
+          KAFKA_ADVERTISED_HOST_NAME: kafka1
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka2:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9093:9092"
+        env:
+          KAFKA_BROKER_ID: 2
+          KAFKA_BROKER_RACK: zone1
+          KAFKA_ADVERTISED_HOST_NAME: kafka2
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka3:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9094:9092"
+        env:
+          KAFKA_BROKER_ID: 3
+          KAFKA_BROKER_RACK: zone2
+          KAFKA_ADVERTISED_HOST_NAME: kafka3
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka4:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9095:9092"
+        env: 
+          KAFKA_BROKER_ID: 4
+          KAFKA_BROKER_RACK: zone2
+          KAFKA_ADVERTISED_HOST_NAME: kafka4
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka5:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9096:9092"
+        env: 
+          KAFKA_BROKER_ID: 5
+          KAFKA_BROKER_RACK: zone3
+          KAFKA_ADVERTISED_HOST_NAME: kafka5
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka6:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9097:9092"
+        env: 
+          KAFKA_BROKER_ID: 6
+          KAFKA_BROKER_RACK: zone3
+          KAFKA_ADVERTISED_HOST_NAME: kafka6
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
