@@ -152,7 +152,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		}
 		connector.Dialer = &kafka.Dialer{
 			SASLMechanism: mechanismClient,
-			Timeout:       10 * time.Second,
+			Timeout:       30 * time.Second,
 			TLS:           tlsConfig,
 		}
 	}
