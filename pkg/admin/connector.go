@@ -170,7 +170,9 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 			TLS:  tlsConfig,
 			// Hotfix for https://github.com/efcloud/topicctl/issues/112
 			MetadataTTL: 10 * time.Minute,
+			DialTimeout: defaultTimeout,
 		},
+		Timeout: defaultTimeout,
 	}
 
 	return connector, nil
