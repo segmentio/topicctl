@@ -169,7 +169,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 			SASL: mechanismClient,
 			TLS:  tlsConfig,
 			// Hotfix for https://github.com/efcloud/topicctl/issues/112
-			MetadataTTL: 10 * time.Minute,
+			MetadataTTL: defaultTimeout,
 			DialTimeout: defaultTimeout,
 		},
 		Timeout: defaultTimeout,
