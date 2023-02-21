@@ -28,7 +28,7 @@ const (
 	backoffInitSleepDuration = 200 * time.Millisecond
 
 	// Connection timeout
-	connTimeout = 10 * time.Second
+	connTimeout = 30 * time.Second
 )
 
 // Bounds represents the start and end "bounds" of the messages in

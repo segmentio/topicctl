@@ -152,7 +152,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		}
 		connector.Dialer = &kafka.Dialer{
 			SASLMechanism: mechanismClient,
-			Timeout:       10 * time.Second,
+			Timeout:       30 * time.Second,
 			TLS:           tlsConfig,
 		}
 	}
@@ -169,8 +169,10 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 			SASL: mechanismClient,
 			TLS:  tlsConfig,
 			// Hotfix for https://github.com/efcloud/topicctl/issues/112
-			MetadataTTL: 10 * time.Minute,
+			MetadataTTL: defaultTimeout,
+			DialTimeout: defaultTimeout,
 		},
+		Timeout: defaultTimeout,
 	}
 
 	return connector, nil
