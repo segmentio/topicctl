@@ -34,3 +34,18 @@ func IncrementalAlterConfigsResponseResourcesError(resources []kafka.Incremental
 	}
 	return nil
 }
+
+func AlterPartitionReassignmentsRequestAssignmentError(results []kafka.AlterPartitionReassignmentsResponsePartitionResult) error {
+	errors := map[int]error{}
+	var hasErrors bool
+	for _, result := range results {
+		if result.Error != nil {
+			hasErrors = true
+			errors[result.PartitionID] = result.Error
+		}
+	}
+	if hasErrors {
+		return fmt.Errorf("%+v", errors)
+	}
+	return nil
+}
