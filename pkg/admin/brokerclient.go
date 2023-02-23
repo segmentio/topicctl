@@ -514,6 +514,9 @@ func (c *BrokerAdminClient) AssignPartitions(
 	if err = resp.Error; err != nil {
 		return err
 	}
+	if err = util.AlterPartitionReassignmentsRequestAssignmentError(resp.PartitionResults); err != nil {
+		return err
+	}
 
 	return err
 }
