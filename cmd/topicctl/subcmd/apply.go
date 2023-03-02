@@ -200,6 +200,7 @@ func applyTopic(
 			applyConfig.dryRun,
 			applyConfig.shared.saslUsername,
 			applyConfig.shared.saslPassword,
+			applyConfig.shared.saslAssumeRole,
 		)
 		if err != nil {
 			return err

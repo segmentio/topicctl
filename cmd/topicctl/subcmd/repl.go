@@ -32,7 +32,7 @@ func replPreRun(cmd *cobra.Command, args []string) error {
 
 func replRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
-	sess := session.Must(session.NewSession())
+	sess, _ := session.NewSession()
 
 	adminClient, err := replConfig.shared.getAdminClient(ctx, sess, true)
 	if err != nil {

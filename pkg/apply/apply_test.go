@@ -879,7 +879,7 @@ func TestApplyOverrides(t *testing.T) {
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "", "")
 	require.NoError(t, err)
 
 	applier, err := NewTopicApplier(
@@ -922,7 +922,7 @@ func testApplier(
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "", "")
 	require.NoError(t, err)
 
 	applier, err := NewTopicApplier(

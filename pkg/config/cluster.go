@@ -111,6 +111,9 @@ type SASLConfig struct {
 
 	// Password is the SASL password. Ignored if mechanism is AWS-MSK-IAM.
 	Password string `json:"password"`
+
+	// Intermediate role ARN to assume. Only used if mechanism is AWS-MSK-IAM.
+	AssumeRole string `json:"assumeRole"`
 }
 
 // Validate evaluates whether the cluster config is valid.
@@ -165,6 +168,10 @@ func (c ClusterConfig) Validate() error {
 			(c.Spec.SASL.Username != "" || c.Spec.SASL.Password != "") {
 			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
 		}
+
+		if saslMechanism != admin.SASLMechanismAWSMSKIAM && c.Spec.SASL.AssumeRole != "" {
+			log.Warn("AssumeRole is ignored unless using SASL AWS-MSK-IAM")
+		}
 	}
 
 	return err
@@ -187,12 +194,14 @@ func (c ClusterConfig) NewAdminClient(
 	readOnly bool,
 	usernameOverride string,
 	passwordOverride string,
+	assumeRoleOverride string,
 ) (admin.Client, error) {
 	if len(c.Spec.ZKAddrs) == 0 {
 		log.Debug("No ZK addresses provided, using broker admin client")
 
 		var saslUsername string
 		var saslPassword string
+		var saslAssumeRole string
 		if usernameOverride != "" {
 			log.Debugf("Setting SASL username from override value")
 			saslUsername = usernameOverride
@@ -205,6 +214,13 @@ func (c ClusterConfig) NewAdminClient(
 			saslPassword = passwordOverride
 		} else {
 			saslPassword = c.Spec.SASL.Password
+		}
+
+		if assumeRoleOverride != "" {
+			log.Debugf("Setting SASL assume role from override value")
+			saslAssumeRole = assumeRoleOverride
+		} else {
+			saslAssumeRole = c.Spec.SASL.AssumeRole
 		}
 
 		var saslMechanism admin.SASLMechanism
@@ -231,10 +247,11 @@ func (c ClusterConfig) NewAdminClient(
 						SkipVerify: c.Spec.TLS.SkipVerify,
 					},
 					SASL: admin.SASLConfig{
-						Enabled:   c.Spec.SASL.Enabled,
-						Mechanism: saslMechanism,
-						Username:  saslUsername,
-						Password:  saslPassword,
+						Enabled:    c.Spec.SASL.Enabled,
+						Mechanism:  saslMechanism,
+						Username:   saslUsername,
+						Password:   saslPassword,
+						AssumeRole: saslAssumeRole,
 					},
 				},
 				ExpectedClusterID: c.Spec.ClusterID,
