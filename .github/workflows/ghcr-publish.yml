@@ -18,6 +18,12 @@ jobs:
     needs: [test010, test241]
     steps:
     - uses: actions/checkout@v3
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high --fail-on=upgradable
     - name: setup env variables
       id: vars
       run: |
