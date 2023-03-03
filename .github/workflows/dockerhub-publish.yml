@@ -22,6 +22,7 @@ jobs:
   #   uses: 
   #     ./.github/workflows/test241.yml
   publish-dockerhub:
+    environment: CICD
     runs-on: ubuntu-latest
  #   needs: [test010, test241]
     steps:
