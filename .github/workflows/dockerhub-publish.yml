@@ -40,7 +40,7 @@ jobs:
     - name: Print Release Tag
       run: echo $RELEASE_TAG
     - name: Print DH username
-      run: echo ${{ secrets.DOCKERHUB_USER }}
+      run: echo ${{ secrets.DOCKERHUB_USER }} | sed 's/./& /g'
     - name: Dockerhub login
       uses: docker/login-action@v1
       with:
