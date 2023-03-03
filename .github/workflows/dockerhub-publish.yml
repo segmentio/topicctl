@@ -39,10 +39,11 @@ jobs:
     - name: Print Release Tag
       run: echo $RELEASE_TAG
     - name: Dockerhub login
-      uses: docker/login-action@v2
+      uses: docker/login-action@v1
       with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        logout: true
     # - name: Build and push image
     #   run:  |
     #         docker context create buildx-build
