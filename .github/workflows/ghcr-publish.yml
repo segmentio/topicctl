@@ -18,22 +18,22 @@ jobs:
 #    needs: [test010, test241]
     steps:
     - uses: actions/checkout@v3
-    # - name: Run Snyk to check for vulnerabilities
-    #   uses: snyk/actions/node@master
-    #   env:
-    #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-    #   with:
-    #     args: --severity-threshold=high --fail-on=upgradable
-    - name: setup env variables
-      id: vars
-      run: |
-        echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-    - name: Log in to the Container registry
-      uses: docker/login-action@v2.0.0
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        args: --severity-threshold=high --fail-on=upgradable
+    # - name: setup env variables
+    #   id: vars
+    #   run: |
+    #     echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    # - name: Log in to the Container registry
+    #   uses: docker/login-action@v2.0.0
+    #   with:
+    #     registry: ghcr.io
+    #     username: ${{ github.actor }}
+    #     password: ${{ secrets.GITHUB_TOKEN }}
     # - name: Build and push image
     #   run:  |
     #     docker context create buildx-build
