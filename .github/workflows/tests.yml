@@ -1,4 +1,4 @@
-name: ghcr-publish
+name: tests
 
 on:
   push:
