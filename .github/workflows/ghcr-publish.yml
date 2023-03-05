@@ -2,9 +2,9 @@ name: ghcr-publish
 
 on:
   push:
-    branches: [ "master", "v0", "DP-556-migrate-topicctl-to-github-actions" ]
+    branches: [ "master", "v0"]
   pull_request:
-    branches: [ "master", "v0", "DP-556-migrate-topicctl-to-github-actions" ]
+    branches: [ "master", "v0"]
 
 jobs:
   test010:
