@@ -238,6 +238,7 @@ jobs:
       id: vars
       run: |
         echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - run: echo "publishing the image ghcr.io/segmentio/topicctl:${SHORT_SHA}"
     - name: Log in to the Container registry
       uses: docker/login-action@v2
       with:
@@ -266,8 +267,7 @@ jobs:
     if: ${{ ( github.ref_type == 'tag' ) && ( needs.setup.outputs.version-tag != '') }}
     steps:
     - uses: actions/checkout@v3
-    - name: Print Release Tag
-      run: echo "publishing the release version $RELEASE_TAG"
+    - run: echo "publishing the release version segment/topicctl:${RELEASE_TAG}"
     - name: Dockerhub login
       uses: docker/login-action@v2
       with:
