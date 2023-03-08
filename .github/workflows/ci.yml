@@ -27,7 +27,6 @@ jobs:
       image: cimg/go:1.19
       env:
         GO111MODULE: "on"
-        ECR_ENABLED: True
         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
         KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
     steps:
@@ -124,7 +123,6 @@ jobs:
       image: cimg/go:1.19
       env:
         GO111MODULE: "on"
-        ECR_ENABLED: True
         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
         KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
     steps:
