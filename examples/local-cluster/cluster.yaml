@@ -8,7 +8,7 @@ meta:
 
 spec:
   bootstrapAddrs:
-    - localhost:9092
+    - localhost:19092
 
   # Uncomment these lines to access cluster via ZooKeeper instead of broker APIs (required
   # for older cluster versions).

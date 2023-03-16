@@ -1,7 +1,9 @@
+// works for latest
 package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -395,8 +397,95 @@ func (c *CLIRunner) GetMemberLags(
 	return nil
 }
 
-// GetPartitions fetches the details of each partition in a topic and prints out a summary for
-// user inspection.
+func (c *CLIRunner) ResetOffsetsToLatestorEarliest(
+	ctx context.Context,
+	topic string,
+	groupID string,
+	partitions []int,
+	isEarliest bool,
+) error {
+
+	topicInfo, err := c.adminClient.GetTopic(ctx, topic, false)
+	if err != nil {
+		return err
+	}
+
+	partitionIDsMap := map[int]struct{}{}
+	for _, partitionInfo := range topicInfo.Partitions {
+		partitionIDsMap[partitionInfo.ID] = struct{}{}
+	}
+
+	connector := c.adminClient.GetConnector()
+
+	offsets := map[int]int64{}
+	partitionOffsets := map[int]int64{}
+
+	if len(partitions) > 0 {
+		for _, partition := range partitions {
+			if _, ok := partitionIDsMap[partition]; !ok {
+				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
+			}
+			partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+			if err != nil {
+				return err
+			}
+			if isEarliest {
+				partitionOffsets[partition] = partitionBound.FirstOffset
+
+			} else {
+				partitionOffsets[partition] = partitionBound.LastOffset
+			}
+
+			//partitionOffsets[partition] = resetOffsetsConfig.offset
+		}
+	} else {
+		bounds, err := messages.GetAllPartitionBounds(ctx, connector, topic, offsets)
+		if err != nil {
+			return err
+		}
+
+		if isEarliest {
+			for _, bound := range bounds {
+				partitionOffsets[bound.Partition] = bound.FirstOffset
+			}
+		} else {
+			for _, bound := range bounds {
+				partitionOffsets[bound.Partition] = bound.LastOffset
+			}
+		}
+	}
+
+	log.Infof(
+		"This will reset the offsets for the following partitions in topic %s for group %s:\n%s",
+		topic,
+		groupID,
+		groups.FormatPartitionOffsets(partitionOffsets),
+	)
+	log.Info(
+		"Please ensure that all other consumers are stopped, otherwise the reset might be overridden.",
+	)
+	ok, _ := apply.Confirm("OK to continue?", false)
+	if !ok {
+		return errors.New("Stopping because of user response")
+	}
+	c.startSpinner()
+	err2 := groups.ResetOffsets(
+		ctx,
+		c.adminClient.GetConnector(),
+		topic,
+		groupID,
+		partitionOffsets,
+	)
+	c.stopSpinner()
+	if err2 != nil {
+		return err2
+	}
+
+	c.printer("Success")
+
+	return nil
+}
+
 func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
 	c.startSpinner()
 
