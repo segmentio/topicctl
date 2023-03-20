@@ -1,4 +1,3 @@
-// works for latest
 package cli
 
 import (
