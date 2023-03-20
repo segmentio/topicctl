@@ -235,7 +235,7 @@ jobs:
     - name: setup env variables
       id: vars
       run: |
-        echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+        echo "SHORT_SHA=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
     - run: echo "publishing the image ghcr.io/segmentio/topicctl:${SHORT_SHA}"
     - name: Log in to the Container registry
       uses: docker/login-action@v2
