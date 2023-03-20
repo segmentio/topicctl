@@ -101,7 +101,6 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	partitionIDsMap := map[int]struct{}{}
-
 	for _, partitionInfo := range topicInfo.Partitions {
 		partitionIDsMap[partitionInfo.ID] = struct{}{}
 	}
