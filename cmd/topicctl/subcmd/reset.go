@@ -93,14 +93,8 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	topic := args[0]
 	group := args[1]
 
-	//getting topics
-	topicInfo, err := adminClient.GetTopic(ctx, topic, false)
-	if err != nil {
-		return err
-	}
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 
-	//see if we can simplify this here
 	var isEarliest bool
 	if resetOffsetsConfig.toLatest {
 		isEarliest = false
@@ -122,6 +116,10 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		)
 	}
 
+	topicInfo, err := adminClient.GetTopic(ctx, topic, false)
+	if err != nil {
+		return err
+	}
 	partitionIDsMap := map[int]struct{}{}
 
 	for _, partitionInfo := range topicInfo.Partitions {
@@ -159,8 +157,6 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		return errors.New("Stopping because of user response")
 	}
 
-	//change this , laready initalized above
-	cliRunner = cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 	return cliRunner.ResetOffsets(
 		ctx,
 		topic,
