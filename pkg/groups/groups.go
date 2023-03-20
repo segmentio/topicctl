@@ -192,3 +192,30 @@ func ResetOffsets(
 		},
 	)
 }
+
+// getOffset gets offset for a given topic partition for resetting offsets for consumer group
+func GetOffset(
+	ctx context.Context,
+	connector *admin.Connector,
+	topic string,
+	strategy string,
+	partition int,
+	offset int64,
+) (int64, error) {
+	if strategy == "earliest" {
+		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+		if err != nil {
+			return 0, err
+		}
+		return partitionBound.FirstOffset, nil
+	}
+	if strategy == "latest" {
+		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+		if err != nil {
+			return 0, err
+		}
+		return partitionBound.LastOffset, nil
+	} else {
+		return offset, nil
+	}
+}
