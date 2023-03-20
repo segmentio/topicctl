@@ -47,12 +47,12 @@ func init() {
 
 	resetOffsetsCmd.Flags().BoolVar(
 		&resetOffsetsConfig.toEarliest,
-		"toEarliest",
+		"to-earliest",
 		false,
 		"Resets offsets of consumer group members to earliest offsets of partitions")
 	resetOffsetsCmd.Flags().BoolVar(
 		&resetOffsetsConfig.toLatest,
-		"toLatest",
+		"to-latest",
 		false,
 		"Resets offsets of consumer group members to latest offsets of partitions")
 
