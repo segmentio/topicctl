@@ -435,8 +435,6 @@ func (c *CLIRunner) ResetOffsetsToLatestorEarliest(
 			} else {
 				partitionOffsets[partition] = partitionBound.LastOffset
 			}
-
-			//partitionOffsets[partition] = resetOffsetsConfig.offset
 		}
 	} else {
 		bounds, err := messages.GetAllPartitionBounds(ctx, connector, topic, offsets)
@@ -469,7 +467,7 @@ func (c *CLIRunner) ResetOffsetsToLatestorEarliest(
 		return errors.New("Stopping because of user response")
 	}
 	c.startSpinner()
-	err2 := groups.ResetOffsets(
+	err = groups.ResetOffsets(
 		ctx,
 		c.adminClient.GetConnector(),
 		topic,
@@ -477,8 +475,8 @@ func (c *CLIRunner) ResetOffsetsToLatestorEarliest(
 		partitionOffsets,
 	)
 	c.stopSpinner()
-	if err2 != nil {
-		return err2
+	if err != nil {
+		return err
 	}
 
 	c.printer("Success")
@@ -486,6 +484,8 @@ func (c *CLIRunner) ResetOffsetsToLatestorEarliest(
 	return nil
 }
 
+// GetPartitions fetches the details of each partition in a topic and prints out a summary for
+// user inspection.
 func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
 	c.startSpinner()
 
