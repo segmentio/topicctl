@@ -148,7 +148,6 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
-
 	return cliRunner.ResetOffsets(
 		ctx,
 		topic,
