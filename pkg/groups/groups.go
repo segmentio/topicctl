@@ -27,11 +27,42 @@ func GetGroups(
 	groupCoordinators := []GroupCoordinator{}
 
 	for _, kafkaGroupInfo := range listGroupsResp.Groups {
+
+		topicsList := []string{}
+		topicsMap := map[string]bool{}
+
+		describegroupsReq := kafka.DescribeGroupsRequest{
+			GroupIDs: []string{kafkaGroupInfo.GroupID},
+		}
+
+		describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &describegroupsReq)
+		if err != nil {
+			log.Infof("Cannot list topics for group :%s \n Error in describing group : %s", kafkaGroupInfo.GroupID, err)
+		} else {
+			if len(describeGroupsResponse.Groups) != 1 {
+				log.Infof("Cannot list topics for group :%s \n Unexpected response length from describeGroups", kafkaGroupInfo.GroupID)
+			}
+
+			groupMembers := describeGroupsResponse.Groups[0].Members
+
+			for _, groupMember := range groupMembers {
+				for _, topic := range groupMember.MemberMetadata.Topics {
+					topicsMap[topic] = true
+				}
+			}
+		}
+
+		for key := range topicsMap {
+			topicsList = append(topicsList, key)
+		}
+		sort.Strings(topicsList)
+
 		groupCoordinators = append(
 			groupCoordinators,
 			GroupCoordinator{
 				GroupID:     kafkaGroupInfo.GroupID,
 				Coordinator: int(kafkaGroupInfo.Coordinator),
+				Topics:      topicsList,
 			},
 		)
 	}

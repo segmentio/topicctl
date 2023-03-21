@@ -21,11 +21,13 @@ func FormatGroupCoordinators(groupCoordinators []GroupCoordinator) string {
 		[]string{
 			"Group",
 			"Coordinator",
+			"Topics",
 		},
 	)
 	table.SetAutoWrapText(false)
 	table.SetColumnAlignment(
 		[]int{
+			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 		},
@@ -44,6 +46,7 @@ func FormatGroupCoordinators(groupCoordinators []GroupCoordinator) string {
 			[]string{
 				groupCoordinator.GroupID,
 				fmt.Sprintf("%d", groupCoordinator.Coordinator),
+				fmt.Sprintf("%+v", groupCoordinator.Topics),
 			},
 		)
 	}

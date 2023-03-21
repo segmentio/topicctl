@@ -11,6 +11,7 @@ import (
 type GroupCoordinator struct {
 	GroupID     string
 	Coordinator int
+	Topics      []string
 }
 
 // GroupDetails stores the state and members for a consumer group.
