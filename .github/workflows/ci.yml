@@ -245,7 +245,19 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
         logout: true
     - run: echo "GHCR LOGIN SUCCESSFUL"
-    - name: Build and push image
+    - if: ${{ github.ref_name == 'master' }}
+      name: Build and push image for master
+      run:  |
+        docker context create buildx-build
+        docker buildx create --use buildx-build
+        docker buildx build \
+          -t ghcr.io/segmentio/topicctl:${SHORT_SHA} \
+          -t ghcr.io/segmentio/topicctl:latest \
+          --build-arg VERSION=${SHORT_SHA} \
+          --push \
+          .
+    - if: ${{ github.ref_name == 'v0' }}
+      name: Build and push image for v0
       run:  |
         docker context create buildx-build
         docker buildx create --use buildx-build
