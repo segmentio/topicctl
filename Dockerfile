@@ -16,4 +16,9 @@ FROM scratch
 COPY --from=builder \
     /go/src/github.com/segmentio/topicctl/build/topicctl \
     /bin/topicctl
+
+COPY --from=builder \
+    /usr/bin/make \
+    /bin/make
+
 ENTRYPOINT ["/bin/topicctl"]
