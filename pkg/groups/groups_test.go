@@ -149,17 +149,13 @@ func TestGetOffset(t *testing.T) {
 	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
 
 	for _, partition := range groupPartitions {
-		offset, err := GetOffset(ctx, connector, topicName, "latest", partition, int64(-2))
+		offset, err := GetOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
 		require.NoError(t, err)
 		assert.Equal(t, int64(4), offset)
 
-		offset, err = GetOffset(ctx, connector, topicName, "earliest", partition, int64(-2))
+		offset, err = GetOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), offset)
-
-		offset, err = GetOffset(ctx, connector, topicName, "", partition, int64(-2))
-		require.NoError(t, err)
-		assert.Equal(t, int64(-2), offset)
 	}
 }
 
@@ -211,6 +207,33 @@ func TestResetOffsets(t *testing.T) {
 	require.Equal(t, 2, len(lags))
 	assert.Equal(t, int64(2), lags[0].MemberOffset)
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
+
+	//get latest offset of partition 0
+	latestOffset, err := GetOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
+	require.NoError(t, err)
+	//get earliest offset of partition 1
+	earliestOffset, err := GetOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
+	require.NoError(t, err)
+
+	err = ResetOffsets(
+		ctx,
+		connector,
+		topicName,
+		groupID,
+		map[int]int64{
+			0: latestOffset,
+			1: earliestOffset,
+		},
+	)
+	require.NoError(t, err)
+
+	lags, err = GetMemberLags(ctx, connector, topicName, groupID)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(lags))
+	assert.Equal(t, int64(4), lags[0].MemberOffset)
+	assert.Equal(t, int64(0), lags[1].MemberOffset)
+
 }
 
 func createTestTopic(

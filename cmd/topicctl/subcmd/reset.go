@@ -31,11 +31,6 @@ type resetOffsetsCmdConfig struct {
 
 var resetOffsetsConfig resetOffsetsCmdConfig
 
-const (
-	latestResetOffsetsStrategy   string = "latest"
-	earliestResetOffsetsStrategy string = "earliest"
-)
-
 func init() {
 	resetOffsetsCmd.Flags().Int64Var(
 		&resetOffsetsConfig.offset,
@@ -99,9 +94,9 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	}
 	var resetOffsetsStrategy string
 	if resetOffsetsConfig.toLatest {
-		resetOffsetsStrategy = latestResetOffsetsStrategy
+		resetOffsetsStrategy = groups.LatestResetOffsetsStrategy
 	} else if resetOffsetsConfig.toEarliest {
-		resetOffsetsStrategy = earliestResetOffsetsStrategy
+		resetOffsetsStrategy = groups.EarliestResetOffsetsStrategy
 	}
 	partitionOffsets := map[int]int64{}
 
@@ -110,17 +105,25 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 			if _, ok := partitionIDsMap[partition]; !ok {
 				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
 			}
-
-			partitionOffsets[partition], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition, resetOffsetsConfig.offset)
-			if err != nil {
-				return err
+			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
+				partitionOffsets[partition], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition)
+				if err != nil {
+					return err
+				}
+			} else {
+				partitionOffsets[partition] = resetOffsetsConfig.offset
 			}
+
 		}
 	} else {
 		for _, partitionInfo := range topicInfo.Partitions {
-			partitionOffsets[partitionInfo.ID], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID, resetOffsetsConfig.offset)
-			if err != nil {
-				return err
+			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
+				partitionOffsets[partitionInfo.ID], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID)
+				if err != nil {
+					return err
+				}
+			} else {
+				partitionOffsets[partitionInfo.ID] = resetOffsetsConfig.offset
 			}
 		}
 	}

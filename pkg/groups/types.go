@@ -99,3 +99,9 @@ func (m MemberPartitionLag) OffsetLag() int64 {
 func (m MemberPartitionLag) TimeLag() time.Duration {
 	return m.NewestTime.Sub(m.MemberTime)
 }
+
+// Consumer Group Offset reset strategies
+const (
+	LatestResetOffsetsStrategy   string = "latest"
+	EarliestResetOffsetsStrategy string = "earliest"
+)
