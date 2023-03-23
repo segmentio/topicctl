@@ -208,8 +208,7 @@ func GetOffset(
 			return 0, err
 		}
 		return partitionBound.FirstOffset, nil
-	}
-	if strategy == "latest" {
+	} else if strategy == "latest" {
 		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
 		if err != nil {
 			return 0, err

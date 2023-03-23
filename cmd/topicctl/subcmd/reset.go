@@ -68,22 +68,11 @@ func init() {
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
 	errMsg := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
 
-	if resetOffsetsConfig.toEarliest {
-		if resetOffsetsConfig.toLatest {
-			return errors.New(errMsg)
-		}
+	if resetOffsetsConfig.toEarliest && resetOffsetsConfig.toLatest {
+		return errors.New(errMsg)
 
-		if cmd.Flags().Changed("offset") {
-			return errors.New(errMsg)
-		}
-
-	} else if resetOffsetsConfig.toLatest {
-		if resetOffsetsConfig.toEarliest {
-			return errors.New(errMsg)
-		}
-		if cmd.Flags().Changed("offset") {
-			return errors.New(errMsg)
-		}
+	} else if cmd.Flags().Changed("offset") && (resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest) {
+		return errors.New(errMsg)
 	}
 	return resetOffsetsConfig.shared.validate()
 }
