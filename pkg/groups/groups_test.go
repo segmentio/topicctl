@@ -161,7 +161,6 @@ func TestGetOffset(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, int64(-2), offset)
 	}
-
 }
 
 func TestResetOffsets(t *testing.T) {

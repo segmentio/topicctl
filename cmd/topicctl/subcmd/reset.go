@@ -49,7 +49,6 @@ func init() {
 		[]int{},
 		"Partition (defaults to all)",
 	)
-
 	resetOffsetsCmd.Flags().BoolVar(
 		&resetOffsetsConfig.toEarliest,
 		"to-earliest",
@@ -66,13 +65,13 @@ func init() {
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	errMsg := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
+	resetOffsetSpecificaton := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
 
 	if resetOffsetsConfig.toEarliest && resetOffsetsConfig.toLatest {
-		return errors.New(errMsg)
+		return errors.New(resetOffsetSpecificaton)
 
 	} else if cmd.Flags().Changed("offset") && (resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest) {
-		return errors.New(errMsg)
+		return errors.New(resetOffsetSpecificaton)
 	}
 	return resetOffsetsConfig.shared.validate()
 }
