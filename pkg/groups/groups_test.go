@@ -149,17 +149,17 @@ func TestGetOffset(t *testing.T) {
 	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
 
 	for _, partition := range groupPartitions {
-		offset, err := GetOffset(ctx, connector, topicName, "latest", partition, int64(0))
+		offset, err := GetOffset(ctx, connector, topicName, "latest", partition, int64(-2))
 		require.NoError(t, err)
 		assert.Equal(t, int64(4), offset)
 
-		offset, err = GetOffset(ctx, connector, topicName, "earliest", partition, int64(0))
+		offset, err = GetOffset(ctx, connector, topicName, "earliest", partition, int64(-2))
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), offset)
 
-		offset, err = GetOffset(ctx, connector, topicName, "", partition, int64(2))
+		offset, err = GetOffset(ctx, connector, topicName, "", partition, int64(-2))
 		require.NoError(t, err)
-		assert.Equal(t, int64(2), offset)
+		assert.Equal(t, int64(-2), offset)
 	}
 
 }
