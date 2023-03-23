@@ -31,6 +31,11 @@ type resetOffsetsCmdConfig struct {
 
 var resetOffsetsConfig resetOffsetsCmdConfig
 
+const (
+	latestResetOffsetsStrategy   string = "latest"
+	earliestResetOffsetsStrategy string = "earliest"
+)
+
 func init() {
 	resetOffsetsCmd.Flags().Int64Var(
 		&resetOffsetsConfig.offset,
@@ -61,23 +66,23 @@ func init() {
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	msg := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
+	errMsg := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
 
 	if resetOffsetsConfig.toEarliest {
 		if resetOffsetsConfig.toLatest {
-			return errors.New(msg)
+			return errors.New(errMsg)
 		}
 
 		if cmd.Flags().Changed("offset") {
-			return errors.New(msg)
+			return errors.New(errMsg)
 		}
 
 	} else if resetOffsetsConfig.toLatest {
 		if resetOffsetsConfig.toEarliest {
-			return errors.New(msg)
+			return errors.New(errMsg)
 		}
 		if cmd.Flags().Changed("offset") {
-			return errors.New(msg)
+			return errors.New(errMsg)
 		}
 	}
 	return resetOffsetsConfig.shared.validate()
@@ -104,11 +109,11 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	for _, partitionInfo := range topicInfo.Partitions {
 		partitionIDsMap[partitionInfo.ID] = struct{}{}
 	}
-	var strategy string
+	var resetOffsetsStrategy string
 	if resetOffsetsConfig.toLatest {
-		strategy = "latest"
+		resetOffsetsStrategy = latestResetOffsetsStrategy
 	} else if resetOffsetsConfig.toEarliest {
-		strategy = "earliest"
+		resetOffsetsStrategy = earliestResetOffsetsStrategy
 	}
 	partitionOffsets := map[int]int64{}
 
@@ -118,14 +123,14 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
 			}
 
-			partitionOffsets[partition], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, strategy, partition, resetOffsetsConfig.offset)
+			partitionOffsets[partition], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition, resetOffsetsConfig.offset)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
 		for _, partitionInfo := range topicInfo.Partitions {
-			partitionOffsets[partitionInfo.ID], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, strategy, partitionInfo.ID, resetOffsetsConfig.offset)
+			partitionOffsets[partitionInfo.ID], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID, resetOffsetsConfig.offset)
 			if err != nil {
 				return err
 			}

@@ -114,6 +114,56 @@ func TestGetLags(t *testing.T) {
 	}
 }
 
+func TestGetOffset(t *testing.T) {
+	ctx := context.Background()
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
+	groupID := fmt.Sprintf("test-group-%s", topicName)
+
+	reader := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	readerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for i := 0; i < 8; i++ {
+		_, err := reader.ReadMessage(readerCtx)
+		require.NoError(t, err)
+	}
+
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
+	require.NoError(t, err)
+
+	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
+
+	for _, partition := range groupPartitions {
+		offset, err := GetOffset(ctx, connector, topicName, "latest", partition, int64(0))
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), offset)
+
+		offset, err = GetOffset(ctx, connector, topicName, "earliest", partition, int64(0))
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), offset)
+
+		offset, err = GetOffset(ctx, connector, topicName, "", partition, int64(2))
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), offset)
+	}
+
+}
+
 func TestResetOffsets(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
