@@ -11,14 +11,10 @@ ARG TARGETOS TARGETARCH
 RUN cd /go/src/${SRC} && \
     GOOS=$TARGETOS GOARCH=$TARGETARCH make topicctl VERSION=${VERSION}
 
-FROM scratch
+FROM alpine:3
 
 COPY --from=builder \
     /go/src/github.com/segmentio/topicctl/build/topicctl \
     /bin/topicctl
-
-COPY --from=builder \
-    /usr/bin/make \
-    /bin/make
 
 ENTRYPOINT ["/bin/topicctl"]
