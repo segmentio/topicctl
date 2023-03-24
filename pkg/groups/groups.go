@@ -193,8 +193,8 @@ func ResetOffsets(
 	)
 }
 
-// getOffset gets earliest/latest offset for a given topic partition for resetting offsets of consumer group
-func GetOffset(
+// GetEarliestorLatestOffset gets earliest/latest offset for a given topic partition for resetting offsets of consumer group
+func GetEarliestOrLatestOffset(
 	ctx context.Context,
 	connector *admin.Connector,
 	topic string,

@@ -114,7 +114,7 @@ func TestGetLags(t *testing.T) {
 	}
 }
 
-func TestGetOffset(t *testing.T) {
+func TestGetEarliestOrLatestOffset(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
@@ -149,11 +149,11 @@ func TestGetOffset(t *testing.T) {
 	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
 
 	for _, partition := range groupPartitions {
-		offset, err := GetOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
+		offset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
 		require.NoError(t, err)
 		assert.Equal(t, int64(4), offset)
 
-		offset, err = GetOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
+		offset, err = GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), offset)
 	}
@@ -209,10 +209,10 @@ func TestResetOffsets(t *testing.T) {
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
 
 	// latest offset of partition 0
-	latestOffset, err := GetOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
+	latestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
 	require.NoError(t, err)
 	// earliest offset of partition 1
-	earliestOffset, err := GetOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
+	earliestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
 	require.NoError(t, err)
 
 	err = ResetOffsets(
