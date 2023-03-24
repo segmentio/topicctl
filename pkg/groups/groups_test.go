@@ -150,13 +150,13 @@ func TestGetGroups(t *testing.T) {
 
 	// multiple member group consuming from different topics
 	topicName2 := createTestTopic(ctx, t, connector)
-	multipleTopicConsumerGroupID := fmt.Sprintf("test-multiple-member-multi-topic-group-%s", topicName2)
+	multiMemberMultiTopicGroupID := fmt.Sprintf("test-multiple-member-multi-topic-group-%s", topicName2)
 
 	reader3 := kafka.NewReader(
 		kafka.ReaderConfig{
 			Brokers:  []string{connector.Config.BrokerAddr},
 			Dialer:   connector.Dialer,
-			GroupID:  multipleTopicConsumerGroupID,
+			GroupID:  multiMemberMultiTopicGroupID,
 			Topic:    topicName,
 			MinBytes: 50,
 			MaxBytes: 10000,
@@ -167,20 +167,20 @@ func TestGetGroups(t *testing.T) {
 		kafka.ReaderConfig{
 			Brokers:  []string{connector.Config.BrokerAddr},
 			Dialer:   connector.Dialer,
-			GroupID:  multipleTopicConsumerGroupID,
+			GroupID:  multiMemberMultiTopicGroupID,
 			Topic:    topicName2,
 			MinBytes: 50,
 			MaxBytes: 10000,
 		},
 	)
 
-	multiTopicConsumerGroupReaderCtx, multiTopicConsumerGroupReaderCancel := context.WithTimeout(ctx, 10*time.Second)
-	defer multiTopicConsumerGroupReaderCancel()
+	multiMemberMultiTopicGroupReaderCtx, multiMemberMultiTopicGroupCtxCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer multiMemberMultiTopicGroupCtxCancel()
 
 	for i := 0; i < 8; i++ {
-		_, err := reader3.ReadMessage(multiTopicConsumerGroupReaderCtx)
+		_, err := reader3.ReadMessage(multiMemberMultiTopicGroupReaderCtx)
 		require.NoError(t, err)
-		_, err = reader4.ReadMessage(multiTopicConsumerGroupReaderCtx)
+		_, err = reader4.ReadMessage(multiMemberMultiTopicGroupReaderCtx)
 		require.NoError(t, err)
 	}
 
@@ -193,7 +193,7 @@ func TestGetGroups(t *testing.T) {
 	groupCoordinator = GroupCoordinator{}
 	match = false
 	for _, group := range groups {
-		if group.GroupID == multipleTopicConsumerGroupID {
+		if group.GroupID == multiMemberMultiTopicGroupID {
 			groupCoordinator = group
 			match = true
 			break
@@ -205,9 +205,9 @@ func TestGetGroups(t *testing.T) {
 	sort.Strings(topicsList)
 	assert.Equal(t, topicsList, groupCoordinator.Topics)
 
-	groupDetails, err = GetGroupDetails(ctx, connector, multipleTopicConsumerGroupID)
+	groupDetails, err = GetGroupDetails(ctx, connector, multiMemberMultiTopicGroupID)
 	require.NoError(t, err)
-	assert.Equal(t, multipleTopicConsumerGroupID, groupDetails.GroupID)
+	assert.Equal(t, multiMemberMultiTopicGroupID, groupDetails.GroupID)
 	assert.Equal(t, "Stable", groupDetails.State)
 	assert.Equal(t, 2, len(groupDetails.Members))
 	require.Equal(t, 2, len(groupDetails.Members))
