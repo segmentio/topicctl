@@ -3,6 +3,7 @@ package groups
 import (
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -76,6 +77,159 @@ func TestGetGroups(t *testing.T) {
 		[]int{0, 1},
 		groupPartitions,
 	)
+
+	// multiple member group consuming from same topic
+	muiltMemberGroupID := fmt.Sprintf("test-multiple-member-group-%s", topicName)
+	reader1 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  muiltMemberGroupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+	reader2 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  muiltMemberGroupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	multiMemberGroupReaderCtx, multiMemberGroupCtxcancel := context.WithTimeout(ctx, 10*time.Second)
+	defer multiMemberGroupCtxcancel()
+
+	for i := 0; i < 4; i++ {
+		_, err := reader1.ReadMessage(multiMemberGroupReaderCtx)
+		require.NoError(t, err)
+		_, err = reader2.ReadMessage(multiMemberGroupReaderCtx)
+		require.NoError(t, err)
+	}
+
+	groups, err = GetGroups(ctx, connector)
+	require.NoError(t, err)
+
+	// There could be older groups in here, just ignore them
+	assert.GreaterOrEqual(t, len(groups), 1)
+
+	for _, group := range groups {
+		if group.GroupID == muiltMemberGroupID {
+			groupCoordinator = group
+			match = true
+			break
+		}
+	}
+	require.True(t, match)
+	assert.Equal(t, 1, len(groupCoordinator.Topics))
+	assert.Equal(t, topicName, groupCoordinator.Topics[0])
+
+	groupDetails, err = GetGroupDetails(ctx, connector, muiltMemberGroupID)
+	require.NoError(t, err)
+	assert.Equal(t, muiltMemberGroupID, groupDetails.GroupID)
+	assert.Equal(t, "Stable", groupDetails.State)
+	assert.Equal(t, 2, len(groupDetails.Members))
+	require.Equal(t, 2, len(groupDetails.Members))
+
+	groupPartitions = []int{}
+	for _, member := range groupDetails.Members {
+		groupPartitions = append(groupPartitions, member.TopicPartitions[topicName]...)
+	}
+
+	assert.ElementsMatch(
+		t,
+		[]int{0, 1},
+		groupPartitions,
+	)
+
+	// multiple member group consuming from different topics
+	topicName2 := createTestTopic(ctx, t, connector)
+	multipleTopicConsumerGroupID := fmt.Sprintf("test-multiple-member-multi-topic-group-%s", topicName)
+
+	reader3 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  multipleTopicConsumerGroupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	reader4 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  multipleTopicConsumerGroupID,
+			Topic:    topicName2,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	multiTopicConsumerGroupReaderCtx, multiTopicConsumerGroupReadercancel := context.WithTimeout(ctx, 10*time.Second)
+	defer multiTopicConsumerGroupReadercancel()
+
+	for i := 0; i < 8; i++ {
+		_, err := reader3.ReadMessage(multiTopicConsumerGroupReaderCtx)
+		require.NoError(t, err)
+		_, err = reader4.ReadMessage(multiTopicConsumerGroupReaderCtx)
+		require.NoError(t, err)
+	}
+
+	groups, err = GetGroups(ctx, connector)
+	require.NoError(t, err)
+
+	// There could be older groups in here, just ignore them
+	assert.GreaterOrEqual(t, len(groups), 1)
+
+	for _, group := range groups {
+		if group.GroupID == multipleTopicConsumerGroupID {
+			groupCoordinator = group
+			match = true
+			break
+		}
+	}
+	require.True(t, match)
+	assert.Equal(t, 2, len(groupCoordinator.Topics))
+	topicsList := []string{topicName, topicName2}
+	sort.Strings(topicsList)
+	assert.Equal(t, topicsList, groupCoordinator.Topics)
+
+	groupDetails, err = GetGroupDetails(ctx, connector, multipleTopicConsumerGroupID)
+	require.NoError(t, err)
+	assert.Equal(t, multipleTopicConsumerGroupID, groupDetails.GroupID)
+	assert.Equal(t, "Stable", groupDetails.State)
+	assert.Equal(t, 2, len(groupDetails.Members))
+	require.Equal(t, 2, len(groupDetails.Members))
+
+	groupPartitionsofTopic1 := []int{}
+	for _, member := range groupDetails.Members {
+		groupPartitionsofTopic1 = append(groupPartitionsofTopic1, member.TopicPartitions[topicName]...)
+	}
+
+	assert.ElementsMatch(
+		t,
+		[]int{0, 1},
+		groupPartitionsofTopic1,
+	)
+
+	groupPartitionsofTopic2 := []int{}
+	for _, member := range groupDetails.Members {
+		groupPartitionsofTopic2 = append(groupPartitionsofTopic2, member.TopicPartitions[topicName2]...)
+	}
+
+	assert.ElementsMatch(
+		t,
+		[]int{0, 1},
+		groupPartitionsofTopic2,
+	)
+
 }
 
 func TestGetLags(t *testing.T) {
