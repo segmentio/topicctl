@@ -31,11 +31,11 @@ func GetGroups(
 		topicsList := []string{}
 		topicsMap := map[string]bool{}
 
-		describegroupsReq := kafka.DescribeGroupsRequest{
+		describeGroupsRequest := kafka.DescribeGroupsRequest{
 			GroupIDs: []string{kafkaGroupInfo.GroupID},
 		}
 
-		describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &describegroupsReq)
+		describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &describeGroupsRequest)
 		if err != nil {
 			log.Infof("Cannot list topics for group :%s \n Error in describing group : %s", kafkaGroupInfo.GroupID, err)
 		} else {

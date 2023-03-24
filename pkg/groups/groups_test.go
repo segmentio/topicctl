@@ -49,14 +49,18 @@ func TestGetGroups(t *testing.T) {
 	assert.GreaterOrEqual(t, len(groups), 1)
 
 	var match bool
+	var groupCoordinator GroupCoordinator
 
 	for _, group := range groups {
 		if group.GroupID == groupID {
+			groupCoordinator = group
 			match = true
 			break
 		}
 	}
 	require.True(t, match)
+	assert.Equal(t, 1, len(groupCoordinator.Topics))
+	assert.Equal(t, topicName, groupCoordinator.Topics[0])
 
 	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
 	require.NoError(t, err)
