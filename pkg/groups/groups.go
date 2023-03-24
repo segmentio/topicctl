@@ -41,21 +41,20 @@ func GetGroups(
 		} else {
 			if len(describeGroupsResponse.Groups) != 1 {
 				log.Infof("Cannot list topics for group :%s \n Unexpected response length from describeGroups", kafkaGroupInfo.GroupID)
-			}
-
-			groupMembers := describeGroupsResponse.Groups[0].Members
-
-			for _, groupMember := range groupMembers {
-				for _, topic := range groupMember.MemberMetadata.Topics {
-					topicsMap[topic] = true
+			} else {
+				groupMembers := describeGroupsResponse.Groups[0].Members
+				for _, groupMember := range groupMembers {
+					for _, topic := range groupMember.MemberMetadata.Topics {
+						topicsMap[topic] = true
+					}
 				}
+
+				for key := range topicsMap {
+					topicsList = append(topicsList, key)
+				}
+				sort.Strings(topicsList)
 			}
 		}
-
-		for key := range topicsMap {
-			topicsList = append(topicsList, key)
-		}
-		sort.Strings(topicsList)
 
 		groupCoordinators = append(
 			groupCoordinators,
