@@ -106,7 +106,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
 			}
 			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
-				partitionOffsets[partition], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition)
+				partitionOffsets[partition], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition)
 				if err != nil {
 					return err
 				}
@@ -118,7 +118,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	} else {
 		for _, partitionInfo := range topicInfo.Partitions {
 			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
-				partitionOffsets[partitionInfo.ID], err = groups.GetOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID)
+				partitionOffsets[partitionInfo.ID], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID)
 				if err != nil {
 					return err
 				}
