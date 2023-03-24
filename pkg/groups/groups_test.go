@@ -208,10 +208,10 @@ func TestResetOffsets(t *testing.T) {
 	assert.Equal(t, int64(2), lags[0].MemberOffset)
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
 
-	//get latest offset of partition 0
+	// latest offset of partition 0
 	latestOffset, err := GetOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
 	require.NoError(t, err)
-	//get earliest offset of partition 1
+	// earliest offset of partition 1
 	earliestOffset, err := GetOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
 	require.NoError(t, err)
 
