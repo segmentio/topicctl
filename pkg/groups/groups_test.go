@@ -101,8 +101,8 @@ func TestGetGroups(t *testing.T) {
 		},
 	)
 
-	multiMemberGroupReaderCtx, multiMemberGroupCtxcancel := context.WithTimeout(ctx, 10*time.Second)
-	defer multiMemberGroupCtxcancel()
+	multiMemberGroupReaderCtx, multiMemberGroupCtxCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer multiMemberGroupCtxCancel()
 
 	for i := 0; i < 4; i++ {
 		_, err := reader1.ReadMessage(multiMemberGroupReaderCtx)
@@ -117,6 +117,8 @@ func TestGetGroups(t *testing.T) {
 	// There could be older groups in here, just ignore them
 	assert.GreaterOrEqual(t, len(groups), 1)
 
+	match = false
+	groupCoordinator = GroupCoordinator{}
 	for _, group := range groups {
 		if group.GroupID == muiltMemberGroupID {
 			groupCoordinator = group
@@ -148,7 +150,7 @@ func TestGetGroups(t *testing.T) {
 
 	// multiple member group consuming from different topics
 	topicName2 := createTestTopic(ctx, t, connector)
-	multipleTopicConsumerGroupID := fmt.Sprintf("test-multiple-member-multi-topic-group-%s", topicName)
+	multipleTopicConsumerGroupID := fmt.Sprintf("test-multiple-member-multi-topic-group-%s", topicName2)
 
 	reader3 := kafka.NewReader(
 		kafka.ReaderConfig{
@@ -172,8 +174,8 @@ func TestGetGroups(t *testing.T) {
 		},
 	)
 
-	multiTopicConsumerGroupReaderCtx, multiTopicConsumerGroupReadercancel := context.WithTimeout(ctx, 10*time.Second)
-	defer multiTopicConsumerGroupReadercancel()
+	multiTopicConsumerGroupReaderCtx, multiTopicConsumerGroupReaderCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer multiTopicConsumerGroupReaderCancel()
 
 	for i := 0; i < 8; i++ {
 		_, err := reader3.ReadMessage(multiTopicConsumerGroupReaderCtx)
@@ -188,6 +190,8 @@ func TestGetGroups(t *testing.T) {
 	// There could be older groups in here, just ignore them
 	assert.GreaterOrEqual(t, len(groups), 1)
 
+	groupCoordinator = GroupCoordinator{}
+	match = false
 	for _, group := range groups {
 		if group.GroupID == multipleTopicConsumerGroupID {
 			groupCoordinator = group
@@ -208,26 +212,26 @@ func TestGetGroups(t *testing.T) {
 	assert.Equal(t, 2, len(groupDetails.Members))
 	require.Equal(t, 2, len(groupDetails.Members))
 
-	groupPartitionsofTopic1 := []int{}
+	groupPartitionsOfTopic1 := []int{}
 	for _, member := range groupDetails.Members {
-		groupPartitionsofTopic1 = append(groupPartitionsofTopic1, member.TopicPartitions[topicName]...)
+		groupPartitionsOfTopic1 = append(groupPartitionsOfTopic1, member.TopicPartitions[topicName]...)
 	}
 
 	assert.ElementsMatch(
 		t,
 		[]int{0, 1},
-		groupPartitionsofTopic1,
+		groupPartitionsOfTopic1,
 	)
 
-	groupPartitionsofTopic2 := []int{}
+	groupPartitionsOfTopic2 := []int{}
 	for _, member := range groupDetails.Members {
-		groupPartitionsofTopic2 = append(groupPartitionsofTopic2, member.TopicPartitions[topicName2]...)
+		groupPartitionsOfTopic2 = append(groupPartitionsOfTopic2, member.TopicPartitions[topicName2]...)
 	}
 
 	assert.ElementsMatch(
 		t,
 		[]int{0, 1},
-		groupPartitionsofTopic2,
+		groupPartitionsOfTopic2,
 	)
 
 }
