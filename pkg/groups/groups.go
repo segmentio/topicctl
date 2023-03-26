@@ -37,10 +37,10 @@ func GetGroups(
 
 		describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &describeGroupsRequest)
 		if err != nil {
-			log.Errorf("Cannot list topics for group :%s \n Error in describing group : %s", kafkaGroupInfo.GroupID, err)
+			log.Warnf("Cannot list topics for group :%s \n Error in describing group : %s", kafkaGroupInfo.GroupID, err)
 		} else {
 			if len(describeGroupsResponse.Groups) != 1 {
-				log.Errorf("Cannot list topics for group :%s \n Unexpected response length: %d, from describeGroups", kafkaGroupInfo.GroupID, len(describeGroupsResponse.Groups))
+				log.Warnf("Cannot list topics for group :%s \n Unexpected response length: %d, from describeGroups", kafkaGroupInfo.GroupID, len(describeGroupsResponse.Groups))
 			} else {
 				groupMembers := describeGroupsResponse.Groups[0].Members
 				for _, groupMember := range groupMembers {
