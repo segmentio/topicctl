@@ -192,3 +192,27 @@ func ResetOffsets(
 		},
 	)
 }
+
+// GetEarliestorLatestOffset gets earliest/latest offset for a given topic partition for resetting offsets of consumer group
+func GetEarliestOrLatestOffset(
+	ctx context.Context,
+	connector *admin.Connector,
+	topic string,
+	strategy string,
+	partition int,
+) (int64, error) {
+	if strategy == EarliestResetOffsetsStrategy {
+		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+		if err != nil {
+			return 0, err
+		}
+		return partitionBound.FirstOffset, nil
+	} else if strategy == LatestResetOffsetsStrategy {
+		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+		if err != nil {
+			return 0, err
+		}
+		return partitionBound.LastOffset, nil
+	}
+	return 0, errors.New("Invalid reset offset strategy provided.")
+}

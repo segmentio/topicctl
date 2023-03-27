@@ -114,6 +114,51 @@ func TestGetLags(t *testing.T) {
 	}
 }
 
+func TestGetEarliestOrLatestOffset(t *testing.T) {
+	ctx := context.Background()
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
+	groupID := fmt.Sprintf("test-group-%s", topicName)
+
+	reader := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	readerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for i := 0; i < 8; i++ {
+		_, err := reader.ReadMessage(readerCtx)
+		require.NoError(t, err)
+	}
+
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
+	require.NoError(t, err)
+
+	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
+
+	for _, partition := range groupPartitions {
+		offset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), offset)
+
+		offset, err = GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), offset)
+	}
+}
+
 func TestResetOffsets(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
@@ -162,6 +207,33 @@ func TestResetOffsets(t *testing.T) {
 	require.Equal(t, 2, len(lags))
 	assert.Equal(t, int64(2), lags[0].MemberOffset)
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
+
+	// latest offset of partition 0
+	latestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
+	require.NoError(t, err)
+	// earliest offset of partition 1
+	earliestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
+	require.NoError(t, err)
+
+	err = ResetOffsets(
+		ctx,
+		connector,
+		topicName,
+		groupID,
+		map[int]int64{
+			0: latestOffset,
+			1: earliestOffset,
+		},
+	)
+	require.NoError(t, err)
+
+	lags, err = GetMemberLags(ctx, connector, topicName, groupID)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(lags))
+	assert.Equal(t, int64(4), lags[0].MemberOffset)
+	assert.Equal(t, int64(0), lags[1].MemberOffset)
+
 }
 
 func createTestTopic(
