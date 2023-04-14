@@ -1004,7 +1004,10 @@ outerLoop:
 
 			if len(notReady) == 0 {
 				elapsed := time.Now().Sub(roundStartTime)
-				log.Infof("Partition(s) %+v looks good, continuing (last round duration: %s)", idsToUpdate, highlighter("%v", elapsed))
+				log.Infof("Partition(s) %+v looks good, continuing (last round duration: %s)",
+					idsToUpdate,
+					highlighter("%.1fs", float64(elapsed)/1000000000), // time.Duration is int64 nanoseconds
+				)
 				break outerLoop
 			}
 			log.Infof(">>> Not ready: %+v", notReady)
