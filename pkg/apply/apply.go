@@ -1091,6 +1091,8 @@ func (t *TopicApplier) applyThrottles(
 			false,
 		)
 		if err != nil {
+			log.Infof("Applied throttles to brokers %+v", throttledBrokers)                    // report on successful ones
+			log.Errorf("Error occurred applying throttle to broker %d", brokerThrottle.Broker) // log failed one here
 			return throttledTopic, throttledBrokers, err
 		}
 
