@@ -1,4 +1,4 @@
-[![Circle CI](https://circleci.com/gh/segmentio/topicctl.svg?style=svg&circle-token=1f82ab114a8b160f3e12291ab0fa959132c4c97c)](https://circleci.com/gh/segmentio/topicctl)
+![GitHub Actions](https://github.com/segmentio/topicctl/actions/workflows/ci.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/segmentio/topicctl)](https://goreportcard.com/report/github.com/segmentio/topicctl)
 
 # topicctl
