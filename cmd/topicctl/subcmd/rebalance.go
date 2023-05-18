@@ -245,9 +245,9 @@ func rebalanceApplyTopic(
 		} 
 		return err
 	}
-
-	log.Infof("Check topic partitions...")
 	log.Debugf("topicInfo from kafka: %+v", topicInfo)
+	
+	log.Infof("Check topic partitions...")
 	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
 		return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
 	}
