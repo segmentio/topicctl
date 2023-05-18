@@ -183,9 +183,9 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	topicErrorDict := make(map[string]error)
 	// iterate through each topic config and initiate rebalance
 	topicConfigs := []config.TopicConfig{}
+	topicErrorDict := make(map[string]error)
 	for _, match := range matches {
 		topicConfigs, err = config.LoadTopicsFile(match)
 		if err != nil {
