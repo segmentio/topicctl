@@ -218,34 +218,18 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// Perform rebalance on a topic. returns error if unsuccessful
-// topic will not be rebalanced if
-//   - topic config is inconsistent with cluster config (name, region, environment etc...)
-//   - partitions of a topic in kafka cluster does not match with topic partition setting in topic config
-//   - retention.ms of a topic in kafka cluster does not match with topic retentionMinutes setting in topic config
-//
-// to ensure there are no disruptions to kafka cluster
-// topics that are not present in kafka cluster will be applied
-func rebalanceApplyTopic(
-	ctx context.Context,
+// Check whether a topic is a candidate for action rebalance
+// - consistency of topic with cluster config
+// - settings(partitions, retention time) of topic config with settings for topic in the cluster
+func rebalanceTopicCheck(
 	topicConfig config.TopicConfig,
 	clusterConfig config.ClusterConfig,
-	adminClient admin.Client,
+	topicInfo admin.TopicInfo,
 ) error {
 	// validate topic config is valid for the cluster config
 	if err := config.CheckConsistency(topicConfig, clusterConfig); err != nil {
 		return err
 	}
-
-	topicConfig.SetDefaults()
-	topicInfo, err := adminClient.GetTopic(ctx, topicConfig.Meta.Name, true)
-	if err != nil {
-		if err == admin.ErrTopicDoesNotExist {
-			return fmt.Errorf("Topic: %s does not exist in Kafka cluster", topicConfig.Meta.Name)
-		} 
-		return err
-	}
-	log.Debugf("topicInfo from kafka: %+v", topicInfo)
 	
 	log.Infof("Check topic partitions...")
 	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
@@ -255,6 +239,37 @@ func rebalanceApplyTopic(
 	log.Infof("Check topic retention.ms...")
 	if topicInfo.Config["retention.ms"] != strconv.Itoa(topicConfig.Spec.RetentionMinutes*60000) {
 		return fmt.Errorf("Topic retention in kafka does not match with topic config file")
+	}
+
+	return nil
+}
+
+// Perform rebalance on a topic. returns error if unsuccessful
+// topic will not be rebalanced if
+//   - topic config is inconsistent with cluster config (name, region, environment etc...)
+//   - partitions of a topic in kafka cluster does not match with topic partition setting in topic config
+//   - retention.ms of a topic in kafka cluster does not match with topic retentionMinutes setting in topic config
+// to ensure there are no disruptions to kafka cluster
+//
+// NOTE: topic that is not present in kafka cluster will not be applied
+func rebalanceApplyTopic(
+	ctx context.Context,
+	topicConfig config.TopicConfig,
+	clusterConfig config.ClusterConfig,
+	adminClient admin.Client,
+) error {
+	topicConfig.SetDefaults()
+	topicInfo, err := adminClient.GetTopic(ctx, topicConfig.Meta.Name, true)
+	if err != nil {
+		if err == admin.ErrTopicDoesNotExist {
+			return fmt.Errorf("Topic: %s does not exist in Kafka cluster", topicConfig.Meta.Name)
+		} 
+		return err
+	}
+	log.Debugf("topicInfo from kafka: %+v", topicInfo)
+
+	if err := rebalanceTopicCheck(topicConfig, clusterConfig, topicInfo); err != nil {
+		return err
 	}
 
 	applierConfig := apply.TopicApplierConfig{
