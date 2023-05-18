@@ -21,7 +21,6 @@ import (
 var rebalanceCmd = &cobra.Command{
 	Use:     "rebalance",
 	Short:   "rebalance all topic configs for a kafka cluster",
-	Args:    cobra.MinimumNArgs(0),
 	PreRunE: rebalancePreRun,
 	RunE:    rebalanceRun,
 }
@@ -184,6 +183,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	topicErrorDict := make(map[string]error)
 	// iterate through each topic config and initiate rebalance
 	topicConfigs := []config.TopicConfig{}
 	for _, match := range matches {
@@ -199,11 +199,21 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 				match,
 				clusterConfigPath,
 			)
+
+			topicErrorDict[topicConfig.Meta.Name] = nil
 			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
+				topicErrorDict[topicConfig.Meta.Name] = err
 				log.Errorf("Ignoring topic %v for rebalance. Got error: %+v", topicConfig.Meta.Name, err)
 			}
 		}
 	}
+
+	log.Infof("Rebalance error topics...")
+	for thisTopicName, thisTopicError := range topicErrorDict {
+		if thisTopicError != nil {
+			log.Errorf("topic: %s failed with error: %v", thisTopicName, thisTopicError)
+		}
+    }
 
 	return nil
 }
@@ -227,29 +237,24 @@ func rebalanceApplyTopic(
 		return err
 	}
 
-	topicExistsKafka := true
 	topicConfig.SetDefaults()
 	topicInfo, err := adminClient.GetTopic(ctx, topicConfig.Meta.Name, true)
 	if err != nil {
 		if err == admin.ErrTopicDoesNotExist {
-			topicExistsKafka = false
-			log.Infof("Topic: %s does not exist in Kafka cluster", topicConfig.Meta.Name)
-		} else {
-			return err
-		}
+			return fmt.Errorf("Topic: %s does not exist in Kafka cluster", topicConfig.Meta.Name)
+		} 
+		return err
 	}
 
-	if topicExistsKafka {
-		log.Infof("Check topic partitions...")
-		log.Debugf("topicInfo from kafka: %+v", topicInfo)
-		if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
-			return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
-		}
+	log.Infof("Check topic partitions...")
+	log.Debugf("topicInfo from kafka: %+v", topicInfo)
+	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
+		return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
+	}
 
-		log.Infof("Check topic retention.ms...")
-		if topicInfo.Config["retention.ms"] != strconv.Itoa(topicConfig.Spec.RetentionMinutes*60000) {
-			return fmt.Errorf("Topic retention in kafka does not match with topic config file")
-		}
+	log.Infof("Check topic retention.ms...")
+	if topicInfo.Config["retention.ms"] != strconv.Itoa(topicConfig.Spec.RetentionMinutes*60000) {
+		return fmt.Errorf("Topic retention in kafka does not match with topic config file")
 	}
 
 	applierConfig := apply.TopicApplierConfig{
