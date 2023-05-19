@@ -203,11 +203,11 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 
 			stop := make(chan bool)
 			rebalanceMetricConfig := util.RebalanceMetricConfig{
-				topicConfig.Meta.Name,
-				clusterConfig.Meta.Name,
-				clusterConfig.Meta.Environment,
-				rebalanceConfig.brokersToRemove,
-				"inprogress",
+				TopicName: topicConfig.Meta.Name,
+				ClusterName: clusterConfig.Meta.Name,
+				ClusterEnvironment: clusterConfig.Meta.Environment,
+				ToRemove: rebalanceConfig.brokersToRemove,
+				RebalanceStatus: "inprogress",
 			}
 			metricStr, err := util.MetricConfigStr(rebalanceMetricConfig)
 			if err != nil {

@@ -879,12 +879,12 @@ func (t *TopicApplier) updatePlacementRunner(
 
 		// print metrics during each iteration
 		applyMetricConfig := util.ApplyMetricConfig{
-			round,
-			numRounds,
-			t.topicName,
-			t.clusterConfig.Meta.Name,
-			t.clusterConfig.Meta.Environment,
-			t.config.BrokersToRemove,
+			CurrRound: round,
+			TotalRounds: numRounds,
+			TopicName: t.topicName,
+			ClusterName: t.clusterConfig.Meta.Name,
+			ClusterEnvironment: t.clusterConfig.Meta.Environment,
+			ToRemove: t.config.BrokersToRemove,
 		}
 		metricStr, err := util.MetricConfigStr(applyMetricConfig)
 		if err != nil {
