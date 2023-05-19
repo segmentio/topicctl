@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"encoding/json"
 	"reflect"
 	"strings"
 	"time"
@@ -22,10 +21,6 @@ import (
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/zk"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	metricDuration = 5
 )
 
 // TopicApplierConfig contains the configuration for a TopicApplier struct.
@@ -57,16 +52,6 @@ type TopicApplier struct {
 	throttleBytes int64
 	topicConfig   config.TopicConfig
 	topicName     string
-}
-
-// Metric Config
-type MetricConfig struct {
-	CurrRound          int     `json:"round"`
-	TotalRounds        int     `json:"totalRounds"`
-	TopicName          string  `json:"topicName"`
-	ClusterName        string  `json:"clusterName"`
-	ClusterEnvironment string  `json:"clusterEnvironment"`
-	ToRemove           []int   `json:"toRemove"`
 }
 
 // NewTopicApplier creates and returns a new TopicApplier instance.
@@ -893,7 +878,7 @@ func (t *TopicApplier) updatePlacementRunner(
 		)
 
 		// print metrics during each iteration
-		metricConfig := MetricConfig{
+		metricConfig := util.ApplyMetricConfig{
 			round,
 			numRounds,
 			t.topicName,
@@ -901,9 +886,13 @@ func (t *TopicApplier) updatePlacementRunner(
 			t.clusterConfig.Meta.Environment,
 			t.config.BrokersToRemove,
 		}
-		go printMetrics(metricConfig, stop)
+		metricStr, err := util.MetricConfigStr(metricConfig)
+		if err != nil {
+			log.Errorf("Error: %+v", err)
+		}
+		go util.PrintMetrics(metricStr, stop)
 
-		err := t.updatePartitionsIteration(
+		err = t.updatePartitionsIteration(
 			ctx,
 			currDiffAssignments[i:end],
 			assignmentsToUpdate[i:end],
@@ -1445,34 +1434,5 @@ func interruptableSleep(ctx context.Context, duration time.Duration) error {
 		return ctx.Err()
 	case <-timer.C:
 		return nil
-	}
-}
-
-// Print Metrics for each iteration
-// This can be configured but that will need lots of TopicConfig struct changes
-// For now, emitting metrics every 5seconds. refer metricDuration
-// Output log can be grepped and parsed for monitoring sake
-func printMetrics(metricConfig MetricConfig, stop chan bool){
-	jsonBytes, err := json.Marshal(metricConfig)
-	jsonStr := ""
-	if err != nil {
-		jsonStr = err.Error()
-		log.Errorf("Error: %+v", err)
-	} else {
-		jsonStr = string(jsonBytes)
-	}
-	// ticker waits for metricDuration. Hence we print first and then ticker to do its job
-	log.Infof("Metric: %s", jsonStr)
-
-	ticker := time.NewTicker(metricDuration * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			log.Infof("Metric: %s", jsonStr)
-		case <-stop:
-			return
-		}
 	}
 }

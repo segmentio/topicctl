@@ -14,6 +14,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
+	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -200,11 +201,33 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 				clusterConfigPath,
 			)
 
+			stop := make(chan bool)
+			metricConfig := util.RebalanceMetricConfig{
+				topicConfig.Meta.Name,
+				clusterConfig.Meta.Name,
+				clusterConfig.Meta.Environment,
+				rebalanceConfig.brokersToRemove,
+				"inprogress",
+			}
+			metricStr, err := util.MetricConfigStr(metricConfig)
+			if err != nil {
+				log.Errorf("Error: %+v", err)
+			}
+			go util.PrintMetrics(metricStr, stop)
 			topicErrorDict[topicConfig.Meta.Name] = nil
 			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
 				topicErrorDict[topicConfig.Meta.Name] = err
+				metricConfig.RebalanceStatus = "error"
 				log.Errorf("Ignoring topic %v for rebalance. Got error: %+v", topicConfig.Meta.Name, err)
+			} else {
+				metricConfig.RebalanceStatus = "success"
 			}
+			stop <- true
+			metricStr, err = util.MetricConfigStr(metricConfig)
+			if err != nil {
+				log.Errorf("Error: %+v", err)
+			}
+			log.Infof("Metric: %s", metricStr)
 		}
 	}
 
