@@ -202,14 +202,14 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			)
 
 			stop := make(chan bool)
-			metricConfig := util.RebalanceMetricConfig{
+			rebalanceMetricConfig := util.RebalanceMetricConfig{
 				topicConfig.Meta.Name,
 				clusterConfig.Meta.Name,
 				clusterConfig.Meta.Environment,
 				rebalanceConfig.brokersToRemove,
 				"inprogress",
 			}
-			metricStr, err := util.MetricConfigStr(metricConfig)
+			metricStr, err := util.MetricConfigStr(rebalanceMetricConfig)
 			if err != nil {
 				log.Errorf("Error: %+v", err)
 			}
@@ -217,13 +217,13 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			topicErrorDict[topicConfig.Meta.Name] = nil
 			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
 				topicErrorDict[topicConfig.Meta.Name] = err
-				metricConfig.RebalanceStatus = "error"
+				rebalanceMetricConfig.RebalanceStatus = "error"
 				log.Errorf("Ignoring topic %v for rebalance. Got error: %+v", topicConfig.Meta.Name, err)
 			} else {
-				metricConfig.RebalanceStatus = "success"
+				rebalanceMetricConfig.RebalanceStatus = "success"
 			}
 			stop <- true
-			metricStr, err = util.MetricConfigStr(metricConfig)
+			metricStr, err = util.MetricConfigStr(rebalanceMetricConfig)
 			if err != nil {
 				log.Errorf("Error: %+v", err)
 			}
