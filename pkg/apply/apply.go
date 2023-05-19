@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"encoding/json"
 	"reflect"
 	"strings"
 	"time"
@@ -21,6 +22,10 @@ import (
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/zk"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	metricDuration = 5
 )
 
 // TopicApplierConfig contains the configuration for a TopicApplier struct.
@@ -52,6 +57,16 @@ type TopicApplier struct {
 	throttleBytes int64
 	topicConfig   config.TopicConfig
 	topicName     string
+}
+
+// Metric Config
+type MetricConfig struct {
+	CurrRound          int     `json:"round"`
+	TotalRounds        int     `json:"totalRounds"`
+	TopicName          string  `json:"topicName"`
+	ClusterName        string  `json:"clusterName"`
+	ClusterEnvironment string  `json:"clusterEnvironment"`
+	ToRemove           []int   `json:"toRemove"`
 }
 
 // NewTopicApplier creates and returns a new TopicApplier instance.
@@ -863,6 +878,7 @@ func (t *TopicApplier) updatePlacementRunner(
 	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
+		stop := make(chan bool)
 		end := i + batchSize
 
 		if end > len(assignmentsToUpdate) {
@@ -876,6 +892,17 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 
+		// print metrics during each iteration
+		metricConfig := MetricConfig{
+			round,
+			numRounds,
+			t.topicName,
+			t.clusterConfig.Meta.Name,
+			t.clusterConfig.Meta.Environment,
+			t.config.BrokersToRemove,
+		}
+		go printMetrics(metricConfig, stop)
+
 		err := t.updatePartitionsIteration(
 			ctx,
 			currDiffAssignments[i:end],
@@ -884,6 +911,7 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 		if err != nil {
+			stop <- true
 			return err
 		}
 
@@ -892,9 +920,12 @@ func (t *TopicApplier) updatePlacementRunner(
 		} else {
 			ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
 			if !ok {
+				stop <- true
 				return errors.New("Stopping because of user response")
 			}
 		}
+
+		stop <- true
 	}
 
 	topicInfo, err := t.adminClient.GetTopic(ctx, t.topicName, true)
@@ -1414,5 +1445,34 @@ func interruptableSleep(ctx context.Context, duration time.Duration) error {
 		return ctx.Err()
 	case <-timer.C:
 		return nil
+	}
+}
+
+// Print Metrics for each iteration
+// This can be configured but that will need lots of TopicConfig struct changes
+// For now, emitting metrics every 5seconds. refer metricDuration
+// Output log can be grepped and parsed for monitoring sake
+func printMetrics(metricConfig MetricConfig, stop chan bool){
+	jsonBytes, err := json.Marshal(metricConfig)
+	jsonStr := ""
+	if err != nil {
+		jsonStr = err.Error()
+		log.Errorf("Error: %+v", err)
+	} else {
+		jsonStr = string(jsonBytes)
+	}
+	// ticker waits for metricDuration. Hence we print first and then ticker to do its job
+	log.Infof("Metric: %s", jsonStr)
+
+	ticker := time.NewTicker(metricDuration * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			log.Infof("Metric: %s", jsonStr)
+		case <-stop:
+			return
+		}
 	}
 }

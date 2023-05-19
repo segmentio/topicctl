@@ -226,7 +226,7 @@ func rebalanceTopicCheck(
 	clusterConfig config.ClusterConfig,
 	topicInfo admin.TopicInfo,
 ) error {
-	// validate topic config is valid for the cluster config
+	// topic config should be same as the cluster config
 	if err := config.CheckConsistency(topicConfig, clusterConfig); err != nil {
 		return err
 	}
