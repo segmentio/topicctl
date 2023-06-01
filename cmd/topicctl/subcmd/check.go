@@ -128,6 +128,8 @@ func checkTopicFile(
 
 	var adminClient admin.Client
 
+	numRacks := -1
+
 	if !checkConfig.validateOnly {
 		var ok bool
 		adminClient, ok = adminClients[clusterConfigPath]
@@ -143,6 +145,10 @@ func checkTopicFile(
 				return false, err
 			}
 			adminClients[clusterConfigPath] = adminClient
+			numRacks, err = countRacks(ctx, adminClient)
+			if err != nil {
+				return false, err
+			}
 		}
 	}
 
@@ -161,10 +167,9 @@ func checkTopicFile(
 			AdminClient:   adminClient,
 			CheckLeaders:  checkConfig.checkLeaders,
 			ClusterConfig: clusterConfig,
-			// TODO: Add support for broker rack verification.
-			NumRacks:     -1,
-			TopicConfig:  topicConfig,
-			ValidateOnly: checkConfig.validateOnly,
+			NumRacks:      numRacks,
+			TopicConfig:   topicConfig,
+			ValidateOnly:  checkConfig.validateOnly,
 		}
 		result, err := cliRunner.CheckTopic(
 			ctx,
@@ -190,4 +195,20 @@ func clusterConfigForTopicCheck(topicConfigPath string) (string, error) {
 			"cluster.yaml",
 		),
 	)
+}
+
+func countRacks(ctx context.Context, c admin.Client) (int, error) {
+	ids, err := c.GetBrokerIDs(ctx)
+	if err != nil {
+		return 0, err
+	}
+	brokers, err := c.GetBrokers(ctx, ids)
+	if err != nil {
+		return 0, err
+	}
+	racks := make(map[string]struct{}, len(brokers))
+	for i := range brokers {
+		racks[brokers[i].Rack] = struct{}{}
+	}
+	return len(racks), nil
 }
