@@ -876,7 +876,7 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 
-		// at the moment show-progress option is avilable only with action: rebalance
+		// at the moment show-progress option is available only with action: rebalance
 		showProgress := false
 		var stop chan bool
 		rebalanceCtxMap, ok := ctx.Value("progress").(util.RebalanceCtxMap)
@@ -888,7 +888,7 @@ func (t *TopicApplier) updatePlacementRunner(
 
 			go util.ShowProgress(
 				ctx,
-				util.RoundTopicProgressConfig{
+				util.TopicRoundProgressConfig{
 					CurrRound:          round,
 					TotalRounds:        numRounds,
 					TopicName:          t.topicName,
