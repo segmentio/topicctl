@@ -863,9 +863,7 @@ func (t *TopicApplier) updatePlacementRunner(
 	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
-		stop := make(chan bool)
 		end := i + batchSize
-
 		if end > len(assignmentsToUpdate) {
 			end = len(assignmentsToUpdate)
 		}
@@ -877,22 +875,32 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 
-		// print metrics during each iteration
-		applyMetricConfig := util.ApplyMetricConfig{
-			CurrRound: round,
-			TotalRounds: numRounds,
-			TopicName: t.topicName,
-			ClusterName: t.clusterConfig.Meta.Name,
-			ClusterEnvironment: t.clusterConfig.Meta.Environment,
-			ToRemove: t.config.BrokersToRemove,
-		}
-		metricStr, err := util.MetricConfigStr(applyMetricConfig)
-		if err != nil {
-			log.Errorf("Error: %+v", err)
-		}
-		go util.PrintMetrics(metricStr, stop)
+		// at the moment show-progress option is avilable only with action: rebalance
+		showProgress := false
+		var stop chan bool
+		rebalanceCtxMap, ok := ctx.Value("progress").(util.RebalanceCtxMap)
+		if !ok {
+			log.Infof("No context value found")
+		} else if rebalanceCtxMap.Enabled {
+			stop = make(chan bool)
+			showProgress = true
 
-		err = t.updatePartitionsIteration(
+			go util.ShowProgress(
+				ctx,
+				util.RoundTopicProgressConfig{
+					CurrRound:          round,
+					TotalRounds:        numRounds,
+					TopicName:          t.topicName,
+					ClusterName:        t.clusterConfig.Meta.Name,
+					ClusterEnvironment: t.clusterConfig.Meta.Environment,
+					ToRemove:           t.config.BrokersToRemove,
+				},
+				rebalanceCtxMap.Interval,
+				stop,
+			)
+		}
+
+		err := t.updatePartitionsIteration(
 			ctx,
 			currDiffAssignments[i:end],
 			assignmentsToUpdate[i:end],
@@ -900,7 +908,10 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 		if err != nil {
-			stop <- true
+			// error handler. stop showing progress for this iteration
+			if showProgress {
+				stop <- true
+			}
 			return err
 		}
 
@@ -909,12 +920,14 @@ func (t *TopicApplier) updatePlacementRunner(
 		} else {
 			ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
 			if !ok {
-				stop <- true
 				return errors.New("Stopping because of user response")
 			}
 		}
 
-		stop <- true
+		// stop showing progress for this iteration
+		if showProgress {
+			stop <- true
+		}
 	}
 
 	topicInfo, err := t.adminClient.GetTopic(ctx, t.topicName, true)

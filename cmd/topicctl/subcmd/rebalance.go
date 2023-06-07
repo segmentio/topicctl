@@ -14,8 +14,8 @@ import (
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
-	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,19 +27,15 @@ var rebalanceCmd = &cobra.Command{
 }
 
 type rebalanceCmdConfig struct {
-	brokersToRemove              []int
-	brokerThrottleMBsOverride    int
-	dryRun                       bool
-	partitionBatchSizeOverride   int
-	pathPrefix                   string
-	autoContinueRebalance        bool
-	retentionDropStepDurationStr string
-	skipConfirm                  bool
-	sleepLoopDuration            time.Duration
+	brokersToRemove            []int
+	brokerThrottleMBsOverride  int
+	dryRun                     bool
+	partitionBatchSizeOverride int
+	pathPrefix                 string
+	sleepLoopDuration          time.Duration
+	showProgressInterval       time.Duration
 
 	shared sharedOptions
-
-	retentionDropStepDuration time.Duration
 }
 
 var rebalanceConfig rebalanceCmdConfig
@@ -75,29 +71,17 @@ func init() {
 		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
 		"Prefix for topic config paths",
 	)
-	rebalanceCmd.Flags().BoolVar(
-		&rebalanceConfig.autoContinueRebalance,
-		"auto-continue-rebalance",
-		false,
-		"Continue rebalancing without prompting (WARNING: user discretion advised)",
-	)
-	rebalanceCmd.Flags().StringVar(
-		&rebalanceConfig.retentionDropStepDurationStr,
-		"retention-drop-step-duration",
-		"",
-		"Amount of time to use for retention drop steps",
-	)
-	rebalanceCmd.Flags().BoolVar(
-		&rebalanceConfig.skipConfirm,
-		"skip-confirm",
-		false,
-		"Skip confirmation prompts during apply process",
-	)
 	rebalanceCmd.Flags().DurationVar(
 		&rebalanceConfig.sleepLoopDuration,
 		"sleep-loop-duration",
 		10*time.Second,
 		"Amount of time to wait between partition checks",
+	)
+	rebalanceCmd.Flags().DurationVar(
+		&rebalanceConfig.showProgressInterval,
+		"show-progress-interval",
+		0*time.Second,
+		"show progress during rebalance at intervals",
 	)
 
 	addSharedConfigOnlyFlags(rebalanceCmd, &rebalanceConfig.shared)
@@ -105,27 +89,6 @@ func init() {
 }
 
 func rebalancePreRun(cmd *cobra.Command, args []string) error {
-	if rebalanceConfig.retentionDropStepDurationStr != "" {
-		var err error
-		rebalanceConfig.retentionDropStepDuration, err = time.ParseDuration(
-			rebalanceConfig.retentionDropStepDurationStr,
-		)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	// topicctl config layout for a kafka cluster (refer folder: topicctl/examples)
-	//   cluster/
-	//   cluster/cluster.yaml
-	//   cluster/topics/
-	//   cluster/topics/topic_1
-	//   cluster/topics/topic_2
-	//
-	// there can be a situation where topics folder is not in cluster dir
-	// hence we specify both --cluster-config and --path-prefix for action:rebalance
-	// However, we check the path-prefix topic configs with cluster yaml for consistency before applying
 	if rebalanceConfig.shared.clusterConfig == "" || rebalanceConfig.pathPrefix == "" {
 		return fmt.Errorf("Must set args --cluster-config & --path-prefix (or) env variables TOPICCTL_CLUSTER_CONFIG & TOPICCTL_APPLY_PATH_PREFIX")
 	}
@@ -134,46 +97,41 @@ func rebalancePreRun(cmd *cobra.Command, args []string) error {
 }
 
 func rebalanceRun(cmd *cobra.Command, args []string) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
+	rebalanceCtxMap, err := getRebalanceCtxMap(&rebalanceConfig)
+	if err != nil {
+		return err
+	}
+	ctx = context.WithValue(ctx, "progress", rebalanceCtxMap)
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
+		// for an interrupt, cancel context and exit program to end all topic rebalances
 		<-sigChan
 		cancel()
-	}()
-
-	// Keep a cache of the admin clients with the cluster config path as the key
-	adminClients := map[string]admin.Client{}
-	defer func() {
-		for _, adminClient := range adminClients {
-			adminClient.Close()
-		}
+		os.Exit(1)
 	}()
 
 	clusterConfigPath := rebalanceConfig.shared.clusterConfig
 	topicConfigDir := rebalanceConfig.pathPrefix
-	clusterConfig, err := config.LoadClusterFile(clusterConfigPath, applyConfig.shared.expandEnv)
+	clusterConfig, err := config.LoadClusterFile(clusterConfigPath, rebalanceConfig.shared.expandEnv)
 	if err != nil {
 		return err
 	}
-	log.Debugf("clusterConfig: %+v", clusterConfig)
 
-	adminClient, ok := adminClients[clusterConfigPath]
-	if !ok {
-		adminClient, err = clusterConfig.NewAdminClient(
-			ctx,
-			nil,
-			applyConfig.dryRun,
-			applyConfig.shared.saslUsername,
-			applyConfig.shared.saslPassword,
-		)
-		if err != nil {
-			return err
-		}
-		adminClients[clusterConfigPath] = adminClient
+	adminClient, err := clusterConfig.NewAdminClient(ctx,
+		nil,
+		rebalanceConfig.dryRun,
+		rebalanceConfig.shared.saslUsername,
+		rebalanceConfig.shared.saslPassword,
+	)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer adminClient.Close()
 
 	// get all topic configs from path-prefix i.e topics folder
 	// this folder should only have topic configs
@@ -193,7 +151,6 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		for _, topicConfig := range topicConfigs {
-			log.Debugf("topicConfig from file: %+v", topicConfig)
 			log.Infof(
 				"Rebalancing topic %s in config %s with cluster config %s",
 				topicConfig.Meta.Name,
@@ -201,42 +158,60 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 				clusterConfigPath,
 			)
 
-			stop := make(chan bool)
-			rebalanceMetricConfig := util.RebalanceMetricConfig{
-				TopicName: topicConfig.Meta.Name,
-				ClusterName: clusterConfig.Meta.Name,
-				ClusterEnvironment: clusterConfig.Meta.Environment,
-				ToRemove: rebalanceConfig.brokersToRemove,
-				RebalanceStatus: "inprogress",
-			}
-			metricStr, err := util.MetricConfigStr(rebalanceMetricConfig)
-			if err != nil {
-				log.Errorf("Error: %+v", err)
-			}
-			go util.PrintMetrics(metricStr, stop)
 			topicErrorDict[topicConfig.Meta.Name] = nil
+			rebalanceTopicProgressConfig := util.RebalanceTopicProgressConfig{
+				TopicName:          topicConfig.Meta.Name,
+				ClusterName:        clusterConfig.Meta.Name,
+				ClusterEnvironment: clusterConfig.Meta.Environment,
+				ToRemove:           rebalanceConfig.brokersToRemove,
+				RebalanceError:     false,
+			}
 			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
 				topicErrorDict[topicConfig.Meta.Name] = err
-				rebalanceMetricConfig.RebalanceStatus = "error"
+				rebalanceTopicProgressConfig.RebalanceError = true
 				log.Errorf("Ignoring topic %v for rebalance. Got error: %+v", topicConfig.Meta.Name, err)
-			} else {
-				rebalanceMetricConfig.RebalanceStatus = "success"
 			}
-			stop <- true
-			metricStr, err = util.MetricConfigStr(rebalanceMetricConfig)
-			if err != nil {
-				log.Errorf("Error: %+v", err)
+
+			// show topic final progress
+			if rebalanceCtxMap.Enabled {
+				progressStr, err := util.DictToStr(rebalanceTopicProgressConfig)
+				if err != nil {
+					log.Errorf("Got error: %+v", err)
+				} else {
+					log.Infof("Progress: %s", progressStr)
+				}
 			}
-			log.Infof("Metric: %s", metricStr)
 		}
 	}
 
-	log.Infof("Rebalance error topics...")
+	// audit at the end of all topic rebalances
+	successTopics := 0
+	errorTopics := 0
 	for thisTopicName, thisTopicError := range topicErrorDict {
 		if thisTopicError != nil {
+			errorTopics += 1
 			log.Errorf("topic: %s failed with error: %v", thisTopicName, thisTopicError)
+		} else {
+			successTopics += 1
 		}
-    }
+	}
+	log.Infof("Overall rebalance - success topics: %d, error topics: %d", successTopics, errorTopics)
+	
+	// show overall rebalance progress
+	if rebalanceCtxMap.Enabled {
+		progressStr, err := util.DictToStr(util.RebalanceProgressConfig{
+			SuccessTopics: successTopics,
+			ErrorTopics: errorTopics,
+			ClusterName:        clusterConfig.Meta.Name,
+			ClusterEnvironment: clusterConfig.Meta.Environment,
+			ToRemove:           rebalanceConfig.brokersToRemove,
+		})
+		if err != nil {
+			log.Errorf("Got error: %+v", err)
+		} else {
+			log.Infof("Progress: %s", progressStr)
+		}
+	}
 
 	return nil
 }
@@ -253,7 +228,7 @@ func rebalanceTopicCheck(
 	if err := config.CheckConsistency(topicConfig, clusterConfig); err != nil {
 		return err
 	}
-	
+
 	log.Infof("Check topic partitions...")
 	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
 		return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
@@ -272,6 +247,7 @@ func rebalanceTopicCheck(
 //   - topic config is inconsistent with cluster config (name, region, environment etc...)
 //   - partitions of a topic in kafka cluster does not match with topic partition setting in topic config
 //   - retention.ms of a topic in kafka cluster does not match with topic retentionMinutes setting in topic config
+//
 // to ensure there are no disruptions to kafka cluster
 //
 // NOTE: topic that is not present in kafka cluster will not be applied
@@ -286,12 +262,17 @@ func rebalanceApplyTopic(
 	if err != nil {
 		if err == admin.ErrTopicDoesNotExist {
 			return fmt.Errorf("Topic: %s does not exist in Kafka cluster", topicConfig.Meta.Name)
-		} 
+		}
 		return err
 	}
 	log.Debugf("topicInfo from kafka: %+v", topicInfo)
 
 	if err := rebalanceTopicCheck(topicConfig, clusterConfig, topicInfo); err != nil {
+		return err
+	}
+
+	retentionDropStepDuration, err := clusterConfig.GetDefaultRetentionDropStepDuration()
+	if err != nil {
 		return err
 	}
 
@@ -301,10 +282,10 @@ func rebalanceApplyTopic(
 		ClusterConfig:              clusterConfig,
 		DryRun:                     rebalanceConfig.dryRun,
 		PartitionBatchSizeOverride: rebalanceConfig.partitionBatchSizeOverride,
-		Rebalance:                  true, // to enforce action: rebalance
-		AutoContinueRebalance:      rebalanceConfig.autoContinueRebalance,
-		RetentionDropStepDuration:  rebalanceConfig.retentionDropStepDuration,
-		SkipConfirm:                rebalanceConfig.skipConfirm,
+		Rebalance:                  true,                      // to enforce action: rebalance
+		AutoContinueRebalance:      true,                      // to continue without prompts
+		RetentionDropStepDuration:  retentionDropStepDuration, // not needed for rebalance
+		SkipConfirm:                true,                      // to enforce action: rebalance
 		SleepLoopDuration:          rebalanceConfig.sleepLoopDuration,
 		TopicConfig:                topicConfig,
 	}
@@ -315,4 +296,28 @@ func rebalanceApplyTopic(
 	}
 
 	return nil
+}
+
+// build ctx map for rebalance progress
+func getRebalanceCtxMap(rebalanceConfig *rebalanceCmdConfig) (util.RebalanceCtxMap, error) {
+	rebalanceCtxMap := util.RebalanceCtxMap{
+		Enabled: true,
+		Interval: rebalanceConfig.showProgressInterval,
+	}
+
+	zeroDur, _ := time.ParseDuration("0s")
+	if rebalanceConfig.showProgressInterval == zeroDur {
+		rebalanceCtxMap.Enabled = false
+		log.Infof("--progress-interval is 0s. Not showing progress...")
+	} else if rebalanceConfig.showProgressInterval < zeroDur {
+		return rebalanceCtxMap, fmt.Errorf("--show-progress-interval should be > 0s")
+	}
+
+	if rebalanceConfig.dryRun {
+		rebalanceCtxMap.Enabled = false
+		log.Infof("--dry-run enabled. Not showing progress...")
+		return rebalanceCtxMap, nil
+	}
+
+	return rebalanceCtxMap, nil
 }
