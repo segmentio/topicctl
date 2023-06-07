@@ -25,8 +25,8 @@ type RebalanceProgressConfig struct {
 	ToRemove           []int  `json:"to_remove"`
 }
 
-// Topic Round progress Config
-type TopicRoundProgressConfig struct {
+// Rebalance Topic Round progress Config
+type RebalanceRoundProgressConfig struct {
 	TopicName          string `json:"topic"`
 	ClusterName        string `json:"cluster"`
 	ClusterEnvironment string `json:"environment"`

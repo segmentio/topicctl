@@ -196,12 +196,12 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 	log.Infof("Overall rebalance - success topics: %d, error topics: %d", successTopics, errorTopics)
-	
+
 	// show overall rebalance progress
 	if rebalanceCtxMap.Enabled {
 		progressStr, err := util.DictToStr(util.RebalanceProgressConfig{
-			SuccessTopics: successTopics,
-			ErrorTopics: errorTopics,
+			SuccessTopics:      successTopics,
+			ErrorTopics:        errorTopics,
 			ClusterName:        clusterConfig.Meta.Name,
 			ClusterEnvironment: clusterConfig.Meta.Environment,
 			ToRemove:           rebalanceConfig.brokersToRemove,
@@ -301,7 +301,7 @@ func rebalanceApplyTopic(
 // build ctx map for rebalance progress
 func getRebalanceCtxMap(rebalanceConfig *rebalanceCmdConfig) (util.RebalanceCtxMap, error) {
 	rebalanceCtxMap := util.RebalanceCtxMap{
-		Enabled: true,
+		Enabled:  true,
 		Interval: rebalanceConfig.showProgressInterval,
 	}
 

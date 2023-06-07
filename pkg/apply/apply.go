@@ -888,7 +888,7 @@ func (t *TopicApplier) updatePlacementRunner(
 
 			go util.ShowProgress(
 				ctx,
-				util.TopicRoundProgressConfig{
+				util.RebalanceRoundProgressConfig{
 					CurrRound:          round,
 					TotalRounds:        numRounds,
 					TopicName:          t.topicName,
