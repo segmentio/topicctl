@@ -864,6 +864,7 @@ func (t *TopicApplier) updatePlacementRunner(
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
 		end := i + batchSize
+
 		if end > len(assignmentsToUpdate) {
 			end = len(assignmentsToUpdate)
 		}
