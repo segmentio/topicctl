@@ -876,6 +876,31 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 
+		// at the moment show-progress option is avilable only with action: rebalance
+		showProgress := false
+		var stop chan bool
+		rebalanceCtxMap, ok := ctx.Value("progress").(util.RebalanceCtxMap)
+		if !ok {
+			log.Infof("No context value found")
+		} else if rebalanceCtxMap.Enabled {
+			stop = make(chan bool)
+			showProgress = true
+
+			go util.ShowProgress(
+				ctx,
+				util.RoundTopicProgressConfig{
+					CurrRound:          round,
+					TotalRounds:        numRounds,
+					TopicName:          t.topicName,
+					ClusterName:        t.clusterConfig.Meta.Name,
+					ClusterEnvironment: t.clusterConfig.Meta.Environment,
+					ToRemove:           t.config.BrokersToRemove,
+				},
+				rebalanceCtxMap.Interval,
+				stop,
+			)
+		}
+
 		err := t.updatePartitionsIteration(
 			ctx,
 			currDiffAssignments[i:end],
@@ -884,6 +909,10 @@ func (t *TopicApplier) updatePlacementRunner(
 			roundLabel,
 		)
 		if err != nil {
+			// error handler. stop showing progress for this iteration
+			if showProgress {
+				stop <- true
+			}
 			return err
 		}
 
@@ -894,6 +923,11 @@ func (t *TopicApplier) updatePlacementRunner(
 			if !ok {
 				return errors.New("Stopping because of user response")
 			}
+		}
+
+		// stop showing progress for this iteration
+		if showProgress {
+			stop <- true
 		}
 	}
 
