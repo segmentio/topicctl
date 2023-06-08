@@ -46,9 +46,9 @@ func ShowProgress(
 	ctx context.Context,
 	progressConfig interface{},
 	interval time.Duration,
-	stop chan bool,
+	stopChan chan bool,
 ) {
-	progressStr, err := DictToStr(progressConfig)
+	progressStr, err := MapToStr(progressConfig)
 	if err != nil {
 		log.Errorf("Got error: %+v", err)
 	} else {
@@ -65,15 +65,15 @@ func ShowProgress(
 			if err == nil {
 				log.Infof("Progress: %s", progressStr)
 			}
-		case <-stop:
+		case <-stopChan:
 			return
 		}
 	}
 }
 
-// convert any dict to json string
-func DictToStr(dict interface{}) (string, error) {
-	jsonBytes, err := json.Marshal(dict)
+// convert any map to json string
+func MapToStr(inputMap interface{}) (string, error) {
+	jsonBytes, err := json.Marshal(inputMap)
 	if err != nil {
 		return "{}", err
 	}

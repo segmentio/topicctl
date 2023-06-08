@@ -90,7 +90,7 @@ func init() {
 
 func rebalancePreRun(cmd *cobra.Command, args []string) error {
 	if rebalanceConfig.shared.clusterConfig == "" || rebalanceConfig.pathPrefix == "" {
-		return fmt.Errorf("Must set args --cluster-config & --path-prefix (or) env variables TOPICCTL_CLUSTER_CONFIG & TOPICCTL_APPLY_PATH_PREFIX")
+		return fmt.Errorf("Requires args --cluster-config & --path-prefix (or) env variables TOPICCTL_CLUSTER_CONFIG & TOPICCTL_APPLY_PATH_PREFIX")
 	}
 
 	return nil
@@ -174,7 +174,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 
 			// show topic final progress
 			if rebalanceCtxMap.Enabled {
-				progressStr, err := util.DictToStr(rebalanceTopicProgressConfig)
+				progressStr, err := util.MapToStr(rebalanceTopicProgressConfig)
 				if err != nil {
 					log.Errorf("Got error: %+v", err)
 				} else {
@@ -195,11 +195,11 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			successTopics += 1
 		}
 	}
-	log.Infof("Overall rebalance - success topics: %d, error topics: %d", successTopics, errorTopics)
+	log.Infof("Rebalance summary - success topics: %d, error topics: %d", successTopics, errorTopics)
 
-	// show overall rebalance progress
+	// show overall rebalance summary report
 	if rebalanceCtxMap.Enabled {
-		progressStr, err := util.DictToStr(util.RebalanceProgressConfig{
+		progressStr, err := util.MapToStr(util.RebalanceProgressConfig{
 			SuccessTopics:      successTopics,
 			ErrorTopics:        errorTopics,
 			ClusterName:        clusterConfig.Meta.Name,

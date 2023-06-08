@@ -878,12 +878,12 @@ func (t *TopicApplier) updatePlacementRunner(
 
 		// at the moment show-progress option is available only with action: rebalance
 		showProgress := false
-		var stop chan bool
+		var stopChan chan bool
 		rebalanceCtxMap, ok := ctx.Value("progress").(util.RebalanceCtxMap)
 		if !ok {
 			log.Infof("No context value found")
 		} else if rebalanceCtxMap.Enabled {
-			stop = make(chan bool)
+			stopChan = make(chan bool)
 			showProgress = true
 
 			go util.ShowProgress(
@@ -897,7 +897,7 @@ func (t *TopicApplier) updatePlacementRunner(
 					ToRemove:           t.config.BrokersToRemove,
 				},
 				rebalanceCtxMap.Interval,
-				stop,
+				stopChan,
 			)
 		}
 
@@ -911,7 +911,7 @@ func (t *TopicApplier) updatePlacementRunner(
 		if err != nil {
 			// error handler. stop showing progress for this iteration
 			if showProgress {
-				stop <- true
+				stopChan <- true
 			}
 			return err
 		}
@@ -927,7 +927,7 @@ func (t *TopicApplier) updatePlacementRunner(
 
 		// stop showing progress for this iteration
 		if showProgress {
-			stop <- true
+			stopChan <- true
 		}
 	}
 
