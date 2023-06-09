@@ -151,7 +151,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		// do not consider invaalid topic yaml files for rebalance
+		// do not consider invalid topic yaml files for rebalance
 		topicConfigs, err = config.LoadTopicsFile(topicFile)
 		if err != nil {
 			log.Errorf("Invalid topic yaml file: %s", topicFile)
