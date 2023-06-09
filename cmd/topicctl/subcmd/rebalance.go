@@ -133,8 +133,12 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	}
 	defer adminClient.Close()
 
-	// get all topic configs from path-prefix i.e topics folder
-	// recursive search is performed in the path-prefix
+	// get all topic configs from --path-prefix i.e topics folder
+	// recursive search is performed on the --path-prefix
+	// 
+	// NOTE: a topic file is ignored for rebalance if 
+	// - a file is not a valid topic yaml file
+	// - any topic config is not consistent with cluster config
 	log.Infof("Getting all topic configs from path prefix %v", topicConfigDir)
 	topicFiles, err := getAllFiles(topicConfigDir)
 	if err != nil {
@@ -145,12 +149,6 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	topicConfigs := []config.TopicConfig{}
 	topicErrorDict := make(map[string]error)
 	for _, topicFile := range topicFiles {
-		// ignore any cluster.yaml files in the --path-prefix for rebalance
-		if filepath.Base(topicFile) == "cluster.yaml" {
-			log.Warnf("Not a valid topic yaml file: %s", topicFile)
-			continue
-		}
-
 		// do not consider invalid topic yaml files for rebalance
 		topicConfigs, err = config.LoadTopicsFile(topicFile)
 		if err != nil {
