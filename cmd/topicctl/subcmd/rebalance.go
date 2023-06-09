@@ -134,10 +134,10 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	defer adminClient.Close()
 
 	// get all topic configs from --path-prefix i.e topics folder
-	// we perform a recursive on the --path-prefix because there can be nested directories with 
+	// we perform a recursive on the --path-prefix because there can be nested directories with
 	// more topics for the --cluster-config
-	// 
-	// NOTE: a topic file is ignored for rebalance if 
+	//
+	// NOTE: a topic file is ignored for rebalance if
 	// - a file is not a valid topic yaml file
 	// - any topic config is not consistent with cluster config
 	log.Infof("Getting all topic configs from path prefix %v", topicConfigDir)
@@ -165,7 +165,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			}
 
 			log.Infof(
-				"Rebalancing topic %s in config %s with cluster config %s",
+				"Rebalancing topic %s from config file %s with cluster config %s",
 				topicConfig.Meta.Name,
 				topicFile,
 				clusterConfigPath,
@@ -189,9 +189,9 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			if rebalanceCtxStruct.Enabled {
 				progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
 				if err != nil {
-					log.Errorf("Got error: %+v", err)
+					log.Errorf("Rebalance failed due to error: %+v", err)
 				} else {
-					log.Infof("Progress: %s", progressStr)
+					log.Infof("Rebalance Progress: %s", progressStr)
 				}
 			}
 		}
@@ -237,16 +237,23 @@ func rebalanceTopicCheck(
 ) error {
 	log.Debugf("Check topic partitions...")
 	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
-		return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
+		return fmt.Errorf("Topic partitions in kafka: %d does not match with topic config: %d",
+			len(topicInfo.Partitions),
+			topicConfig.Spec.Partitions,
+		)
 	}
 
 	log.Debugf("Check topic retention.ms...")
 	topicInfoRetentionMs := topicInfo.Config["retention.ms"]
+	topicConfigRetentionMs := strconv.Itoa(topicConfig.Spec.RetentionMinutes * 60000)
 	if topicInfoRetentionMs == "" {
 		topicInfoRetentionMs = strconv.Itoa(0)
 	}
-	if topicInfoRetentionMs != strconv.Itoa(topicConfig.Spec.RetentionMinutes*60000) {
-		return fmt.Errorf("Topic retention in kafka does not match with topic config file")
+	if topicInfoRetentionMs != topicConfigRetentionMs {
+		return fmt.Errorf("Topic retention in kafka: %s does not match with topic config: %s",
+			topicInfoRetentionMs,
+			topicConfigRetentionMs,
+		)
 	}
 
 	return nil
