@@ -21,7 +21,7 @@ import (
 
 var rebalanceCmd = &cobra.Command{
 	Use:     "rebalance",
-	Short:   "rebalance all topic configs for a kafka cluster",
+	Short:   "rebalance all topics for a given topic prefix path",
 	PreRunE: rebalancePreRun,
 	RunE:    rebalanceRun,
 }
@@ -81,7 +81,7 @@ func init() {
 		&rebalanceConfig.showProgressInterval,
 		"show-progress-interval",
 		0*time.Second,
-		"show progress during rebalance at intervals",
+		"Interval of time to show progress during rebalance",
 	)
 
 	addSharedConfigOnlyFlags(rebalanceCmd, &rebalanceConfig.shared)
@@ -98,11 +98,11 @@ func rebalancePreRun(cmd *cobra.Command, args []string) error {
 
 func rebalanceRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
-	rebalanceCtxMap, err := getRebalanceCtxMap(&rebalanceConfig)
+	rebalanceCtxStruct, err := getRebalanceCtxStruct(&rebalanceConfig)
 	if err != nil {
 		return err
 	}
-	ctx = context.WithValue(ctx, "progress", rebalanceCtxMap)
+	ctx = context.WithValue(ctx, "progress", rebalanceCtxStruct)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -182,12 +182,12 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
 				topicErrorDict[topicConfig.Meta.Name] = err
 				rebalanceTopicProgressConfig.RebalanceError = true
-				log.Errorf("Ignoring topic %v for rebalance. Got error: %+v", topicConfig.Meta.Name, err)
+				log.Errorf("Ignoring rebalance of topic %v due to error: %+v", topicConfig.Meta.Name, err)
 			}
 
 			// show topic final progress
-			if rebalanceCtxMap.Enabled {
-				progressStr, err := util.MapToStr(rebalanceTopicProgressConfig)
+			if rebalanceCtxStruct.Enabled {
+				progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
 				if err != nil {
 					log.Errorf("Got error: %+v", err)
 				} else {
@@ -211,8 +211,8 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	log.Infof("Rebalance summary - success topics: %d, error topics: %d", successTopics, errorTopics)
 
 	// show overall rebalance summary report
-	if rebalanceCtxMap.Enabled {
-		progressStr, err := util.MapToStr(util.RebalanceProgressConfig{
+	if rebalanceCtxStruct.Enabled {
+		progressStr, err := util.StructToStr(util.RebalanceProgressConfig{
 			SuccessTopics:      successTopics,
 			ErrorTopics:        errorTopics,
 			ClusterName:        clusterConfig.Meta.Name,
@@ -235,13 +235,17 @@ func rebalanceTopicCheck(
 	topicConfig config.TopicConfig,
 	topicInfo admin.TopicInfo,
 ) error {
-	log.Infof("Check topic partitions...")
+	log.Debugf("Check topic partitions...")
 	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
 		return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
 	}
 
-	log.Infof("Check topic retention.ms...")
-	if topicInfo.Config["retention.ms"] != strconv.Itoa(topicConfig.Spec.RetentionMinutes*60000) {
+	log.Debugf("Check topic retention.ms...")
+	topicInfoRetentionMs := topicInfo.Config["retention.ms"]
+	if topicInfoRetentionMs == "" {
+		topicInfoRetentionMs = strconv.Itoa(0)
+	}
+	if topicInfoRetentionMs != strconv.Itoa(topicConfig.Spec.RetentionMinutes*60000) {
 		return fmt.Errorf("Topic retention in kafka does not match with topic config file")
 	}
 
@@ -304,27 +308,27 @@ func rebalanceApplyTopic(
 }
 
 // build ctx map for rebalance progress
-func getRebalanceCtxMap(rebalanceConfig *rebalanceCmdConfig) (util.RebalanceCtxMap, error) {
-	rebalanceCtxMap := util.RebalanceCtxMap{
+func getRebalanceCtxStruct(rebalanceConfig *rebalanceCmdConfig) (util.RebalanceCtxStruct, error) {
+	rebalanceCtxStruct := util.RebalanceCtxStruct{
 		Enabled:  true,
 		Interval: rebalanceConfig.showProgressInterval,
 	}
 
 	zeroDur, _ := time.ParseDuration("0s")
 	if rebalanceConfig.showProgressInterval == zeroDur {
-		rebalanceCtxMap.Enabled = false
+		rebalanceCtxStruct.Enabled = false
 		log.Infof("--progress-interval is 0s. Not showing progress...")
 	} else if rebalanceConfig.showProgressInterval < zeroDur {
-		return rebalanceCtxMap, fmt.Errorf("--show-progress-interval should be > 0s")
+		return rebalanceCtxStruct, fmt.Errorf("--show-progress-interval should be > 0s")
 	}
 
 	if rebalanceConfig.dryRun {
-		rebalanceCtxMap.Enabled = false
+		rebalanceCtxStruct.Enabled = false
 		log.Infof("--dry-run enabled. Not showing progress...")
-		return rebalanceCtxMap, nil
+		return rebalanceCtxStruct, nil
 	}
 
-	return rebalanceCtxMap, nil
+	return rebalanceCtxStruct, nil
 }
 
 // get all files for a given dir path

@@ -879,10 +879,8 @@ func (t *TopicApplier) updatePlacementRunner(
 		// at the moment show-progress option is available only with action: rebalance
 		showProgress := false
 		var stopChan chan bool
-		rebalanceCtxMap, ok := ctx.Value("progress").(util.RebalanceCtxMap)
-		if !ok {
-			log.Infof("No context value found")
-		} else if rebalanceCtxMap.Enabled {
+		rebalanceCtxStruct, ok := ctx.Value("progress").(util.RebalanceCtxStruct)
+		if ok && rebalanceCtxStruct.Enabled {
 			stopChan = make(chan bool)
 			showProgress = true
 
@@ -896,7 +894,7 @@ func (t *TopicApplier) updatePlacementRunner(
 					ClusterEnvironment: t.clusterConfig.Meta.Environment,
 					ToRemove:           t.config.BrokersToRemove,
 				},
-				rebalanceCtxMap.Interval,
+				rebalanceCtxStruct.Interval,
 				stopChan,
 			)
 		}

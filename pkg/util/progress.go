@@ -35,8 +35,8 @@ type RebalanceRoundProgressConfig struct {
 	TotalRounds        int    `json:"total_rounds"`
 }
 
-// context map for rebalance
-type RebalanceCtxMap struct {
+// Rebalance context struct
+type RebalanceCtxStruct struct {
 	Enabled  bool          `json:"enabled"`
 	Interval time.Duration `json:"interval"`
 }
@@ -48,7 +48,7 @@ func ShowProgress(
 	interval time.Duration,
 	stopChan chan bool,
 ) {
-	progressStr, err := MapToStr(progressConfig)
+	progressStr, err := StructToStr(progressConfig)
 	if err != nil {
 		log.Errorf("Got error: %+v", err)
 	} else {
@@ -71,9 +71,9 @@ func ShowProgress(
 	}
 }
 
-// convert any map to json string
-func MapToStr(inputMap interface{}) (string, error) {
-	jsonBytes, err := json.Marshal(inputMap)
+// convert any struct to json string
+func StructToStr(inputStruct interface{}) (string, error) {
+	jsonBytes, err := json.Marshal(inputStruct)
 	if err != nil {
 		return "{}", err
 	}
