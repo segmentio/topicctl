@@ -50,10 +50,10 @@ func ShowProgress(
 ) {
 	progressStr, err := StructToStr(progressConfig)
 	if err != nil {
-		log.Errorf("Got error: %+v", err)
+		log.Errorf("progress struct to string error: %+v", err)
 	} else {
 		// print first before ticker starts
-		log.Infof("Progress: %s", progressStr)
+		log.Infof("Rebalance Progress: %s", progressStr)
 	}
 
 	ticker := time.NewTicker(interval)
@@ -63,7 +63,7 @@ func ShowProgress(
 		select {
 		case <-ticker.C:
 			if err == nil {
-				log.Infof("Progress: %s", progressStr)
+				log.Infof("Rebalance Progress: %s", progressStr)
 			}
 		case <-stopChan:
 			return

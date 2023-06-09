@@ -189,7 +189,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			if rebalanceCtxStruct.Enabled {
 				progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
 				if err != nil {
-					log.Errorf("Rebalance failed due to error: %+v", err)
+					log.Errorf("progress struct to string error: %+v", err)
 				} else {
 					log.Infof("Rebalance Progress: %s", progressStr)
 				}
@@ -208,7 +208,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			successTopics += 1
 		}
 	}
-	log.Infof("Rebalance summary - success topics: %d, error topics: %d", successTopics, errorTopics)
+	log.Infof("Rebalance complete! topics: %d topics rebalanced successfully, %d topics had errors", successTopics, errorTopics)
 
 	// show overall rebalance summary report
 	if rebalanceCtxStruct.Enabled {
@@ -220,9 +220,9 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			ToRemove:           rebalanceConfig.brokersToRemove,
 		})
 		if err != nil {
-			log.Errorf("Got error: %+v", err)
+			log.Errorf("progress struct to string error: %+v", err)
 		} else {
-			log.Infof("Progress: %s", progressStr)
+			log.Infof("Rebalance Progress: %s", progressStr)
 		}
 	}
 
