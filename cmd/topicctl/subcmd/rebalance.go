@@ -208,7 +208,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			successTopics += 1
 		}
 	}
-	log.Infof("Rebalance complete! topics: %d topics rebalanced successfully, %d topics had errors", successTopics, errorTopics)
+	log.Infof("Rebalance complete! %d topics rebalanced successfully, %d topics had errors", successTopics, errorTopics)
 
 	// show overall rebalance summary report
 	if rebalanceCtxStruct.Enabled {
