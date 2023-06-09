@@ -203,12 +203,12 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	for thisTopicName, thisTopicError := range topicErrorDict {
 		if thisTopicError != nil {
 			errorTopics += 1
-			log.Errorf("topic: %s failed with error: %v", thisTopicName, thisTopicError)
+			log.Errorf("topic: %s rebalance failed with error: %v", thisTopicName, thisTopicError)
 		} else {
+			log.Infof("topic: %s rebalance is successful", thisTopicName)
 			successTopics += 1
 		}
 	}
-	log.Infof("Rebalance complete! %d topics rebalanced successfully, %d topics had errors", successTopics, errorTopics)
 
 	// show overall rebalance summary report
 	if rebalanceCtxStruct.Enabled {
@@ -226,6 +226,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	log.Infof("Rebalance complete! %d topics rebalanced successfully, %d topics had errors", successTopics, errorTopics)
 	return nil
 }
 
