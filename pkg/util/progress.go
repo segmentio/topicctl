@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
@@ -69,14 +68,4 @@ func ShowProgress(
 			return
 		}
 	}
-}
-
-// convert any struct to json string
-func StructToStr(inputStruct interface{}) (string, error) {
-	jsonBytes, err := json.Marshal(inputStruct)
-	if err != nil {
-		return "{}", err
-	}
-
-	return string(jsonBytes), nil
 }

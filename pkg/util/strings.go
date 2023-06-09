@@ -1,6 +1,9 @@
 package util
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // TruncateStringSuffix truncates a string by replacing the trailing characters with
 // "..." if needed.
@@ -25,4 +28,14 @@ func TruncateStringMiddle(input string, maxLen int, suffixLen int) (string, int)
 
 	numOmitted := len(input) - len(prefix) - len(suffix)
 	return fmt.Sprintf("%s...%s", prefix, suffix), numOmitted
+}
+
+// Convert any struct to json string
+func StructToStr(inputStruct interface{}) (string, error) {
+	jsonBytes, err := json.Marshal(inputStruct)
+	if err != nil {
+		return "{}", err
+	}
+
+	return string(jsonBytes), nil
 }
