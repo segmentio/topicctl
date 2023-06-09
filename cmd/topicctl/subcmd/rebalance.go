@@ -134,10 +134,9 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	defer adminClient.Close()
 
 	// get all topic configs from path-prefix i.e topics folder
-	// this folder should only have topic configs
-	// recursive search is not performed in the path-prefix
-	log.Infof("Getting all topic configs from path prefix (from root) %v", topicConfigDir)
-	matches, err := filepath.Glob(topicConfigDir + "/**")
+	// recursive search is performed in the path-prefix
+	log.Infof("Getting all topic configs from path prefix %v", topicConfigDir)
+	topicFiles, err := getAllFiles(topicConfigDir)
 	if err != nil {
 		return err
 	}
@@ -145,16 +144,30 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	// iterate through each topic config and initiate rebalance
 	topicConfigs := []config.TopicConfig{}
 	topicErrorDict := make(map[string]error)
-	for _, match := range matches {
-		topicConfigs, err = config.LoadTopicsFile(match)
-		if err != nil {
-			return err
+	for _, topicFile := range topicFiles {
+		// ignore any cluster.yaml files in the --path-prefix
+		if filepath.Base(topicFile) == "cluster.yaml" {
+			log.Warnf("Not a valid topic yaml file: %s", topicFile)
+			continue
 		}
+
+		topicConfigs, err = config.LoadTopicsFile(topicFile)
+		if err != nil {
+			log.Errorf("Invalid topic yaml file: %s", topicFile)
+			continue
+		}
+
 		for _, topicConfig := range topicConfigs {
+			// topic config should be consistent with the cluster config
+			if err := config.CheckConsistency(topicConfig, clusterConfig); err != nil {
+				log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
+				continue
+			}
+
 			log.Infof(
 				"Rebalancing topic %s in config %s with cluster config %s",
 				topicConfig.Meta.Name,
-				match,
+				topicFile,
 				clusterConfigPath,
 			)
 
@@ -217,18 +230,11 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 }
 
 // Check whether a topic is a candidate for action rebalance
-// - consistency of topic with cluster config
-// - settings(partitions, retention time) of topic config with settings for topic in the cluster
+// settings(partitions, retention time) of topic config with settings for topic in the cluster
 func rebalanceTopicCheck(
 	topicConfig config.TopicConfig,
-	clusterConfig config.ClusterConfig,
 	topicInfo admin.TopicInfo,
 ) error {
-	// topic config should be same as the cluster config
-	if err := config.CheckConsistency(topicConfig, clusterConfig); err != nil {
-		return err
-	}
-
 	log.Infof("Check topic partitions...")
 	if len(topicInfo.Partitions) != topicConfig.Spec.Partitions {
 		return fmt.Errorf("Topic partitions in kafka does not match with topic config file")
@@ -267,7 +273,7 @@ func rebalanceApplyTopic(
 	}
 	log.Debugf("topicInfo from kafka: %+v", topicInfo)
 
-	if err := rebalanceTopicCheck(topicConfig, clusterConfig, topicInfo); err != nil {
+	if err := rebalanceTopicCheck(topicConfig, topicInfo); err != nil {
 		return err
 	}
 
@@ -320,4 +326,27 @@ func getRebalanceCtxMap(rebalanceConfig *rebalanceCmdConfig) (util.RebalanceCtxM
 	}
 
 	return rebalanceCtxMap, nil
+}
+
+// get all files for a given dir path
+func getAllFiles(dir string) ([]string, error) {
+	var files []string
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return files, err
 }
