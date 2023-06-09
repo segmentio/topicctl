@@ -145,12 +145,13 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	topicConfigs := []config.TopicConfig{}
 	topicErrorDict := make(map[string]error)
 	for _, topicFile := range topicFiles {
-		// ignore any cluster.yaml files in the --path-prefix
+		// ignore any cluster.yaml files in the --path-prefix for rebalance
 		if filepath.Base(topicFile) == "cluster.yaml" {
 			log.Warnf("Not a valid topic yaml file: %s", topicFile)
 			continue
 		}
 
+		// do not consider invaalid topic yaml files for rebalance
 		topicConfigs, err = config.LoadTopicsFile(topicFile)
 		if err != nil {
 			log.Errorf("Invalid topic yaml file: %s", topicFile)
@@ -250,7 +251,6 @@ func rebalanceTopicCheck(
 
 // Perform rebalance on a topic. returns error if unsuccessful
 // topic will not be rebalanced if
-//   - topic config is inconsistent with cluster config (name, region, environment etc...)
 //   - partitions of a topic in kafka cluster does not match with topic partition setting in topic config
 //   - retention.ms of a topic in kafka cluster does not match with topic retentionMinutes setting in topic config
 //
