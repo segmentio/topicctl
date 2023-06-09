@@ -134,7 +134,8 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	defer adminClient.Close()
 
 	// get all topic configs from --path-prefix i.e topics folder
-	// recursive search is performed on the --path-prefix
+	// we perform a recursive on the --path-prefix because there can be nested directories with 
+	// more topics for the --cluster-config
 	// 
 	// NOTE: a topic file is ignored for rebalance if 
 	// - a file is not a valid topic yaml file
