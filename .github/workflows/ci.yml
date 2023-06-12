@@ -272,13 +272,13 @@ jobs:
 #     - run: echo "GHCR PUBLISH SUCCESSFUL"
 
   publish-dockerhub:
-    needs: [setup, snyk]
-#    needs: [setup]
+#    needs: [setup, snyk]
+    needs: [setup]
     environment: CICD
     env: 
       RELEASE_TAG: ${{ needs.setup.outputs.version-tag }}
     runs-on: ubuntu-latest
-    if: ${{ ( github.ref_type == 'tag' ) && ( needs.setup.outputs.version-tag != '') }}
+#    if: ${{ ( github.ref_type == 'tag' ) && ( needs.setup.outputs.version-tag != '') }}
     steps:
     - uses: actions/checkout@v3
     - run: echo "publishing the release version msarmadi/topicctl:${RELEASE_TAG}"
