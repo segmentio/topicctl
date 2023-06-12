@@ -272,7 +272,8 @@ jobs:
 #     - run: echo "GHCR PUBLISH SUCCESSFUL"
 
   publish-dockerhub:
-    needs: [setup, snyk]
+#    needs: [setup, snyk]
+    needs: [setup]
     environment: CICD
     env: 
       RELEASE_TAG: ${{ needs.setup.outputs.version-tag }}
