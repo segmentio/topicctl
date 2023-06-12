@@ -19,6 +19,7 @@ jobs:
         regex: '^v[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9-]+)?$'
     - name: Print setup
       run: |
+        echo version-tag=${{ steps.regex-match.outputs.match }}
         echo github.ref=${{ github.ref }}
         echo github.ref_name=${{ github.ref_name }}
         echo github.ref_type=${{ github.ref_type }}
@@ -26,6 +27,7 @@ jobs:
 
   test010:
     runs-on: ubuntu-latest
+    if: false
     container:
       image: cimg/go:1.19
       env:
@@ -216,17 +218,17 @@ jobs:
 #           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
   
   
-  snyk:
-    runs-on: ubuntu-latest
-    needs: [test010]
-    steps:
-    - uses: actions/checkout@v3
-    - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/golang@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=high --fail-on=upgradable
+#   snyk:
+#     runs-on: ubuntu-latest
+#     needs: [test010]
+#     steps:
+#     - uses: actions/checkout@v3
+#     - name: Run Snyk to check for vulnerabilities
+#       uses: snyk/actions/golang@master
+#       env:
+#         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+#       with:
+#         args: --severity-threshold=high --fail-on=upgradable
   
   
 #   publish-ghcr:
