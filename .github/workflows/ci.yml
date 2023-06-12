@@ -285,7 +285,7 @@ jobs:
     - name: Dockerhub login
       uses: docker/login-action@v2
       with:
-        username: ${{ vars.DOCKERHUB_USER }}
+        username: ${{ secrets.DOCKERHUB_USER }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
         logout: true
     - run: echo "DOCKERHUB LOGIN SUCCESSFUL"
