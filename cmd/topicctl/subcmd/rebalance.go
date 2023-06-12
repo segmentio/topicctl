@@ -182,7 +182,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
 				topicErrorDict[topicConfig.Meta.Name] = err
 				rebalanceTopicProgressConfig.RebalanceError = true
-				log.Errorf("Ignoring rebalance of topic %v due to error: %+v", topicConfig.Meta.Name, err)
+				log.Errorf("topic: %s rebalance failed with error: %v", topicConfig.Meta.Name, err)
 			}
 
 			// show topic final progress
