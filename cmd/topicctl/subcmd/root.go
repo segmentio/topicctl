@@ -23,9 +23,8 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	log.SetFormatter(&prefixed.TextFormatter{
-		TimestampFormat: "2006-01-02 15:04:05",
-		FullTimestamp:   true,
+	log.SetFormatter(&log.JSONFormatter{
+		TimestampFormat: "2006-01-02 15:04:05"
 	})
 
 	RootCmd.PersistentFlags().BoolVar(
