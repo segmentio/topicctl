@@ -536,3 +536,6 @@ to create all topics defined for that cluster:
 ```
 topicctl apply examples/local-cluster/topics/*.yaml
 ```
+
+
+
