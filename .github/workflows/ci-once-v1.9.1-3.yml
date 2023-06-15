@@ -1,0 +1,305 @@
+name: ci
+
+on:
+  # push:
+  #   branches: [ "main" ]
+  workflow_dispatch:
+    branches: [ "main" ]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      version-tag: v1.9.1-3
+    steps:
+    - uses: actions-ecosystem/action-regex-match@v2
+      id: regex-match
+      with:
+        text: ${{ github.ref_name }}
+        regex: '^v[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9-]+)?$'
+    - name: Print setup
+      run: |
+        echo version-tag=v1.9.1-3
+        echo github.ref=${{ github.ref }}
+        echo github.ref_name=${{ github.ref_name }}
+        echo github.ref_type=${{ github.ref_type }}
+        echo release-ref=${{ steps.regex-match.outputs.match }}
+
+  test010:
+    runs-on: ubuntu-latest
+    if: false
+    container:
+      image: cimg/go:1.19
+      env:
+        GO111MODULE: "on"
+        KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
+        KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+    steps:
+    - name: Check out repository code 
+      uses: actions/checkout@v3
+    - name: Go setup
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+    - name: Display Go version
+      run: go version
+    - name: Run tests
+      run: make test
+      env:
+        KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
+        KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+
+    services:
+      zookeeper:
+        image: wurstmeister/zookeeper
+        ports:
+          - "2181:2181"
+
+      kafka1:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9092:9092"
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_BROKER_RACK: zone1
+          KAFKA_ADVERTISED_HOST_NAME: kafka1
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka2:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9093:9092"
+        env:
+          KAFKA_BROKER_ID: 2
+          KAFKA_BROKER_RACK: zone1
+          KAFKA_ADVERTISED_HOST_NAME: kafka2
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka3:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9094:9092"
+        env:
+          KAFKA_BROKER_ID: 3
+          KAFKA_BROKER_RACK: zone2
+          KAFKA_ADVERTISED_HOST_NAME: kafka3
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka4:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9095:9092"
+        env: 
+          KAFKA_BROKER_ID: 4
+          KAFKA_BROKER_RACK: zone2
+          KAFKA_ADVERTISED_HOST_NAME: kafka4
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka5:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9096:9092"
+        env: 
+          KAFKA_BROKER_ID: 5
+          KAFKA_BROKER_RACK: zone3
+          KAFKA_ADVERTISED_HOST_NAME: kafka5
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      kafka6:
+        image: wurstmeister/kafka:2.11-0.10.2.2
+        ports:
+          - "9097:9092"
+        env: 
+          KAFKA_BROKER_ID: 6
+          KAFKA_BROKER_RACK: zone3
+          KAFKA_ADVERTISED_HOST_NAME: kafka6
+          KAFKA_ADVERTISED_PORT: 9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+
+#   test241:
+#     runs-on: ubuntu-latest
+#     container:
+#       image: cimg/go:1.19
+#       env:
+#         GO111MODULE: "on"
+#         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
+#         KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+#     steps:
+#     - name: Check out repository code 
+#       uses: actions/checkout@v3
+#     - name: Go setup
+#       uses: actions/setup-go@v3
+#       with:
+#         go-version: 1.19
+#     - name: Display Go version
+#       run: go version
+#     - name: Run tests
+#       run: make test-v2
+#       env:
+#         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
+#         KAFKA_TOPICS_TEST_KAFKA_ADDR: kafka1:9092
+
+#     services:
+#       zookeeper:
+#         image: wurstmeister/zookeeper
+#         ports:
+#           - "2181:2181"
+
+#       kafka1:
+#         image: wurstmeister/kafka:2.12-2.4.1
+#         ports:
+#           - "9092:9092"
+#         env:
+#           KAFKA_BROKER_ID: 1
+#           KAFKA_BROKER_RACK: zone1
+#           KAFKA_ADVERTISED_HOST_NAME: kafka1
+#           KAFKA_ADVERTISED_PORT: 9092
+#           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+#       kafka2:
+#         image: wurstmeister/kafka:2.12-2.4.1
+#         ports:
+#           - "9093:9092"
+#         env:
+#           KAFKA_BROKER_ID: 2
+#           KAFKA_BROKER_RACK: zone1
+#           KAFKA_ADVERTISED_HOST_NAME: kafka2
+#           KAFKA_ADVERTISED_PORT: 9092
+#           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+#       kafka3:
+#         image: wurstmeister/kafka:2.12-2.4.1
+#         ports:
+#           - "9094:9092"
+#         env:
+#           KAFKA_BROKER_ID: 3
+#           KAFKA_BROKER_RACK: zone2
+#           KAFKA_ADVERTISED_HOST_NAME: kafka3
+#           KAFKA_ADVERTISED_PORT: 9092
+#           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+#       kafka4:
+#         image: wurstmeister/kafka:2.12-2.4.1
+#         ports:
+#           - "9095:9092"
+#         env: 
+#           KAFKA_BROKER_ID: 4
+#           KAFKA_BROKER_RACK: zone2
+#           KAFKA_ADVERTISED_HOST_NAME: kafka4
+#           KAFKA_ADVERTISED_PORT: 9092
+#           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+#       kafka5:
+#         image: wurstmeister/kafka:2.12-2.4.1
+#         ports:
+#           - "9096:9092"
+#         env: 
+#           KAFKA_BROKER_ID: 5
+#           KAFKA_BROKER_RACK: zone3
+#           KAFKA_ADVERTISED_HOST_NAME: kafka5
+#           KAFKA_ADVERTISED_PORT: 9092
+#           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+#       kafka6:
+#         image: wurstmeister/kafka:2.12-2.4.1
+#         ports:
+#           - "9097:9092"
+#         env: 
+#           KAFKA_BROKER_ID: 6
+#           KAFKA_BROKER_RACK: zone3
+#           KAFKA_ADVERTISED_HOST_NAME: kafka6
+#           KAFKA_ADVERTISED_PORT: 9092
+#           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  
+  
+#   snyk:
+#     runs-on: ubuntu-latest
+#     needs: [test010]
+#     steps:
+#     - uses: actions/checkout@v3
+#     - name: Run Snyk to check for vulnerabilities
+#       uses: snyk/actions/golang@master
+#       env:
+#         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+#       with:
+#         args: --severity-threshold=high --fail-on=upgradable
+  
+  
+#   publish-ghcr:
+#     needs: [setup, snyk]
+#     runs-on: ubuntu-latest
+#     if: ${{ ( github.ref_type == 'branch' ) && (( github.ref_name == 'master' ) || ( github.ref_name == 'v0' )) }}
+#     steps:
+#     - uses: actions/checkout@v3
+#     - name: setup env variables
+#       id: vars
+#       run: |
+#         echo "SHORT_SHA=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+#     - run: echo "publishing the image ghcr.io/segmentio/topicctl:${SHORT_SHA}"
+#     - name: Log in to the Container registry
+#       uses: docker/login-action@v2
+#       with:
+#         registry: ghcr.io
+#         username: ${{ github.actor }}
+#         password: ${{ secrets.GITHUB_TOKEN }}
+#         logout: true
+#     - run: echo "GHCR LOGIN SUCCESSFUL"
+#     - if: ${{ github.ref_name == 'master' }}
+#       name: Build and push image for master
+#       run:  |
+#         docker context create buildx-build
+#         docker buildx create --use buildx-build
+#         docker buildx build \
+#           -t ghcr.io/segmentio/topicctl:${SHORT_SHA} \
+#           -t ghcr.io/segmentio/topicctl:latest \
+#           --build-arg VERSION=${SHORT_SHA} \
+#           --push \
+#           .
+#     - if: ${{ github.ref_name == 'v0' }}
+#       name: Build and push image for v0
+#       run:  |
+#         docker context create buildx-build
+#         docker buildx create --use buildx-build
+#         docker buildx build \
+#           -t ghcr.io/segmentio/topicctl:${SHORT_SHA} \
+#           --build-arg VERSION=${SHORT_SHA} \
+#           --push \
+#           .
+#     - run: echo "GHCR PUBLISH SUCCESSFUL"
+
+  publish-dockerhub:
+#    needs: [setup, snyk]
+    needs: [setup]
+    environment: CICD
+    env: 
+      RELEASE_TAG: v1.9.1-3
+    runs-on: ubuntu-latest
+#    if: ${{ ( github.ref_type == 'tag' ) && ( needs.setup.outputs.version-tag != '') }}
+    steps:
+    - uses: actions/checkout@v3
+    - run: echo "publishing the release version msarmadi/topicctl:${RELEASE_TAG}"
+    - name: Dockerhub login
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        logout: true
+    - run: echo "DOCKERHUB LOGIN SUCCESSFUL"
+    - name: Build and push image
+      run:  |
+            docker context create buildx-build
+            docker buildx create --use buildx-build
+            docker buildx build \
+              --platform=linux/amd64,linux/arm64 \
+              -t msarmadi/topicctl:${RELEASE_TAG} \
+              -t msarmadi/topicctl:latest \
+              --build-arg VERSION=${RELEASE_TAG} \
+              --push \
+              .
+    - run: echo "DOCKERHUB PUBLISH SUCCESSFUL"
