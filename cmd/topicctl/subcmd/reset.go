@@ -38,19 +38,19 @@ func init() {
 		&resetOffsetsConfig.offset,
 		"offset",
 		-2,
-		"Offset",
+		"Desired offset for the target partitions",
 	)
 	resetOffsetsCmd.Flags().IntSliceVar(
 		&resetOffsetsConfig.partitions,
 		"partitions",
 		[]int{},
-		"Partition (defaults to all)",
+		"List of partitions to reset e.g. 1,2,3,.. (defaults to all)",
 	)
 	resetOffsetsCmd.Flags().StringToInt64Var(
 		&resetOffsetsConfig.partitionOffsetMap,
 		"partition-offset-map",
 		map[string]int64{},
-		"Map of partition IDs to their corresponding desired offsets",
+		"Map of partition IDs to their corresponding desired offsets e.g. 1=5,2=10,3=12,...",
 	)
 	resetOffsetsCmd.Flags().BoolVar(
 		&resetOffsetsConfig.toEarliest,
