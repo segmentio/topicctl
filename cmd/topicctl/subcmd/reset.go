@@ -119,10 +119,10 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		for partition, offset := range resetOffsetsConfig.partitionOffsetMap {
 			var partitionID int
 			if partitionID, err = strconv.Atoi(partition); err != nil {
-				return fmt.Errorf("partition value %s must be a number", partition)
+				return fmt.Errorf("Partition value %s must be a number", partition)
 			}
 			if _, ok := partitionIDsMap[partitionID]; !ok {
-				return fmt.Errorf("partition %d not found in topic %s", partitionID, topic)
+				return fmt.Errorf("Partition %d not found in topic %s", partitionID, topic)
 			}
 
 			partitionOffsets[partitionID] = offset
@@ -132,7 +132,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	} else if len(resetOffsetsConfig.partitions) > 0 {
 		for _, partition := range resetOffsetsConfig.partitions {
 			if _, ok := partitionIDsMap[partition]; !ok {
-				return fmt.Errorf("partition %d not found in topic %s", partition, topic)
+				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
 			}
 			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
 				partitionOffsets[partition], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition)
@@ -169,7 +169,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 
 	ok, _ := apply.Confirm("OK to continue?", false)
 	if !ok {
-		return errors.New("stopping because of user response")
+		return errors.New("Stopping because of user response")
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
