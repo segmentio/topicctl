@@ -175,6 +175,16 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
 
+#### rebalance
+
+```
+topicctl rebalance [flags]
+```
+
+The `rebalance` subcommand will do a full broker rebalance for all the topic configs in a given topic prefix path.
+
+See the [rebalancing](#rebalancing) section below for more information on the full broker rebalance.
+
 #### repl
 
 ```
