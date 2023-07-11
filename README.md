@@ -175,6 +175,18 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
 
+#### rebalance
+
+```
+topicctl rebalance [flags]
+```
+
+The `apply` subcommand can be used with flag `--rebalance` rebalances a specified topics across a cluster.
+
+The `rebalance` subcommand, on the other hand, performs a rebalance for **all** the topics defined at a given topic prefix path.
+
+See the [rebalancing](#rebalancing) section below for more information on rebalancing.
+
 #### repl
 
 ```
@@ -372,21 +384,32 @@ Note that these all try to achieve in-topic balance, and only vary in the case o
 Thus, the placements won't be significantly different in most cases.
 
 In the future, we may add pickers that allow for some in-topic imbalance, e.g. to correct a
-cluster-wide broker inbalance.
+cluster-wide broker imbalance.
 
 #### Rebalancing
 
-If `apply` is run with the `--rebalance` flag set, then `topicctl` will do a full broker rebalance
+If `apply` is run with the `--rebalance` flag, then `topicctl` will rebalance specified topics
 after the usual apply steps. This process will check the balance of the brokers for each index
-position (i.e., first, second, third, etc.) in each partition and make replacements if there
+position (i.e., first, second, third, etc.) for each partition and make replacements if there
 are any brokers that are significantly over- or under-represented.
 
-The rebalance process can optionally remove brokers from a topic too. To use this feature, set the
+The rebalance process can optionally remove brokers from a topic. To use this feature, set the
 `--to-remove` flag. Note that this flag has no effect unless `--rebalance` is also set.
 
 Rebalancing is not done by default on all apply runs because it can be fairly disruptive and
-generally shouldn't be necessary unless the topic started off in an inbalanced state or there
+generally shouldn't be necessary unless the topic started off in an imbalanced state or there
 has been a change in the number of brokers.
+
+To rebalance **all** topics in a cluster, use the `rebalance` subcommand, which will perform the `apply --rebalance`
+function on all qualifying topics. It will inventory all topic configs found at  `--path-prefix` for a cluster
+specified by `--cluster-config`.
+
+This subcommand will not rebalance a topic if:
+
+1. the topic config is inconsistent with the cluster config (name, region, environment etc...)
+1. the partition count of a topic in the kafka cluster does not match the topic partition setting in the topic config
+1. a topic's `retention.ms` in the kafka cluster does not match the topic's `retentionMinutes` setting in the topic config
+1. a topic does not exist in the kafka cluster
 
 ## Tool safety
 
