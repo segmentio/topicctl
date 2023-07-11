@@ -202,18 +202,13 @@ subcommands interactively.
 topicctl reset-offsets [topic] [group] [flags]
 ```
 
-The `reset-offsets` subcommand allows resetting the offsets for a consumer group
-in a topic. This subcommand offers the following flags:
+The `reset-offsets` subcommand allows resetting the offsets for a consumer group in a topic. There are 2 main approaches for setting the offsets:
 
-1. `--partitions`: List of partitions to reset e.g. 1,2,3 ...(defaults to all)
-2. `--offsets`: Desired offset for the target partitions. (defaults to -2)
-3. `--to-earliest`: Resets offsets of consumer group members to earliest offsets of partitions
-4. `--to-latest`: Resets offsets of consumer group members to latest offsets of partitions
-5. `--partition-offset-map`: Map of partition IDs to their corresponding desired offsets e.g. 1=5,2=10,3=12,...
+1. Use a combination of `--partitions`, `--offset`, `--to-earliest` and `--to-latest` flags. `--partitions` flag specifies a list of partitions to be reset e.g. `1,2,3 ...`. If not used, the command defaults to resetting consumer group offsets for ALL of the partitions. `--offset` flag indicates the specific value that all desired consumer group partitions will be set to. If not set, it will default to -2. Finally, `--to-earliest` flag resets offsets of consumer group members to earliest offsets of partitions while `--to-latest` resets offsets of consumer group members to latest offsets of partitions. However, only one of the `--to-earliest`, `--to-latest` and `--offset` flags can be used at a time. This approach is easy to use but lacks the ability for detailed offset configuration.
 
-Notes:
-* You must choose only one of the following `reset-offset` flags: `--to-earliest`, `--to-latest`, `--offset`
-* `--partition-offset-map` flag cannot be coupled with any of the following flags: `--partitions`, `--to-earliest`, `--to-latest`, `--offset`
+2. Use `--partition-offset-map` flag to specify a detail offset configuration for individual partitions. For example, `1=5,2=10,7=12,...` means that the consumer group offset for partition 1 must be set to 5, partition 2 to offset 10, partition 7 to offset 12 and so on. albeit somewhat more tedious in terms of usability, this approach provides great flexibility and fine-grained control for this operation. Note that `--partition-offset-map` flag is standalone and cannot be coupled with any of the previous flags.
+
+
 
 #### tail
 
