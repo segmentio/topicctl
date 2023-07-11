@@ -181,9 +181,9 @@ resource type in the cluster. Currently, the following operations are supported:
 topicctl rebalance [flags]
 ```
 
-The `rebalance` subcommand will do a full broker rebalance for all the topic configs in a given topic prefix path.
+The `rebalance` subcommand will do a full cluster rebalance for all the topic configs in a given topic prefix path.
 
-See the [rebalancing](#rebalancing) section below for more information on the full broker rebalance.
+See the [rebalancing](#rebalancing) section below for more information on the full cluster rebalance.
 
 #### repl
 
