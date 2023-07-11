@@ -181,7 +181,16 @@ resource type in the cluster. Currently, the following operations are supported:
 topicctl rebalance [flags]
 ```
 
-The `rebalance` subcommand will do a full cluster rebalance for all the topic configs in a given topic prefix path.
+`apply` subcommand with flag `--rebalance` works with topic(s) to do a full cluster rebalance. However, there is a need to rebalance all topics for a given cluster. 
+
+The `rebalance` subcommand will do a full cluster rebalance for all the topic configs in a given topic prefix path. `rebalance` subcommand will determine a cluster with flag `--cluster-config` and topic configs with flag `--path-prefix`. This subcommand will actually perform `apply --rebalance` or `apply --rebalance --to-remove` on all the topic configs for a cluster.
+
+This subcommand will not perform a full cluster rebalance on a topic if:
+
+1. topic config is inconsistent with cluster config (name, region, environment etc...)
+2. partitions of a topic in kafka cluster does not match with topic partition setting in topic config
+3. retention.ms of a topic in kafka cluster does not match with topic retentionMinutes setting in topic config
+4. topic does not exist in kafka cluster
 
 See the [rebalancing](#rebalancing) section below for more information on the full cluster rebalance.
 
