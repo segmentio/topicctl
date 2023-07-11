@@ -203,7 +203,17 @@ topicctl reset-offsets [topic] [group] [flags]
 ```
 
 The `reset-offsets` subcommand allows resetting the offsets for a consumer group
-in a topic. The partition and offset values are set in the flags.
+in a topic. This subcommand offers the following flags:
+
+1. `--partitions`: List of partitions to reset e.g. 1,2,3 ...(defaults to all)
+2. `--offsets`: Desired offset for the target partitions. (defaults to -2)
+3. `--to-earliest`: Resets offsets of consumer group members to earliest offsets of partitions
+4. `--to-latest`: Resets offsets of consumer group members to latest offsets of partitions
+5. `--partition-offset-map`: Map of partition IDs to their corresponding desired offsets e.g. 1=5,2=10,3=12,...
+
+Notes:
+* You must choose only one of the following `reset-offset` flags: `--to-earliest`, `--to-latest`, `--offset`
+* `--partition-offset-map` option cannot be coupled with any of the following flags: `--partitions`, `--to-earliest`, `--to-latest`, `--offset`
 
 #### tail
 
