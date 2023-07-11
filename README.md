@@ -213,7 +213,7 @@ in a topic. This subcommand offers the following flags:
 
 Notes:
 * You must choose only one of the following `reset-offset` flags: `--to-earliest`, `--to-latest`, `--offset`
-* `--partition-offset-map` option cannot be coupled with any of the following flags: `--partitions`, `--to-earliest`, `--to-latest`, `--offset`
+* `--partition-offset-map` flag cannot be coupled with any of the following flags: `--partitions`, `--to-earliest`, `--to-latest`, `--offset`
 
 #### tail
 
