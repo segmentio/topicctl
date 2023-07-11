@@ -274,7 +274,7 @@ func (t TopicConfig) Validate(numRacks int) error {
 			)
 		}
 	case PlacementStrategyCrossRack:
-		if t.Spec.ReplicationFactor > numRacks {
+		if numRacks > 0 && t.Spec.ReplicationFactor > numRacks {
 			err = multierror.Append(
 				err,
 				fmt.Errorf(

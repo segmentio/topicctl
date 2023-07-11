@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ADDR=169.254.123.123
 echo "Aliasing $ADDR to localhost..."
