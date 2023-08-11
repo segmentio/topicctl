@@ -792,3 +792,7 @@ func NewLeaderPartitions(
 
 	return newLeaderPartitions
 }
+
+// ACLInfo represents the information stored about an ACL in zookeeper.
+type ACLInfo struct {
+}

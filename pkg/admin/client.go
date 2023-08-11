@@ -94,4 +94,24 @@ type Client interface {
 
 	// Close closes the client.
 	Close() error
+
+	// GetACLs gets full information about each ACL in the cluster.
+	GetACLs(
+		ctx context.Context,
+		names []string,
+		detailed bool,
+	) ([]ACLInfo, error)
+
+	// GetACL gets the details of a single ACL in the cluster.
+	GetACL(
+		ctx context.Context,
+		name string,
+		detailed bool,
+	) (ACLInfo, error)
+
+	// CreateACL creates an ACL in the cluster.
+	CreateACL(
+		ctx context.Context,
+		config kafka.ACLEntry,
+	) error
 }
