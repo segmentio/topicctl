@@ -100,14 +100,14 @@ type Client interface {
 		ctx context.Context,
 		names []string,
 		detailed bool,
-	) ([]ACLInfo, error)
+	) ([]kafka.ACLResource, error)
 
 	// GetACL gets the details of a single ACL in the cluster.
 	GetACL(
 		ctx context.Context,
 		name string,
 		detailed bool,
-	) (ACLInfo, error)
+	) (kafka.ACLResource, error)
 
 	// CreateACL creates an ACL in the cluster.
 	CreateACL(
