@@ -690,3 +690,52 @@ func configEntriesToAPIConfigs(
 
 	return apiConfigs
 }
+
+// TODO: what fields should we let people filter on / how best to support that?
+// It could be really useful to be able to use this to answer questions like what services have access topics x,y,z or
+// who has write access to topic b?
+// Is GetACL (single ACL) even applicable?
+// GetACLs gets full information about each ACL in the cluster.
+func (c *BrokerAdminClient) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) ([]kafka.ACLResource, error) {
+	req := kafka.DescribeACLsRequest{
+		Filter: filter,
+	}
+	log.Debugf("DescribeACLs request: %+v", req)
+
+	resp, err := c.client.DescribeACLs(ctx, &req)
+	log.Debugf("DescribeACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Resources, nil
+}
+
+// CreateACL creates an ACL in the cluster.
+func (c *BrokerAdminClient) CreateACL(
+	ctx context.Context,
+	entry kafka.ACLEntry,
+) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot create ACL in read-only mode")
+	}
+
+	req := kafka.CreateACLsRequest{
+		ACLs: []kafka.ACLEntry{
+			entry,
+		},
+	}
+	log.Debugf("CreateACLs request: %+v", req)
+
+	resp, err := c.client.CreateACLs(ctx, &req)
+	log.Debugf("CreateACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if len(resp.Errors) > 0 {
+		fmt.Errorf("%+v", resp.Errors)
+	}
+	return nil
+}

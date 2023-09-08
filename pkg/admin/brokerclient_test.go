@@ -574,3 +574,61 @@ func TestBrokerClientCreateTopicError(t *testing.T) {
 	)
 	require.Error(t, err)
 }
+
+func TestBrokerClientCreateGetACL(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	principal := util.RandomString("User:user-create-", 6)
+	topicName := util.RandomString("topic-create-", 6)
+
+	err = client.CreateACL(
+		ctx,
+		kafka.ACLEntry{
+			Principal:           principal,
+			PermissionType:      kafka.ACLPermissionTypeAllow,
+			Operation:           kafka.ACLOperationTypeRead,
+			ResourceType:        kafka.ResourceTypeTopic,
+			ResourcePatternType: kafka.PatternTypeLiteral,
+			ResourceName:        topicName,
+			Host:                "*",
+		},
+	)
+	require.NoError(t, err)
+
+	filter := kafka.ACLFilter{
+		ResourceNameFilter: topicName,
+	}
+
+	aclsInfo, err := client.GetACLs(ctx, filter)
+	require.NoError(t, err)
+	expected := []kafka.ACLResource{
+		{
+			ResourceType: kafka.ResourceTypeTopic,
+			ResourceName: topicName,
+			PatternType:  kafka.PatternTypeLiteral,
+			ACLs: []kafka.ACLDescription{
+				{
+					Principal:      principal,
+					Host:           "*",
+					Operation:      kafka.ACLOperationTypeRead,
+					PermissionType: kafka.ACLPermissionTypeAllow,
+				},
+			},
+		},
+	}
+	assert.Equal(t, expected, aclsInfo)
+
+}
