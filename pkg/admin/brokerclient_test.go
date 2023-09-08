@@ -577,7 +577,7 @@ func TestBrokerClientCreateTopicError(t *testing.T) {
 
 func TestBrokerClientCreateGetACL(t *testing.T) {
 	if !util.CanTestBrokerAdminSecurity() {
-		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
 	}
 
 	ctx := context.Background()
@@ -586,6 +586,12 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		BrokerAdminClientConfig{
 			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
+				SASL: SASLConfig{
+					Enabled:   true,
+					Mechanism: SASLMechanismScramSHA512,
+					Username:  "adminscram",
+					Password:  "admin-secret-512",
+				},
 			},
 		},
 	)
@@ -609,7 +615,11 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 	require.NoError(t, err)
 
 	filter := kafka.ACLFilter{
-		ResourceNameFilter: topicName,
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		Operation:                 kafka.ACLOperationTypeRead,
+		PermissionType:            kafka.ACLPermissionTypeAllow,
 	}
 
 	aclsInfo, err := client.GetACLs(ctx, filter)
