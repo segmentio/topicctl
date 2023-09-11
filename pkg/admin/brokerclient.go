@@ -710,7 +710,27 @@ func (c *BrokerAdminClient) GetACLs(
 	if err != nil {
 		return nil, err
 	}
-	return resp.Resources, nil
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	aclinfos := []ACLInfo{}
+
+	for _, resource := range resp.Resources {
+		for _, acl := range resource.ACLs {
+			aclinfos = append(aclinfos, ACLInfo{
+				ResourceType:   resource.ResourceType,
+				ResourceName:   resource.ResourceName,
+				Principal:      acl.Principal,
+				Host:           acl.Host,
+				Operation:      acl.Operation,
+				PermissionType: acl.PermissionType,
+			})
+		}
+	}
+
+	return aclinfos, nil
 }
 
 // CreateACL creates an ACL in the cluster.

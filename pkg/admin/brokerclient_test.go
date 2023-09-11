@@ -625,19 +625,14 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 
 	aclsInfo, err := client.GetACLs(ctx, filter)
 	require.NoError(t, err)
-	expected := []kafka.ACLResource{
+	expected := []ACLInfo{
 		{
-			ResourceType: kafka.ResourceTypeTopic,
-			ResourceName: topicName,
-			PatternType:  kafka.PatternTypeLiteral,
-			ACLs: []kafka.ACLDescription{
-				{
-					Principal:      principal,
-					Host:           "*",
-					Operation:      kafka.ACLOperationTypeRead,
-					PermissionType: kafka.ACLPermissionTypeAllow,
-				},
-			},
+			ResourceType:   kafka.ResourceTypeTopic,
+			ResourceName:   topicName,
+			Principal:      principal,
+			Host:           "*",
+			Operation:      kafka.ACLOperationTypeRead,
+			PermissionType: kafka.ACLPermissionTypeAllow,
 		},
 	}
 	assert.Equal(t, expected, aclsInfo)
