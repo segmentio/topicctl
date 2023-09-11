@@ -476,7 +476,6 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 		c.stopSpinner()
 		return err
 	}
-	brokers, err := c.adminClient.GetBrokers(ctx, nil)
 	c.stopSpinner()
 	if err != nil {
 		return err
@@ -550,6 +549,22 @@ func (c *CLIRunner) Tail(
 	}
 
 	return err
+}
+
+// TODO add options for filtering
+// GetAcls fetches the details of each acl in the cluster and prints out a summary.
+func (c *CLIRunner) GetAcls(ctx context.Context) error {
+	c.startSpinner()
+
+	acls, err := c.adminClient.GetAcls(ctx, nil)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Acls:\n%s", admin.FormatAcls(acls))
+
+	return nil
 }
 
 func (c *CLIRunner) startSpinner() {

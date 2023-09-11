@@ -699,7 +699,7 @@ func configEntriesToAPIConfigs(
 func (c *BrokerAdminClient) GetACLs(
 	ctx context.Context,
 	filter kafka.ACLFilter,
-) ([]kafka.ACLResource, error) {
+) ([]ACLInfo, error) {
 	req := kafka.DescribeACLsRequest{
 		Filter: filter,
 	}

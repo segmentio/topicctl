@@ -17,7 +17,7 @@ var getCmd = &cobra.Command{
 	Long: strings.Join(
 		[]string{
 			"Get instances of a particular type.",
-			"Supported types currently include: balance, brokers, config, groups, lags, members, partitions, offsets, and topics.",
+			"Supported types currently include: balance, brokers, config, groups, lags, members, partitions, offsets, topics, and acls.",
 			"",
 			"See the tool README for a detailed description of each one.",
 		},
@@ -140,6 +140,10 @@ func getRun(cmd *cobra.Command, args []string) error {
 		}
 
 		return cliRunner.GetTopics(ctx, getConfig.full)
+	case "acls":
+		// TODO: add arg validation once we figure out filtering args
+
+		return cliRunner.GetAcls(ctx, nil)
 	default:
 		return fmt.Errorf("Unrecognized resource type: %s", resource)
 	}

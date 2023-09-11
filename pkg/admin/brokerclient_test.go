@@ -589,8 +589,9 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 				SASL: SASLConfig{
 					Enabled:   true,
 					Mechanism: SASLMechanismScramSHA512,
-					Username:  "adminscram",
-					Password:  "admin-secret-512",
+					// TODO: don't hardcode these in tests, pull from env vars
+					Username: "adminscram",
+					Password: "admin-secret-512",
 				},
 			},
 		},

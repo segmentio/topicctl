@@ -422,6 +422,13 @@ func (c *ZKAdminClient) GetTopic(
 	return topics[0], nil
 }
 
+func (c *ZKAdminClient) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) ([]ACLInfo, error) {
+	return nil, nil
+}
+
 // UpdateTopicConfig updates the config JSON for a topic and sets a change
 // notification so that the brokers are notified. If overwrite is true, then
 // it will overwrite existing config entries.

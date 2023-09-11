@@ -745,6 +745,60 @@ func FormatBrokerMaxPartitions(
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatAcls creates a pretty table that lists the details of the
+// argument acls.
+func FormatAcls(acls []ACLInfo) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Resource Type",
+		"Resource Name",
+		"Principal",
+		"Host",
+		"Operation",
+		"Permission Type",
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for _, acl := range acls {
+		row := []string{
+			// TODO: convert ints to something human readable
+			fmt.Sprintf("%d", acl.ResourceType),
+			acl.ResourceName,
+			acl.Principal,
+			acl.Host,
+			fmt.Sprintf("%d", acl.Operation),
+			fmt.Sprintf("%d", acl.PermissionType),
+		}
+
+		table.Append(row)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
 func prettyConfig(config map[string]string) string {
 	rows := []string{}
 

@@ -38,6 +38,12 @@ type Client interface {
 		detailed bool,
 	) (TopicInfo, error)
 
+	// GetACLs gets full information about each ACL in the cluster.
+	GetACLs(
+		ctx context.Context,
+		filter kafka.ACLFilter,
+	) ([]ACLInfo, error)
+
 	// UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 	// keys that were updated.
 	UpdateTopicConfig(

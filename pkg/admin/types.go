@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -71,6 +72,17 @@ type PartitionInfo struct {
 type PartitionAssignment struct {
 	ID       int   `json:"id"`
 	Replicas []int `json:"replicas"`
+}
+
+// PartitionInfo represents the information stored about an ACL
+// in zookeeper.
+type ACLInfo struct {
+	ResourceType   kafka.ResourceType
+	ResourceName   string
+	Principal      string
+	Host           string
+	Operation      kafka.ACLOperationType
+	PermissionType kafka.ACLPermissionType
 }
 
 type zkClusterID struct {
