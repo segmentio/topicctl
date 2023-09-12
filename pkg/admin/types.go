@@ -77,7 +77,7 @@ type PartitionAssignment struct {
 // PartitionInfo represents the information stored about an ACL
 // in zookeeper.
 type ACLInfo struct {
-	ResourceType   kafka.ResourceType
+	ResourceType   ACLResourceType
 	ResourceName   string
 	PatternType    kafka.PatternType
 	Principal      string
@@ -85,6 +85,94 @@ type ACLInfo struct {
 	Operation      kafka.ACLOperationType
 	PermissionType kafka.ACLPermissionType
 }
+
+type ACLResourceType string
+
+func kafkaGoResourceTypeToTopicctl(r kafka.ResourceType) ACLResourceType {
+	switch r {
+	case kafka.ResourceTypeUnknown:
+		return "Unknown"
+	case kafka.ResourceTypeAny:
+		return "Any"
+	case kafka.ResourceTypeTopic:
+		return "Topic"
+	case kafka.ResourceTypeGroup:
+		return "Group"
+	case kafka.ResourceTypeCluster:
+		return "Cluster"
+	case kafka.ResourceTypeTransactionalID:
+		return "TransactionalID"
+	case kafka.ResourceTypeDelegationToken:
+		return "DelegationToken"
+	default:
+		return "Invalid ResourceType"
+	}
+}
+
+// func (p kafka.PatternType) String() string {
+// 	switch p {
+// 	case kafka.PatternTypeUnknown:
+// 		return "Unknown"
+// 	case kafka.PatternTypeAny:
+// 		return "Any"
+// 	case kafka.PatternTypeMatch:
+// 		return "Match"
+// 	case kafka.PatternTypeLiteral:
+// 		return "Literal"
+// 	case kafka.PatternTypePrefixed:
+// 		return "Prefixed"
+// 	default:
+// 		return "Invalid PatternType"
+// 	}
+// }
+
+// func (o kafka.ACLOperationType) String() string {
+// 	switch o {
+// 	case kafka.ACLOperationTypeUnknown:
+// 		return "Unknown"
+// 	case kafka.ACLOperationTypeAny:
+// 		return "Any"
+// 	case kafka.ACLOperationTypeAll:
+// 		return "All"
+// 	case kafka.ACLOperationTypeRead:
+// 		return "Read"
+// 	case kafka.ACLOperationTypeWrite:
+// 		return "Write"
+// 	case kafka.ACLOperationTypeCreate:
+// 		return "Create"
+// 	case kafka.ACLOperationTypeDelete:
+// 		return "Delete"
+// 	case kafka.ACLOperationTypeAlter:
+// 		return "Alter"
+// 	case kafka.ACLOperationTypeDescribe:
+// 		return "Describe"
+// 	case kafka.ACLOperationTypeClusterAction:
+// 		return "ClusterAction"
+// 	case kafka.ACLOperationTypeDescribeConfigs:
+// 		return "DescribeConfigs"
+// 	case kafka.ACLOperationTypeAlterConfigs:
+// 		return "AlterConfigs"
+// 	case kafka.ACLOperationTypeIdempotentWrite:
+// 		return "IdempotentWrite"
+// 	default:
+// 		return "Invalid OperationType"
+// 	}
+// }
+
+// func (p kafka.ACLPermissionType) String() string {
+// 	switch p {
+// 	case kafka.ACLPermissionTypeUnknown:
+// 		return "Unknown"
+// 	case kafka.ACLPermissionTypeAny:
+// 		return "Any"
+// 	case kafka.ACLPermissionTypeDeny:
+// 		return "Deny"
+// 	case kafka.ACLPermissionTypeAllow:
+// 		return "Allow"
+// 	default:
+// 		return "Invalid PermissionType"
+// 	}
+// }
 
 type zkClusterID struct {
 	Version string `json:"version"`

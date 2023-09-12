@@ -784,7 +784,7 @@ func FormatAcls(acls []ACLInfo) string {
 	for _, acl := range acls {
 		row := []string{
 			// TODO: convert ints to something human readable
-			fmt.Sprintf("%d", acl.ResourceType),
+			string(acl.ResourceType),
 			acl.ResourceName,
 			acl.Principal,
 			acl.Host,

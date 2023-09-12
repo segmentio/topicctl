@@ -55,6 +55,7 @@ func init() {
 		partitionsCmd(),
 		offsetsCmd(),
 		topicsCmd(),
+		aclsCmd(),
 	)
 	RootCmd.AddCommand(getCmd)
 }
@@ -267,6 +268,26 @@ func topicsCmd() *cobra.Command {
 			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetTopics(ctx, getConfig.full)
 		},
->>>>>>> chore/separate-subcmd-for-get
+	}
+}
+
+func aclsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "acls",
+		Short: "Displays information for acls in the cluster. Supports filtering with flags.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetACLs(ctx)
+		},
 	}
 }
