@@ -79,6 +79,7 @@ type PartitionAssignment struct {
 type ACLInfo struct {
 	ResourceType   kafka.ResourceType
 	ResourceName   string
+	PatternType    kafka.PatternType
 	Principal      string
 	Host           string
 	Operation      kafka.ACLOperationType

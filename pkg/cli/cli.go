@@ -14,6 +14,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -476,6 +477,7 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 		c.stopSpinner()
 		return err
 	}
+	brokers, err := c.adminClient.GetBrokers(ctx, nil)
 	c.stopSpinner()
 	if err != nil {
 		return err
@@ -553,16 +555,21 @@ func (c *CLIRunner) Tail(
 
 // TODO add options for filtering
 // GetAcls fetches the details of each acl in the cluster and prints out a summary.
-func (c *CLIRunner) GetAcls(ctx context.Context) error {
+func (c *CLIRunner) GetACLs(ctx context.Context) error {
 	c.startSpinner()
 
-	acls, err := c.adminClient.GetAcls(ctx, nil)
+	acls, err := c.adminClient.GetACLs(ctx, kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeAny,
+		ResourcePatternTypeFilter: kafka.PatternTypeAny,
+		Operation:                 kafka.ACLOperationTypeAny,
+		PermissionType:            kafka.ACLPermissionTypeAny,
+	})
 	c.stopSpinner()
 	if err != nil {
 		return err
 	}
 
-	c.printer("Acls:\n%s", admin.FormatAcls(acls))
+	c.printer("ACLs:\n%s", admin.FormatAcls(acls))
 
 	return nil
 }

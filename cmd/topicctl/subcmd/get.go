@@ -59,6 +59,7 @@ func getPreRun(cmd *cobra.Command, args []string) error {
 	return getConfig.shared.validate()
 }
 
+// TODO: make each of these "gets" a separate subcommand
 func getRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	sess := session.Must(session.NewSession())
@@ -142,8 +143,7 @@ func getRun(cmd *cobra.Command, args []string) error {
 		return cliRunner.GetTopics(ctx, getConfig.full)
 	case "acls":
 		// TODO: add arg validation once we figure out filtering args
-
-		return cliRunner.GetAcls(ctx, nil)
+		return cliRunner.GetACLs(ctx)
 	default:
 		return fmt.Errorf("Unrecognized resource type: %s", resource)
 	}

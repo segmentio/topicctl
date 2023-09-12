@@ -629,6 +629,7 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		{
 			ResourceType:   kafka.ResourceTypeTopic,
 			ResourceName:   topicName,
+			PatternType:    kafka.PatternTypeLiteral,
 			Principal:      principal,
 			Host:           "*",
 			Operation:      kafka.ACLOperationTypeRead,

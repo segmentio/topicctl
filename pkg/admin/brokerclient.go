@@ -98,6 +98,12 @@ func NewBrokerAdminClient(
 	if _, ok := maxVersions["AlterClientQuotas"]; ok {
 		supportedFeatures.DynamicBrokerConfigs = true
 	}
+
+	// If we have DescribeAcls, than we're running a version of Kafka > 2.0.1,
+	// that will have support for all ACLs APIs.
+	if _, ok := maxVersions["DescribeAcls"]; ok {
+		supportedFeatures.ACLs = true
+	}
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
 	adminClient := &BrokerAdminClient{
@@ -722,6 +728,7 @@ func (c *BrokerAdminClient) GetACLs(
 			aclinfos = append(aclinfos, ACLInfo{
 				ResourceType:   resource.ResourceType,
 				ResourceName:   resource.ResourceName,
+				PatternType:    resource.PatternType,
 				Principal:      acl.Principal,
 				Host:           acl.Host,
 				Operation:      acl.Operation,

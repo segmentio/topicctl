@@ -763,12 +763,14 @@ func (c *ZKAdminClient) LockHeld(
 
 // GetSupportedFeatures returns the features that are supported by this client.
 func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
-	// The zk-based client supports everything.
+	// The zk-based client supports everything except for ACLs.
+	// Zookeeper can support ACLs, topicctl just hasn't added support for it yet.
 	return SupportedFeatures{
 		Reads:                true,
 		Applies:              true,
 		Locks:                true,
 		DynamicBrokerConfigs: true,
+		ACLs:                 false,
 	}
 }
 
