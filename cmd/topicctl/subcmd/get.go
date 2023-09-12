@@ -2,7 +2,6 @@ package subcmd
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,15 +16,10 @@ var getCmd = &cobra.Command{
 	Long: strings.Join(
 		[]string{
 			"Get instances of a particular type.",
-			"Supported types currently include: balance, brokers, config, groups, lags, members, partitions, offsets, topics, and acls.",
-			"",
-			"See the tool README for a detailed description of each one.",
 		},
 		"\n",
 	),
-	Args:    cobra.MinimumNArgs(1),
-	PreRunE: getPreRun,
-	RunE:    getRun,
+	PersistentPreRunE: getPreRun,
 }
 
 type getCmdConfig struct {
@@ -38,20 +32,30 @@ type getCmdConfig struct {
 var getConfig getCmdConfig
 
 func init() {
-	getCmd.Flags().BoolVar(
+	getCmd.PersistentFlags().BoolVar(
 		&getConfig.full,
 		"full",
 		false,
 		"Show more full information for resources",
 	)
-	getCmd.Flags().BoolVar(
+	getCmd.PersistentFlags().BoolVar(
 		&getConfig.sortValues,
 		"sort-values",
 		false,
 		"Sort by value instead of name; only applies for lags at the moment",
 	)
-
 	addSharedFlags(getCmd, &getConfig.shared)
+	getCmd.AddCommand(
+		balanceCmd(),
+		brokersCmd(),
+		configCmd(),
+		groupsCmd(),
+		lagsCmd(),
+		membersCmd(),
+		partitionsCmd(),
+		offsetsCmd(),
+		topicsCmd(),
+	)
 	RootCmd.AddCommand(getCmd)
 }
 
@@ -59,92 +63,210 @@ func getPreRun(cmd *cobra.Command, args []string) error {
 	return getConfig.shared.validate()
 }
 
-// TODO: make each of these "gets" a separate subcommand
-func getRun(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
-	sess := session.Must(session.NewSession())
+func balanceCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "balance [optional topic]",
+		Short: "Number of replicas per broker position for topic or cluster as a whole",
+		Long: strings.Join([]string{
+			"Displays the number of replicas per broker position.",
+			"Accepts an optional argument of a topic, which will just scope this to that topic. If topic is omitted, the balance displayed will be for the entire cluster.",
+		},
+			"\n",
+		),
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
 
-	adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
-	if err != nil {
-		return err
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+
+			var topicName string
+			if len(args) == 1 {
+				topicName = args[0]
+			}
+			return cliRunner.GetBrokerBalance(ctx, topicName)
+		},
+		PreRunE: getPreRun,
 	}
-	defer adminClient.Close()
+}
 
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+func brokersCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "brokers",
+		Short: "Displays descriptions of each broker in the cluster.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
 
-	resource := args[0]
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
 
-	switch resource {
-	case "balance":
-		var topicName string
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetBrokers(ctx, getConfig.full)
+		},
+	}
+}
 
-		if len(args) == 2 {
-			topicName = args[1]
-		} else if len(args) > 2 {
-			return fmt.Errorf("Can provide at most one positional argument with brokers")
-		}
+func configCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "config [broker or topic]",
+		Short: "Displays configuration for the provider broker or topic.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
 
-		return cliRunner.GetBrokerBalance(ctx, topicName)
-	case "brokers":
-		if len(args) > 1 {
-			return fmt.Errorf("Can only provide one positional argument with brokers")
-		}
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
 
-		return cliRunner.GetBrokers(ctx, getConfig.full)
-	case "config":
-		if len(args) != 2 {
-			return fmt.Errorf("Must provide broker ID or topic name as second positional argument")
-		}
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetConfig(ctx, args[0])
+		},
+	}
+}
 
-		return cliRunner.GetConfig(ctx, args[1])
-	case "groups":
-		if len(args) > 1 {
-			return fmt.Errorf("Can only provide one positional argument with groups")
-		}
+func groupsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "groups",
+		Short: "Displays consumer group informatin for the cluster.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
 
-		return cliRunner.GetGroups(ctx)
-	case "lags":
-		if len(args) != 3 {
-			return fmt.Errorf("Must provide topic and groupID as additional positional arguments")
-		}
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
 
-		return cliRunner.GetMemberLags(
-			ctx,
-			args[1],
-			args[2],
-			getConfig.full,
-			getConfig.sortValues,
-		)
-	case "members":
-		if len(args) != 2 {
-			return fmt.Errorf("Must provide group ID as second positional argument")
-		}
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetGroups(ctx)
+		},
+	}
+}
 
-		return cliRunner.GetGroupMembers(ctx, args[1], getConfig.full)
-	case "partitions":
-		if len(args) != 2 {
-			return fmt.Errorf("Must provide topic as second positional argument")
-		}
-		topicName := args[1]
+func lagsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "lags [topic] [group]",
+		Short: "Displays consumer group lag for the specified topic and consumer group.",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
 
-		return cliRunner.GetPartitions(ctx, topicName)
-	case "offsets":
-		if len(args) != 2 {
-			return fmt.Errorf("Must provide topic as second positional argument")
-		}
-		topicName := args[1]
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
 
-		return cliRunner.GetOffsets(ctx, topicName)
-	case "topics":
-		if len(args) > 1 {
-			return fmt.Errorf("Can only provide one positional argument with args")
-		}
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetMemberLags(
+				ctx,
+				args[0],
+				args[1],
+				getConfig.full,
+				getConfig.sortValues,
+			)
+		},
+	}
+}
 
-		return cliRunner.GetTopics(ctx, getConfig.full)
-	case "acls":
-		// TODO: add arg validation once we figure out filtering args
-		return cliRunner.GetACLs(ctx)
-	default:
-		return fmt.Errorf("Unrecognized resource type: %s", resource)
+func membersCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "members [group]",
+		Short: "Details of each member in the specified consumer group.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetGroupMembers(ctx, args[0], getConfig.full)
+		},
+	}
+}
+
+func partitionsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "partitions [topic]",
+		Short: "Displays partition information for the specified topic.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetPartitions(ctx, args[0])
+		},
+	}
+}
+
+func offsetsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "offsets [topic]",
+		Short: "Displays offset information for the specified topic along with start and end times.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetOffsets(ctx, args[0])
+		},
+	}
+}
+
+func topicsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "topics",
+		Short: "Displays information for all topics in the cluster.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetTopics(ctx, getConfig.full)
+		},
+>>>>>>> chore/separate-subcmd-for-get
 	}
 }

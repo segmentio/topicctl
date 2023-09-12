@@ -173,88 +173,88 @@ func (s sharedOptions) getAdminClient(
 }
 
 func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
-	cmd.Flags().StringVarP(
+	cmd.PersistentFlags().StringVarP(
 		&options.brokerAddr,
 		"broker-addr",
 		"b",
 		"",
 		"Broker address",
 	)
-	cmd.Flags().BoolVarP(
+	cmd.PersistentFlags().BoolVarP(
 		&options.expandEnv,
 		"expand-env",
 		"",
 		false,
 		"Expand environment in cluster config",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.clusterConfig,
 		"cluster-config",
 		os.Getenv("TOPICCTL_CLUSTER_CONFIG"),
 		"Cluster config",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.saslMechanism,
 		"sasl-mechanism",
 		"",
 		"SASL mechanism if using SASL (choices: AWS-MSK-IAM, PLAIN, SCRAM-SHA-256, or SCRAM-SHA-512)",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.saslPassword,
 		"sasl-password",
 		os.Getenv("TOPICCTL_SASL_PASSWORD"),
 		"SASL password if using SASL; will override value set in cluster config",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.saslUsername,
 		"sasl-username",
 		os.Getenv("TOPICCTL_SASL_USERNAME"),
 		"SASL username if using SASL; will override value set in cluster config",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.tlsCACert,
 		"tls-ca-cert",
 		"",
 		"Path to client CA cert PEM file if using TLS",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.tlsCert,
 		"tls-cert",
 		"",
 		"Path to client cert PEM file if using TLS",
 	)
-	cmd.Flags().BoolVar(
+	cmd.PersistentFlags().BoolVar(
 		&options.tlsEnabled,
 		"tls-enabled",
 		false,
 		"Use TLS for communication with brokers",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.tlsKey,
 		"tls-key",
 		"",
 		"Path to client private key PEM file if using TLS",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.tlsServerName,
 		"tls-server-name",
 		"",
 		"Server name to use for TLS cert verification",
 	)
-	cmd.Flags().BoolVar(
+	cmd.PersistentFlags().BoolVar(
 		&options.tlsSkipVerify,
 		"tls-skip-verify",
 		false,
 		"Skip hostname verification when using TLS",
 	)
-	cmd.Flags().StringVarP(
+	cmd.PersistentFlags().StringVarP(
 		&options.zkAddr,
 		"zk-addr",
 		"z",
 		"",
 		"ZooKeeper address",
 	)
-	cmd.Flags().StringVar(
+	cmd.PersistentFlags().StringVar(
 		&options.zkPrefix,
 		"zk-prefix",
 		"",
