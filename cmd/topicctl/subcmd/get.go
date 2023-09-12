@@ -64,7 +64,7 @@ func getPreRun(cmd *cobra.Command, args []string) error {
 }
 
 func balanceCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "balance [optional topic]",
 		Short: "Number of replicas per broker position for topic or cluster as a whole",
 		Long: strings.Join([]string{
@@ -94,11 +94,10 @@ func balanceCmd() *cobra.Command {
 		},
 		PreRunE: getPreRun,
 	}
-	return cmd
 }
 
 func brokersCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "brokers",
 		Short: "Displays descriptions of each broker in the cluster.",
 		Args:  cobra.NoArgs,
@@ -116,11 +115,10 @@ func brokersCmd() *cobra.Command {
 			return cliRunner.GetBrokers(ctx, getConfig.full)
 		},
 	}
-	return cmd
 }
 
 func configCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "config [broker or topic]",
 		Short: "Displays configuration for the provider broker or topic.",
 		Args:  cobra.ExactArgs(1),
@@ -138,11 +136,10 @@ func configCmd() *cobra.Command {
 			return cliRunner.GetConfig(ctx, args[0])
 		},
 	}
-	return cmd
 }
 
 func groupsCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "groups",
 		Short: "Displays consumer group informatin for the cluster.",
 		Args:  cobra.NoArgs,
@@ -160,11 +157,10 @@ func groupsCmd() *cobra.Command {
 			return cliRunner.GetGroups(ctx)
 		},
 	}
-	return cmd
 }
 
 func lagsCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "lags [topic] [group]",
 		Short: "Displays consumer group lag for the specified topic and consumer group.",
 		Args:  cobra.ExactArgs(2),
@@ -188,11 +184,10 @@ func lagsCmd() *cobra.Command {
 			)
 		},
 	}
-	return cmd
 }
 
 func membersCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "members [group]",
 		Short: "Details of each member in the specified consumer group.",
 		Args:  cobra.ExactArgs(1),
@@ -210,11 +205,10 @@ func membersCmd() *cobra.Command {
 			return cliRunner.GetGroupMembers(ctx, args[0], getConfig.full)
 		},
 	}
-	return cmd
 }
 
 func partitionsCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "partitions [topic]",
 		Short: "Displays partition information for the specified topic.",
 		Args:  cobra.ExactArgs(1),
@@ -232,11 +226,10 @@ func partitionsCmd() *cobra.Command {
 			return cliRunner.GetPartitions(ctx, args[0])
 		},
 	}
-	return cmd
 }
 
 func offsetsCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "offsets [topic]",
 		Short: "Displays offset information for the specified topic along with start and end times.",
 		Args:  cobra.ExactArgs(1),
@@ -254,11 +247,10 @@ func offsetsCmd() *cobra.Command {
 			return cliRunner.GetOffsets(ctx, args[0])
 		},
 	}
-	return cmd
 }
 
 func topicsCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "topics",
 		Short: "Displays information for all topics in the cluster.",
 		Args:  cobra.NoArgs,
@@ -276,5 +268,4 @@ func topicsCmd() *cobra.Command {
 			return cliRunner.GetTopics(ctx, getConfig.full)
 		},
 	}
-	return cmd
 }
