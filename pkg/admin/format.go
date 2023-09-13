@@ -745,9 +745,9 @@ func FormatBrokerMaxPartitions(
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
-// FormatAcls creates a pretty table that lists the details of the
+// FormatACLs creates a pretty table that lists the details of the
 // argument acls.
-func FormatAcls(acls []ACLInfo) string {
+func FormatACLs(acls []ACLInfo) string {
 	buf := &bytes.Buffer{}
 
 	headers := []string{

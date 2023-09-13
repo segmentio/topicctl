@@ -554,7 +554,7 @@ func (c *CLIRunner) Tail(
 }
 
 // TODO add options for filtering
-// GetAcls fetches the details of each acl in the cluster and prints out a summary.
+// GetACLs fetches the details of each acl in the cluster and prints out a summary.
 func (c *CLIRunner) GetACLs(ctx context.Context) error {
 	c.startSpinner()
 
@@ -569,7 +569,7 @@ func (c *CLIRunner) GetACLs(ctx context.Context) error {
 		return err
 	}
 
-	c.printer("ACLs:\n%s", admin.FormatAcls(acls))
+	c.printer("ACLs:\n%s", admin.FormatACLs(acls))
 
 	return nil
 }
