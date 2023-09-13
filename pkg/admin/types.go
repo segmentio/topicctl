@@ -80,7 +80,7 @@ type PartitionAssignment struct {
 type ACLInfo struct {
 	ResourceType   ResourceType
 	ResourceName   string
-	PatternType    kafka.PatternType
+	PatternType    PatternType
 	Principal      string
 	Host           string
 	Operation      kafka.ACLOperationType
@@ -140,22 +140,52 @@ func (r *ResourceType) Type() string {
 	return "ResourceType"
 }
 
-// func (p kafka.PatternType) String() string {
-// 	switch p {
-// 	case kafka.PatternTypeUnknown:
-// 		return "Unknown"
-// 	case kafka.PatternTypeAny:
-// 		return "Any"
-// 	case kafka.PatternTypeMatch:
-// 		return "Match"
-// 	case kafka.PatternTypeLiteral:
-// 		return "Literal"
-// 	case kafka.PatternTypePrefixed:
-// 		return "Prefixed"
-// 	default:
-// 		return "Invalid PatternType"
-// 	}
-// }
+// PatternType presents the Kafka resource type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type PatternType kafka.PatternType
+
+var patternTypeMap = map[string]kafka.PatternType{
+	"unknown":  kafka.PatternTypeUnknown,
+	"any":      kafka.PatternTypeAny,
+	"match":    kafka.PatternTypeMatch,
+	"literal":  kafka.PatternTypeLiteral,
+	"prefixed": kafka.PatternTypePrefixed,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (p *PatternType) String() string {
+	switch kafka.PatternType(*p) {
+	case kafka.PatternTypeUnknown:
+		return "unknown"
+	case kafka.PatternTypeAny:
+		return "any"
+	case kafka.PatternTypeMatch:
+		return "match"
+	case kafka.PatternTypeLiteral:
+		return "literal"
+	case kafka.PatternTypePrefixed:
+		return "prefixed"
+	default:
+		return "invalid PatternType"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (r *PatternType) Set(v string) error {
+	rt, ok := patternTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "unknown", "any", "match", "literal", or "prefixed"`)
+	}
+	*r = PatternType(rt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (r *PatternType) Type() string {
+	return "PatternType"
+}
 
 // func (o kafka.ACLOperationType) String() string {
 // 	switch o {

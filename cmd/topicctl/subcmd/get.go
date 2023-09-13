@@ -239,11 +239,13 @@ func topicsCmd() *cobra.Command {
 }
 
 type aclsCmdConfig struct {
-	resourceType admin.ResourceType
+	resourceType        admin.ResourceType
+	resourcePatternType admin.PatternType
 }
 
 var aclsConfig = aclsCmdConfig{
-	resourceType: admin.ResourceType(kafka.ResourceTypeAny),
+	resourceType:        admin.ResourceType(kafka.ResourceTypeAny),
+	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
 }
 
 func aclsCmd() *cobra.Command {
@@ -259,7 +261,7 @@ func aclsCmd() *cobra.Command {
 
 			filter := kafka.ACLFilter{
 				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
-				ResourcePatternTypeFilter: kafka.PatternTypeAny,
+				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
 				Operation:                 kafka.ACLOperationTypeAny,
 				PermissionType:            kafka.ACLPermissionTypeAny,
 			}
@@ -270,6 +272,11 @@ func aclsCmd() *cobra.Command {
 		&aclsConfig.resourceType,
 		"resource-type",
 		`Resource type. allowed: "unknown", "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.resourcePatternType,
+		"resource-pattern-type",
+		`Resource pattern type. allowed: "unknown", "any", "match", "literal", "prefixed"`,
 	)
 	return cmd
 }

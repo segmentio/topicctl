@@ -752,6 +752,7 @@ func FormatACLs(acls []ACLInfo) string {
 
 	headers := []string{
 		"Resource Type",
+		"Pattern Type",
 		"Resource Name",
 		"Principal",
 		"Host",
@@ -764,6 +765,7 @@ func FormatACLs(acls []ACLInfo) string {
 	table.SetAutoWrapText(false)
 	table.SetColumnAlignment(
 		[]int{
+			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
 			tablewriter.ALIGN_LEFT,
@@ -785,6 +787,7 @@ func FormatACLs(acls []ACLInfo) string {
 		row := []string{
 			// TODO: convert ints to something human readable
 			acl.ResourceType.String(),
+			acl.PatternType.String(),
 			acl.ResourceName,
 			acl.Principal,
 			acl.Host,

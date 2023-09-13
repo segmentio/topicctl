@@ -586,13 +586,6 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		BrokerAdminClientConfig{
 			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
-				SASL: SASLConfig{
-					Enabled:   true,
-					Mechanism: SASLMechanismScramSHA512,
-					// TODO: don't hardcode these in tests, pull from env vars
-					Username: "adminscram",
-					Password: "admin-secret-512",
-				},
 			},
 		},
 	)
@@ -600,6 +593,27 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 
 	principal := util.RandomString("User:user-create-", 6)
 	topicName := util.RandomString("topic-create-", 6)
+
+	defer func() {
+		_, err := client.client.DeleteACLs(
+			ctx,
+			&kafka.DeleteACLsRequest{
+				Filters: []kafka.DeleteACLsFilter{
+					{
+						ResourceTypeFilter:        kafka.ResourceTypeTopic,
+						ResourceNameFilter:        topicName,
+						ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+						Operation:                 kafka.ACLOperationTypeRead,
+						PermissionType:            kafka.ACLPermissionTypeAllow,
+					},
+				},
+			},
+		)
+
+		if err != nil {
+			t.Fatal(fmt.Errorf("failed to clean up ACL, err: %v", err))
+		}
+	}()
 
 	err = client.CreateACL(
 		ctx,
@@ -627,7 +641,7 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 	require.NoError(t, err)
 	expected := []ACLInfo{
 		{
-			ResourceType:   kafka.ResourceTypeTopic,
+			ResourceType:   ResourceType(kafka.ResourceTypeTopic),
 			ResourceName:   topicName,
 			PatternType:    kafka.PatternTypeLiteral,
 			Principal:      principal,
@@ -637,5 +651,4 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, aclsInfo)
-
 }

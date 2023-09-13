@@ -728,7 +728,7 @@ func (c *BrokerAdminClient) GetACLs(
 			aclinfos = append(aclinfos, ACLInfo{
 				ResourceType:   ResourceType(resource.ResourceType),
 				ResourceName:   resource.ResourceName,
-				PatternType:    resource.PatternType,
+				PatternType:    PatternType(resource.PatternType),
 				Principal:      acl.Principal,
 				Host:           acl.Host,
 				Operation:      acl.Operation,
