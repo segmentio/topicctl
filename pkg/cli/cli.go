@@ -555,15 +555,13 @@ func (c *CLIRunner) Tail(
 
 // TODO add options for filtering
 // GetACLs fetches the details of each acl in the cluster and prints out a summary.
-func (c *CLIRunner) GetACLs(ctx context.Context) error {
+func (c *CLIRunner) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) error {
 	c.startSpinner()
 
-	acls, err := c.adminClient.GetACLs(ctx, kafka.ACLFilter{
-		ResourceTypeFilter:        kafka.ResourceTypeAny,
-		ResourcePatternTypeFilter: kafka.PatternTypeAny,
-		Operation:                 kafka.ACLOperationTypeAny,
-		PermissionType:            kafka.ACLPermissionTypeAny,
-	})
+	acls, err := c.adminClient.GetACLs(ctx, filter)
 	c.stopSpinner()
 	if err != nil {
 		return err

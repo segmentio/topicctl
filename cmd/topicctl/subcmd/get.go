@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -236,17 +238,38 @@ func topicsCmd() *cobra.Command {
 	}
 }
 
+type aclsCmdConfig struct {
+	resourceType admin.ResourceType
+}
+
+var aclsConfig = aclsCmdConfig{
+	resourceType: admin.ResourceType(kafka.ResourceTypeAny),
+}
+
 func aclsCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "acls",
-		Short: "Displays information for acls in the cluster. Supports filtering with flags.",
+		Short: "Displays information for ACLs in the cluster. Supports filtering with flags.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cliRunner, err := getCliRunnerAndCtx()
 			if err != nil {
 				return err
 			}
-			return cliRunner.GetACLs(ctx)
+
+			filter := kafka.ACLFilter{
+				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
+				ResourcePatternTypeFilter: kafka.PatternTypeAny,
+				Operation:                 kafka.ACLOperationTypeAny,
+				PermissionType:            kafka.ACLPermissionTypeAny,
+			}
+			return cliRunner.GetACLs(ctx, filter)
 		},
 	}
+	cmd.Flags().Var(
+		&aclsConfig.resourceType,
+		"resource-type",
+		`Resource type. allowed: "unknown", "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
+	)
+	return cmd
 }

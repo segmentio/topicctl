@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -77,7 +78,7 @@ type PartitionAssignment struct {
 // PartitionInfo represents the information stored about an ACL
 // in zookeeper.
 type ACLInfo struct {
-	ResourceType   ACLResourceType
+	ResourceType   ResourceType
 	ResourceName   string
 	PatternType    kafka.PatternType
 	Principal      string
@@ -86,27 +87,57 @@ type ACLInfo struct {
 	PermissionType kafka.ACLPermissionType
 }
 
-type ACLResourceType string
+// ResourceType presents the Kafka resource type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type ResourceType kafka.ResourceType
 
-func kafkaGoResourceTypeToTopicctl(r kafka.ResourceType) ACLResourceType {
-	switch r {
+var resourceTypeMap = map[string]kafka.ResourceType{
+	"unknown":         kafka.ResourceTypeUnknown,
+	"any":             kafka.ResourceTypeAny,
+	"topic":           kafka.ResourceTypeTopic,
+	"group":           kafka.ResourceTypeGroup,
+	"cluster":         kafka.ResourceTypeCluster,
+	"transactionalid": kafka.ResourceTypeTransactionalID,
+	"delegationtoken": kafka.ResourceTypeDelegationToken,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (r *ResourceType) String() string {
+	switch kafka.ResourceType(*r) {
 	case kafka.ResourceTypeUnknown:
-		return "Unknown"
+		return "unknown"
 	case kafka.ResourceTypeAny:
-		return "Any"
+		return "any"
 	case kafka.ResourceTypeTopic:
-		return "Topic"
+		return "topic"
 	case kafka.ResourceTypeGroup:
-		return "Group"
+		return "group"
 	case kafka.ResourceTypeCluster:
-		return "Cluster"
+		return "cluster"
 	case kafka.ResourceTypeTransactionalID:
-		return "TransactionalID"
+		return "transactionalid"
 	case kafka.ResourceTypeDelegationToken:
-		return "DelegationToken"
+		return "delegationtoken"
 	default:
-		return "Invalid ResourceType"
+		return "invalid ResourceType"
 	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (r *ResourceType) Set(v string) error {
+	rt, ok := resourceTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "unknown", "any", "topic", "group", "cluster", "transactionalid", or "delegationtoken"`)
+	}
+	*r = ResourceType(rt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (r *ResourceType) Type() string {
+	return "ResourceType"
 }
 
 // func (p kafka.PatternType) String() string {

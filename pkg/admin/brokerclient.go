@@ -726,7 +726,7 @@ func (c *BrokerAdminClient) GetACLs(
 	for _, resource := range resp.Resources {
 		for _, acl := range resource.ACLs {
 			aclinfos = append(aclinfos, ACLInfo{
-				ResourceType:   kafkaGoResourceTypeToTopicctl(resource.ResourceType),
+				ResourceType:   ResourceType(resource.ResourceType),
 				ResourceName:   resource.ResourceName,
 				PatternType:    resource.PatternType,
 				Principal:      acl.Principal,
