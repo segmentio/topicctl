@@ -242,16 +242,10 @@ func aclsCmd() *cobra.Command {
 		Short: "Displays information for acls in the cluster. Supports filtering with flags.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
-			sess := session.Must(session.NewSession())
-
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			ctx, cliRunner, err := getCliRunnerAndCtx()
 			if err != nil {
 				return err
 			}
-			defer adminClient.Close()
-
-			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetACLs(ctx)
 		},
 	}
