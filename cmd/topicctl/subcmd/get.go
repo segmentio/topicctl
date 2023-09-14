@@ -242,8 +242,9 @@ type aclsCmdConfig struct {
 	hostFilter          string
 	operationType       admin.ACLOperationType
 	permissionType      admin.ACLPermissionType
-	resourceType        admin.ResourceType
+	resourceNameFilter  string
 	resourcePatternType admin.PatternType
+	resourceType        admin.ResourceType
 }
 
 // aclsConfig defines the default values if a flag is not provided. These all default
@@ -252,6 +253,7 @@ var aclsConfig = aclsCmdConfig{
 	hostFilter:          "",
 	operationType:       admin.ACLOperationType(kafka.ACLOperationTypeAny),
 	permissionType:      admin.ACLPermissionType(kafka.ACLPermissionTypeAny),
+	resourceNameFilter:  "",
 	resourceType:        admin.ResourceType(kafka.ResourceTypeAny),
 	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
 }
@@ -270,8 +272,8 @@ func aclsCmd() *cobra.Command {
 			}
 
 			filter := kafka.ACLFilter{
-				ResourceTypeFilter: kafka.ResourceType(aclsConfig.resourceType),
-				//ResourceNameFilter: "",
+				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
+				ResourceNameFilter:        aclsConfig.resourceNameFilter,
 				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
 				//PrincipalFilter: "*",
 				HostFilter:     aclsConfig.hostFilter,
@@ -297,10 +299,11 @@ func aclsCmd() *cobra.Command {
 		"permission-type",
 		`The permission type to filter on. allowed: "any", "allow", or "deny"`,
 	)
-	cmd.Flags().Var(
-		&aclsConfig.resourceType,
-		"resource-type",
-		`The type of resource to filter on. allowed: "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
+	cmd.Flags().StringVar(
+		&aclsConfig.resourceNameFilter,
+		"resource-name",
+		"",
+		`The resource name to filter on.`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.resourcePatternType,
@@ -308,6 +311,11 @@ func aclsCmd() *cobra.Command {
 		// TODO: document the behavior of each of these
 		// TODO: match isn't really supported right now, look into that
 		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed"`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.resourceType,
+		"resource-type",
+		`The type of resource to filter on. allowed: "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
 	)
 	return cmd
 }

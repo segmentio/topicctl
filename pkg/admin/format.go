@@ -792,7 +792,7 @@ func FormatACLs(acls []ACLInfo) string {
 			acl.Principal,
 			acl.Host,
 			acl.Operation.String(),
-			fmt.Sprintf("%d", acl.PermissionType),
+			acl.PermissionType.String(),
 		}
 
 		table.Append(row)
