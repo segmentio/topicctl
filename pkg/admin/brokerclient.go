@@ -731,7 +731,7 @@ func (c *BrokerAdminClient) GetACLs(
 				PatternType:    PatternType(resource.PatternType),
 				Principal:      acl.Principal,
 				Host:           acl.Host,
-				Operation:      acl.Operation,
+				Operation:      ACLOperationType(acl.Operation),
 				PermissionType: acl.PermissionType,
 			})
 		}

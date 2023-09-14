@@ -791,7 +791,7 @@ func FormatACLs(acls []ACLInfo) string {
 			acl.ResourceName,
 			acl.Principal,
 			acl.Host,
-			fmt.Sprintf("%d", acl.Operation),
+			acl.Operation.String(),
 			fmt.Sprintf("%d", acl.PermissionType),
 		}
 

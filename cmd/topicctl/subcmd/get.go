@@ -241,11 +241,13 @@ func topicsCmd() *cobra.Command {
 type aclsCmdConfig struct {
 	resourceType        admin.ResourceType
 	resourcePatternType admin.PatternType
+	aclOperationType    admin.ACLOperationType
 }
 
 var aclsConfig = aclsCmdConfig{
 	resourceType:        admin.ResourceType(kafka.ResourceTypeAny),
 	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
+	aclOperationType:    admin.ACLOperationType(kafka.ACLOperationTypeAny),
 }
 
 func aclsCmd() *cobra.Command {
@@ -253,6 +255,8 @@ func aclsCmd() *cobra.Command {
 		Use:   "acls",
 		Short: "Displays information for ACLs in the cluster. Supports filtering with flags.",
 		Args:  cobra.NoArgs,
+		// TODO: make common examples here
+		// Example:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cliRunner, err := getCliRunnerAndCtx()
 			if err != nil {
@@ -260,9 +264,10 @@ func aclsCmd() *cobra.Command {
 			}
 
 			filter := kafka.ACLFilter{
+				//ResourceNameFilter: "",
 				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
 				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
-				Operation:                 kafka.ACLOperationTypeAny,
+				Operation:                 kafka.ACLOperationType(aclsConfig.aclOperationType),
 				PermissionType:            kafka.ACLPermissionTypeAny,
 			}
 			return cliRunner.GetACLs(ctx, filter)
@@ -271,12 +276,18 @@ func aclsCmd() *cobra.Command {
 	cmd.Flags().Var(
 		&aclsConfig.resourceType,
 		"resource-type",
-		`Resource type. allowed: "unknown", "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
+		`Resource type. allowed: "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.resourcePatternType,
 		"resource-pattern-type",
-		`Resource pattern type. allowed: "unknown", "any", "match", "literal", "prefixed"`,
+		// TODO: document the behavior of each of these
+		`Resource pattern type. allowed: "any", "match", "literal", "prefixed"`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.aclOperationType,
+		"operations",
+		`ACL operation type. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
 	)
 	return cmd
 }

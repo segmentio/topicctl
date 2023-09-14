@@ -83,7 +83,7 @@ type ACLInfo struct {
 	PatternType    PatternType
 	Principal      string
 	Host           string
-	Operation      kafka.ACLOperationType
+	Operation      ACLOperationType
 	PermissionType kafka.ACLPermissionType
 }
 
@@ -94,7 +94,6 @@ type ACLInfo struct {
 type ResourceType kafka.ResourceType
 
 var resourceTypeMap = map[string]kafka.ResourceType{
-	"unknown":         kafka.ResourceTypeUnknown,
 	"any":             kafka.ResourceTypeAny,
 	"topic":           kafka.ResourceTypeTopic,
 	"group":           kafka.ResourceTypeGroup,
@@ -106,8 +105,6 @@ var resourceTypeMap = map[string]kafka.ResourceType{
 // String is used both by fmt.Print and by Cobra in help text.
 func (r *ResourceType) String() string {
 	switch kafka.ResourceType(*r) {
-	case kafka.ResourceTypeUnknown:
-		return "unknown"
 	case kafka.ResourceTypeAny:
 		return "any"
 	case kafka.ResourceTypeTopic:
@@ -121,7 +118,7 @@ func (r *ResourceType) String() string {
 	case kafka.ResourceTypeDelegationToken:
 		return "delegationtoken"
 	default:
-		return "invalid ResourceType"
+		return "unknown"
 	}
 }
 
@@ -129,7 +126,7 @@ func (r *ResourceType) String() string {
 func (r *ResourceType) Set(v string) error {
 	rt, ok := resourceTypeMap[strings.ToLower(v)]
 	if !ok {
-		return errors.New(`must be one of "unknown", "any", "topic", "group", "cluster", "transactionalid", or "delegationtoken"`)
+		return errors.New(`must be one of "any", "topic", "group", "cluster", "transactionalid", or "delegationtoken"`)
 	}
 	*r = ResourceType(rt)
 	return nil
@@ -147,7 +144,6 @@ func (r *ResourceType) Type() string {
 type PatternType kafka.PatternType
 
 var patternTypeMap = map[string]kafka.PatternType{
-	"unknown":  kafka.PatternTypeUnknown,
 	"any":      kafka.PatternTypeAny,
 	"match":    kafka.PatternTypeMatch,
 	"literal":  kafka.PatternTypeLiteral,
@@ -157,8 +153,6 @@ var patternTypeMap = map[string]kafka.PatternType{
 // String is used both by fmt.Print and by Cobra in help text.
 func (p *PatternType) String() string {
 	switch kafka.PatternType(*p) {
-	case kafka.PatternTypeUnknown:
-		return "unknown"
 	case kafka.PatternTypeAny:
 		return "any"
 	case kafka.PatternTypeMatch:
@@ -168,7 +162,7 @@ func (p *PatternType) String() string {
 	case kafka.PatternTypePrefixed:
 		return "prefixed"
 	default:
-		return "invalid PatternType"
+		return "unknown"
 	}
 }
 
@@ -176,7 +170,7 @@ func (p *PatternType) String() string {
 func (r *PatternType) Set(v string) error {
 	rt, ok := patternTypeMap[strings.ToLower(v)]
 	if !ok {
-		return errors.New(`must be one of "unknown", "any", "match", "literal", or "prefixed"`)
+		return errors.New(`must be one of "any", "match", "literal", or "prefixed"`)
 	}
 	*r = PatternType(rt)
 	return nil
@@ -185,6 +179,74 @@ func (r *PatternType) Set(v string) error {
 // Type is used by Cobra in help text.
 func (r *PatternType) Type() string {
 	return "PatternType"
+}
+
+// ACLOperationType presents the Kafka resource type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type ACLOperationType kafka.ACLOperationType
+
+var aclOperationTypeMap = map[string]kafka.ACLOperationType{
+	"any":             kafka.ACLOperationTypeAny,
+	"all":             kafka.ACLOperationTypeAll,
+	"read":            kafka.ACLOperationTypeRead,
+	"write":           kafka.ACLOperationTypeWrite,
+	"create":          kafka.ACLOperationTypeCreate,
+	"delete":          kafka.ACLOperationTypeDelete,
+	"alter":           kafka.ACLOperationTypeAlter,
+	"describe":        kafka.ACLOperationTypeDescribe,
+	"clusteraction":   kafka.ACLOperationTypeClusterAction,
+	"describeconfigs": kafka.ACLOperationTypeDescribeConfigs,
+	"alterconfigs":    kafka.ACLOperationTypeAlterConfigs,
+	"idempotentwrite": kafka.ACLOperationTypeIdempotentWrite,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (o *ACLOperationType) String() string {
+	switch kafka.ACLOperationType(*o) {
+	case kafka.ACLOperationTypeAny:
+		return "any"
+	case kafka.ACLOperationTypeAll:
+		return "all"
+	case kafka.ACLOperationTypeRead:
+		return "read"
+	case kafka.ACLOperationTypeWrite:
+		return "write"
+	case kafka.ACLOperationTypeCreate:
+		return "create"
+	case kafka.ACLOperationTypeDelete:
+		return "delete"
+	case kafka.ACLOperationTypeAlter:
+		return "alter"
+	case kafka.ACLOperationTypeDescribe:
+		return "describe"
+	case kafka.ACLOperationTypeClusterAction:
+		return "clusteraction"
+	case kafka.ACLOperationTypeDescribeConfigs:
+		return "describeconfigs"
+	case kafka.ACLOperationTypeAlterConfigs:
+		return "alterconfigs"
+	case kafka.ACLOperationTypeIdempotentWrite:
+		return "idempotentwrite"
+	default:
+		return "unknown"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (r *ACLOperationType) Set(v string) error {
+	rt, ok := aclOperationTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`)
+	}
+	*r = ACLOperationType(rt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (r *ACLOperationType) Type() string {
+	return "ACLOperationType"
 }
 
 // func (o kafka.ACLOperationType) String() string {
