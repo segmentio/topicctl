@@ -732,7 +732,7 @@ func (c *BrokerAdminClient) GetACLs(
 				Principal:      acl.Principal,
 				Host:           acl.Host,
 				Operation:      ACLOperationType(acl.Operation),
-				PermissionType: acl.PermissionType,
+				PermissionType: ACLPermissionType(acl.PermissionType),
 			})
 		}
 	}

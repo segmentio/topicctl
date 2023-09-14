@@ -84,7 +84,7 @@ type ACLInfo struct {
 	Principal      string
 	Host           string
 	Operation      ACLOperationType
-	PermissionType kafka.ACLPermissionType
+	PermissionType ACLPermissionType
 }
 
 // ResourceType presents the Kafka resource type.
@@ -137,7 +137,7 @@ func (r *ResourceType) Type() string {
 	return "ResourceType"
 }
 
-// PatternType presents the Kafka resource type.
+// PatternType presents the Kafka pattern type.
 // We need to subtype this to be able to define methods to
 // satisfy the Value interface from Cobra so we can use it
 // as a Cobra flag.
@@ -167,12 +167,12 @@ func (p *PatternType) String() string {
 }
 
 // Set is used by Cobra to set the value of a variable from a Cobra flag.
-func (r *PatternType) Set(v string) error {
-	rt, ok := patternTypeMap[strings.ToLower(v)]
+func (p *PatternType) Set(v string) error {
+	pt, ok := patternTypeMap[strings.ToLower(v)]
 	if !ok {
 		return errors.New(`must be one of "any", "match", "literal", or "prefixed"`)
 	}
-	*r = PatternType(rt)
+	*p = PatternType(pt)
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (r *PatternType) Type() string {
 	return "PatternType"
 }
 
-// ACLOperationType presents the Kafka resource type.
+// ACLOperationType presents the Kafka operation type.
 // We need to subtype this to be able to define methods to
 // satisfy the Value interface from Cobra so we can use it
 // as a Cobra flag.
@@ -235,67 +235,60 @@ func (o *ACLOperationType) String() string {
 }
 
 // Set is used by Cobra to set the value of a variable from a Cobra flag.
-func (r *ACLOperationType) Set(v string) error {
-	rt, ok := aclOperationTypeMap[strings.ToLower(v)]
+func (o *ACLOperationType) Set(v string) error {
+	ot, ok := aclOperationTypeMap[strings.ToLower(v)]
 	if !ok {
 		return errors.New(`must be one of "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`)
 	}
-	*r = ACLOperationType(rt)
+	*o = ACLOperationType(ot)
 	return nil
 }
 
 // Type is used by Cobra in help text.
-func (r *ACLOperationType) Type() string {
+func (o *ACLOperationType) Type() string {
 	return "ACLOperationType"
 }
 
-// func (o kafka.ACLOperationType) String() string {
-// 	switch o {
-// 	case kafka.ACLOperationTypeUnknown:
-// 		return "Unknown"
-// 	case kafka.ACLOperationTypeAny:
-// 		return "Any"
-// 	case kafka.ACLOperationTypeAll:
-// 		return "All"
-// 	case kafka.ACLOperationTypeRead:
-// 		return "Read"
-// 	case kafka.ACLOperationTypeWrite:
-// 		return "Write"
-// 	case kafka.ACLOperationTypeCreate:
-// 		return "Create"
-// 	case kafka.ACLOperationTypeDelete:
-// 		return "Delete"
-// 	case kafka.ACLOperationTypeAlter:
-// 		return "Alter"
-// 	case kafka.ACLOperationTypeDescribe:
-// 		return "Describe"
-// 	case kafka.ACLOperationTypeClusterAction:
-// 		return "ClusterAction"
-// 	case kafka.ACLOperationTypeDescribeConfigs:
-// 		return "DescribeConfigs"
-// 	case kafka.ACLOperationTypeAlterConfigs:
-// 		return "AlterConfigs"
-// 	case kafka.ACLOperationTypeIdempotentWrite:
-// 		return "IdempotentWrite"
-// 	default:
-// 		return "Invalid OperationType"
-// 	}
-// }
+// ACLPermissionType presents the Kafka operation type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type ACLPermissionType kafka.ACLPermissionType
 
-// func (p kafka.ACLPermissionType) String() string {
-// 	switch p {
-// 	case kafka.ACLPermissionTypeUnknown:
-// 		return "Unknown"
-// 	case kafka.ACLPermissionTypeAny:
-// 		return "Any"
-// 	case kafka.ACLPermissionTypeDeny:
-// 		return "Deny"
-// 	case kafka.ACLPermissionTypeAllow:
-// 		return "Allow"
-// 	default:
-// 		return "Invalid PermissionType"
-// 	}
-// }
+var aclPermissionTypeMap = map[string]kafka.ACLPermissionType{
+	"any":   kafka.ACLPermissionTypeAny,
+	"allow": kafka.ACLPermissionTypeAllow,
+	"deny":  kafka.ACLPermissionTypeDeny,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (p *ACLPermissionType) String() string {
+	switch kafka.ACLPermissionType(*p) {
+	case kafka.ACLPermissionTypeAny:
+		return "any"
+	case kafka.ACLPermissionTypeDeny:
+		return "deny"
+	case kafka.ACLPermissionTypeAllow:
+		return "allow"
+	default:
+		return "unknown"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (p *ACLPermissionType) Set(v string) error {
+	pt, ok := aclPermissionTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "any", "allow", or "deny"`)
+	}
+	*p = ACLPermissionType(pt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (p *ACLPermissionType) Type() string {
+	return "ACLPermissionType"
+}
 
 type zkClusterID struct {
 	Version string `json:"version"`

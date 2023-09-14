@@ -239,15 +239,21 @@ func topicsCmd() *cobra.Command {
 }
 
 type aclsCmdConfig struct {
+	hostFilter          string
+	operationType       admin.ACLOperationType
+	permissionType      admin.ACLPermissionType
 	resourceType        admin.ResourceType
 	resourcePatternType admin.PatternType
-	aclOperationType    admin.ACLOperationType
 }
 
+// aclsConfig defines the default values if a flag is not provided. These all default
+// to doing no filtering (e.g. "all")
 var aclsConfig = aclsCmdConfig{
+	hostFilter:          "",
+	operationType:       admin.ACLOperationType(kafka.ACLOperationTypeAny),
+	permissionType:      admin.ACLPermissionType(kafka.ACLPermissionTypeAny),
 	resourceType:        admin.ResourceType(kafka.ResourceTypeAny),
 	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
-	aclOperationType:    admin.ACLOperationType(kafka.ACLOperationTypeAny),
 }
 
 func aclsCmd() *cobra.Command {
@@ -268,13 +274,29 @@ func aclsCmd() *cobra.Command {
 				//ResourceNameFilter: "",
 				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
 				//PrincipalFilter: "*",
-				//HostFilter:"*".
-				Operation:      kafka.ACLOperationType(aclsConfig.aclOperationType),
-				PermissionType: kafka.ACLPermissionTypeAny,
+				HostFilter:     aclsConfig.hostFilter,
+				Operation:      kafka.ACLOperationType(aclsConfig.operationType),
+				PermissionType: kafka.ACLPermissionType(aclsConfig.permissionType),
 			}
 			return cliRunner.GetACLs(ctx, filter)
 		},
 	}
+	cmd.Flags().StringVar(
+		&aclsConfig.hostFilter,
+		"host",
+		"",
+		`The host to filter on.`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.operationType,
+		"operations",
+		`The operation that is being allowed or denied to filter on. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.permissionType,
+		"permission-type",
+		`The permission type to filter on. allowed: "any", "allow", or "deny"`,
+	)
 	cmd.Flags().Var(
 		&aclsConfig.resourceType,
 		"resource-type",
@@ -286,11 +308,6 @@ func aclsCmd() *cobra.Command {
 		// TODO: document the behavior of each of these
 		// TODO: match isn't really supported right now, look into that
 		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed"`,
-	)
-	cmd.Flags().Var(
-		&aclsConfig.aclOperationType,
-		"operations",
-		`The operation that is being allowed or denied to filter on. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
 	)
 	return cmd
 }
