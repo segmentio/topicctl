@@ -242,17 +242,19 @@ type aclsCmdConfig struct {
 	hostFilter          string
 	operationType       admin.ACLOperationType
 	permissionType      admin.ACLPermissionType
+	principalFilter     string
 	resourceNameFilter  string
 	resourcePatternType admin.PatternType
 	resourceType        admin.ResourceType
 }
 
 // aclsConfig defines the default values if a flag is not provided. These all default
-// to doing no filtering (e.g. "all")
+// to doing no filtering (e.g. "all" or null)
 var aclsConfig = aclsCmdConfig{
 	hostFilter:          "",
 	operationType:       admin.ACLOperationType(kafka.ACLOperationTypeAny),
 	permissionType:      admin.ACLPermissionType(kafka.ACLPermissionTypeAny),
+	principalFilter:     "",
 	resourceNameFilter:  "",
 	resourceType:        admin.ResourceType(kafka.ResourceTypeAny),
 	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
@@ -275,10 +277,10 @@ func aclsCmd() *cobra.Command {
 				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
 				ResourceNameFilter:        aclsConfig.resourceNameFilter,
 				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
-				//PrincipalFilter: "*",
-				HostFilter:     aclsConfig.hostFilter,
-				Operation:      kafka.ACLOperationType(aclsConfig.operationType),
-				PermissionType: kafka.ACLPermissionType(aclsConfig.permissionType),
+				PrincipalFilter:           aclsConfig.principalFilter,
+				HostFilter:                aclsConfig.hostFilter,
+				Operation:                 kafka.ACLOperationType(aclsConfig.operationType),
+				PermissionType:            kafka.ACLPermissionType(aclsConfig.permissionType),
 			}
 			return cliRunner.GetACLs(ctx, filter)
 		},
@@ -298,6 +300,12 @@ func aclsCmd() *cobra.Command {
 		&aclsConfig.permissionType,
 		"permission-type",
 		`The permission type to filter on. allowed: "any", "allow", or "deny"`,
+	)
+	cmd.Flags().StringVar(
+		&aclsConfig.principalFilter,
+		"principal",
+		"",
+		`The principal to filter on in principalType:name format (e.g. User:alice).`,
 	)
 	cmd.Flags().StringVar(
 		&aclsConfig.resourceNameFilter,
