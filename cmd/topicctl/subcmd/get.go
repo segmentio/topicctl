@@ -264,11 +264,13 @@ func aclsCmd() *cobra.Command {
 			}
 
 			filter := kafka.ACLFilter{
+				ResourceTypeFilter: kafka.ResourceType(aclsConfig.resourceType),
 				//ResourceNameFilter: "",
-				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
 				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
-				Operation:                 kafka.ACLOperationType(aclsConfig.aclOperationType),
-				PermissionType:            kafka.ACLPermissionTypeAny,
+				//PrincipalFilter: "*",
+				//HostFilter:"*".
+				Operation:      kafka.ACLOperationType(aclsConfig.aclOperationType),
+				PermissionType: kafka.ACLPermissionTypeAny,
 			}
 			return cliRunner.GetACLs(ctx, filter)
 		},
@@ -276,18 +278,19 @@ func aclsCmd() *cobra.Command {
 	cmd.Flags().Var(
 		&aclsConfig.resourceType,
 		"resource-type",
-		`Resource type. allowed: "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
+		`The type of resource to filter on. allowed: "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.resourcePatternType,
 		"resource-pattern-type",
 		// TODO: document the behavior of each of these
-		`Resource pattern type. allowed: "any", "match", "literal", "prefixed"`,
+		// TODO: match isn't really supported right now, look into that
+		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed"`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.aclOperationType,
 		"operations",
-		`ACL operation type. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
+		`The operation that is being allowed or denied to filter on. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
 	)
 	return cmd
 }
