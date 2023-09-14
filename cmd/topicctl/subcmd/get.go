@@ -289,7 +289,7 @@ func aclsCmd() *cobra.Command {
 		&aclsConfig.hostFilter,
 		"host",
 		"",
-		`The host to filter on.`,
+		`The host to filter on. (e.g. 198.51.100.0)`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.operationType,
@@ -311,14 +311,14 @@ func aclsCmd() *cobra.Command {
 		&aclsConfig.resourceNameFilter,
 		"resource-name",
 		"",
-		`The resource name to filter on.`,
+		`The resource name to filter on. (e.g. my-topic)`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.resourcePatternType,
 		"resource-pattern-type",
 		// TODO: document the behavior of each of these
 		// TODO: match isn't really supported right now, look into that
-		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed"`,
+		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed". "any" will match any pattern type (literal or prefixed), but will match the resource name exactly, where as "match" will perform pattern matching to list all acls that affect the supplied resource(s).`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.resourceType,
