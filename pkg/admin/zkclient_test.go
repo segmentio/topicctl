@@ -1074,3 +1074,20 @@ func TestZkClientLocking(t *testing.T) {
 func testClusterID(name string) string {
 	return util.RandomString(fmt.Sprintf("cluster-%s-", name), 6)
 }
+
+func TestZkGetACLs(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs:        []string{util.TestZKAddr()},
+			BootstrapAddrs: []string{util.TestKafkaAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	acls, err := adminClient.GetACLs(ctx, kafka.ACLFilter{})
+	assert.Empty(t, acls)
+	assert.Error(t, err)
+}
