@@ -301,7 +301,6 @@ $ topicctl get acls --host 198.51.100.0
 		"",
 		`The host to filter on. (e.g. 198.51.100.0)`,
 	)
-	// TODO: support multiple comma separated ones
 	cmd.Flags().Var(
 		&aclsConfig.operationType,
 		"operations",
