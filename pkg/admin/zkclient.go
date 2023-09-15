@@ -426,7 +426,14 @@ func (c *ZKAdminClient) GetACLs(
 	ctx context.Context,
 	filter kafka.ACLFilter,
 ) ([]ACLInfo, error) {
-	return nil, errors.New("GetACLs not yet supported with zk access mode; omit zk addresses to fix.")
+	return nil, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
+func (c *ZKAdminClient) CreateACL(
+	ctx context.Context,
+	entry kafka.ACLEntry,
+) error {
+	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
 // UpdateTopicConfig updates the config JSON for a topic and sets a change

@@ -68,6 +68,12 @@ type Client interface {
 		config kafka.TopicConfig,
 	) error
 
+	// Create ACL creates an ACL in the cluster.
+	CreateACL(
+		ctx context.Context,
+		entry kafka.ACLEntry,
+	) error
+
 	// AssignPartitions sets the replica broker IDs for one or more partitions in a topic.
 	AssignPartitions(
 		ctx context.Context,

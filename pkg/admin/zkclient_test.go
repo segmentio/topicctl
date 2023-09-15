@@ -1091,3 +1091,19 @@ func TestZkGetACLs(t *testing.T) {
 	assert.Empty(t, acls)
 	assert.Error(t, err)
 }
+
+func TestZkCreateACL(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs:        []string{util.TestZKAddr()},
+			BootstrapAddrs: []string{util.TestKafkaAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	err = adminClient.CreateACL(ctx, kafka.ACLEntry{})
+	assert.Error(t, err)
+}
