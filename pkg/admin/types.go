@@ -138,12 +138,12 @@ type zkChangeNotification struct {
 }
 
 type TopicURPsInfo struct {
-	Name       string          `json:topic`
+	Name       string          `json:"name"`
 	Partitions []PartitionInfo `json:"partitions"`
 }
 
 type TopicOPsInfo struct {
-	Name       string            `json:topic`
+	Name       string            `json:"name"`
 	Partitions []kafka.Partition `json:"partitions"`
 }
 
