@@ -697,10 +697,6 @@ func configEntriesToAPIConfigs(
 	return apiConfigs
 }
 
-// TODO: what fields should we let people filter on / how best to support that?
-// It could be really useful to be able to use this to answer questions like what services have access topics x,y,z or
-// who has write access to topic b?
-// Is GetACL (single ACL) even applicable?
 // GetACLs gets full information about each ACL in the cluster.
 func (c *BrokerAdminClient) GetACLs(
 	ctx context.Context,
