@@ -269,7 +269,7 @@ func aclsCmd() *cobra.Command {
 $ topicctl get acls
 
 List read acls for topic my-topic
-$ topicctl get acls --resource-type topic --resource-name my-topic --operations read
+$ topicctl get acls --resource-type topic --resource-name my-topic --operation read
 
 List acls for user Alice with permission allow
 $ topicctl get acls --principal User:alice --permission-type allow
