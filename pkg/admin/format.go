@@ -785,7 +785,6 @@ func FormatACLs(acls []ACLInfo) string {
 
 	for _, acl := range acls {
 		row := []string{
-			// TODO: convert ints to something human readable
 			acl.ResourceType.String(),
 			acl.PatternType.String(),
 			acl.ResourceName,

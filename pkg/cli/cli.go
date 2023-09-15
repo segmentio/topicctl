@@ -553,7 +553,6 @@ func (c *CLIRunner) Tail(
 	return err
 }
 
-// TODO add options for filtering
 // GetACLs fetches the details of each acl in the cluster and prints out a summary.
 func (c *CLIRunner) GetACLs(
 	ctx context.Context,
