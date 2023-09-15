@@ -745,8 +745,6 @@ func (c *BrokerAdminClient) CreateACL(
 		return errors.New("Cannot create ACL in read-only mode")
 	}
 
-	log.SetLevel(log.DebugLevel)
-
 	req := kafka.CreateACLsRequest{
 		ACLs: []kafka.ACLEntry{
 			entry,
