@@ -426,7 +426,7 @@ func (c *ZKAdminClient) GetACLs(
 	ctx context.Context,
 	filter kafka.ACLFilter,
 ) ([]ACLInfo, error) {
-	return nil, errors.New("Zookeeper client does not yet support GetACLs. Remove zk-addr and use the broker client instead")
+	return nil, errors.New("GetACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
 // UpdateTopicConfig updates the config JSON for a topic and sets a change
