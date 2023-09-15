@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -1089,7 +1090,7 @@ func TestZkGetACLs(t *testing.T) {
 
 	acls, err := adminClient.GetACLs(ctx, kafka.ACLFilter{})
 	assert.Empty(t, acls)
-	assert.Error(t, err)
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
 }
 
 func TestZkCreateACL(t *testing.T) {
@@ -1105,5 +1106,5 @@ func TestZkCreateACL(t *testing.T) {
 	defer adminClient.Close()
 
 	err = adminClient.CreateACL(ctx, kafka.ACLEntry{})
-	assert.Error(t, err)
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
 }
