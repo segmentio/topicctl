@@ -647,7 +647,7 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 			Principal:      principal,
 			Host:           "*",
 			Operation:      ACLOperationType(kafka.ACLOperationTypeRead),
-			PermissionType: kafka.ACLPermissionTypeAllow,
+			PermissionType: ACLPermissionType(kafka.ACLPermissionTypeAllow),
 		},
 	}
 	assert.Equal(t, expected, aclsInfo)
