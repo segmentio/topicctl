@@ -1081,8 +1081,7 @@ func TestZkGetACLs(t *testing.T) {
 	adminClient, err := NewZKAdminClient(
 		ctx,
 		ZKAdminClientConfig{
-			ZKAddrs:        []string{util.TestZKAddr()},
-			BootstrapAddrs: []string{util.TestKafkaAddr()},
+			ZKAddrs: []string{util.TestZKAddr()},
 		},
 	)
 	require.NoError(t, err)
@@ -1098,8 +1097,7 @@ func TestZkCreateACL(t *testing.T) {
 	adminClient, err := NewZKAdminClient(
 		ctx,
 		ZKAdminClientConfig{
-			ZKAddrs:        []string{util.TestZKAddr()},
-			BootstrapAddrs: []string{util.TestKafkaAddr()},
+			ZKAddrs: []string{util.TestZKAddr()},
 		},
 	)
 	require.NoError(t, err)
