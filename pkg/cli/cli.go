@@ -14,6 +14,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -483,6 +484,138 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	}
 
 	c.printer("Topics:\n%s", admin.FormatTopics(topics, brokers, full))
+
+	return nil
+}
+
+// GetUnderReplicatedPartitions fetch all under replicated partitions and prints out a summary.
+func (c *CLIRunner) GetUnderReplicatedPartitions(ctx context.Context, topics []string) error {
+	c.startSpinner()
+	urpsFound := false
+
+	filterTopics := make(map[string]bool)
+
+	topicsInfo, err := c.adminClient.GetTopics(ctx, nil, false)
+	if err != nil {
+		c.stopSpinner()
+		return err
+	}
+
+	for _, topic := range topics {
+		filterTopics[topic] = true
+	}
+
+	allTopicURPs := []admin.TopicURPsInfo{}
+	for _, topicInfo := range topicsInfo {
+		if len(topics) != 0 && !filterTopics[topicInfo.Name] {
+			continue
+		}
+
+		topicURPs := []admin.PartitionInfo{}
+		for _, partition := range topicInfo.Partitions {
+			if len(partition.ISR) < len(partition.Replicas) {
+				topicURPs = append(topicURPs, partition)
+			}
+		}
+
+		if len(topicURPs) == 0 {
+			continue
+		}
+
+		allTopicURPs = append(allTopicURPs, admin.TopicURPsInfo{
+			Name:       topicInfo.Name,
+			Partitions: topicURPs,
+		})
+
+		urpsFound = true
+	}
+	c.stopSpinner()
+
+	c.printer("Under Replicated Partitions:\n%s", admin.FormatURPs(allTopicURPs))
+
+	if urpsFound {
+		return fmt.Errorf("Cluster has Under Replicated Partitions")
+	}
+
+	return nil
+}
+
+// GetOfflinePartitions fetch all offline partitions and prints out a summary.
+func (c *CLIRunner) GetOfflinePartitions(ctx context.Context, topics []string) error {
+	c.startSpinner()
+	opsFound := false
+
+	topicsInfo, err := c.adminClient.GetTopics(ctx, nil, false)
+	if err != nil {
+		c.stopSpinner()
+		return err
+	}
+
+	allTopics := []string{}
+	for _, topicInfo := range topicsInfo {
+		allTopics = append(allTopics, topicInfo.Name)
+	}
+
+	filterTopics := make(map[string]bool)
+	for _, topic := range topics {
+		filterTopics[topic] = true
+	}
+
+	client := c.adminClient.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: allTopics,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		c.stopSpinner()
+		return err
+	}
+
+	// If ListenerNotFound Error occurs for leader partition
+	// this means the partition is offline
+	var listenerNotFoundError kafka.Error
+	listenerNotFoundError = 72
+	allTopicOPs := []admin.TopicOPsInfo{}
+
+	for _, topicMetadata := range metadata.Topics {
+		if topicMetadata.Error != nil {
+			log.Println("topic metadata error:", topicMetadata.Error)
+			return topicMetadata.Error
+		}
+
+		if len(topics) != 0 && !filterTopics[topicMetadata.Name] {
+			continue
+		}
+
+		topicOPs := []kafka.Partition{}
+		for _, partition := range topicMetadata.Partitions {
+			if partition.Leader.Host == "" && partition.Leader.Port == 0 &&
+				listenerNotFoundError.Error() == partition.Error.Error() {
+				topicOPs = append(topicOPs, partition)
+			}
+		}
+
+		if len(topicOPs) == 0 {
+			continue
+		}
+
+		allTopicOPs = append(allTopicOPs, admin.TopicOPsInfo{
+			Name:       topicMetadata.Name,
+			Partitions: topicOPs,
+		})
+
+		opsFound = true
+	}
+
+	c.stopSpinner()
+
+	c.printer("Offline Partitions:\n%s", admin.FormatOPs(allTopicOPs))
+
+	if opsFound {
+		return fmt.Errorf("Cluster has Offline Partitions")
+	}
 
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 var getCmd = &cobra.Command{
@@ -31,7 +32,24 @@ type getCmdConfig struct {
 
 var getConfig getCmdConfig
 
+type urpCmdConfig struct {
+	topics []string
+}
+
+var urpConfig urpCmdConfig
+
+type opCmdConfig struct {
+	topics []string
+}
+
+var opConfig urpCmdConfig
+
 func init() {
+	log.SetFormatter(&prefixed.TextFormatter{
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   true,
+	})
+
 	getCmd.PersistentFlags().BoolVar(
 		&getConfig.full,
 		"full",
@@ -44,6 +62,12 @@ func init() {
 		false,
 		"Sort by value instead of name; only applies for lags at the moment",
 	)
+	getCmd.PersistentFlags().BoolVar(
+		&debug,
+		"debug",
+		false,
+		"enable debug logging",
+	)
 	addSharedFlags(getCmd, &getConfig.shared)
 	getCmd.AddCommand(
 		balanceCmd(),
@@ -55,11 +79,16 @@ func init() {
 		partitionsCmd(),
 		offsetsCmd(),
 		topicsCmd(),
+		underReplicatedPartitionsCmd(),
+		offlinePartitionsCmd(),
 	)
 	RootCmd.AddCommand(getCmd)
 }
 
 func getPreRun(cmd *cobra.Command, args []string) error {
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	}
 	return getConfig.shared.validate()
 }
 
@@ -233,4 +262,54 @@ func topicsCmd() *cobra.Command {
 			return cliRunner.GetTopics(ctx, getConfig.full)
 		},
 	}
+}
+
+func underReplicatedPartitionsCmd() *cobra.Command {
+	urpCommand := &cobra.Command{
+		Use:   "under-replicated-partitions",
+		Short: "Fetch all under replicated partitions in the kafka cluster.",
+		Args:  cobra.MinimumNArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cliRunner, err := getCliRunnerAndCtx()
+			if err != nil {
+				return err
+			}
+			return cliRunner.GetUnderReplicatedPartitions(ctx, urpConfig.topics)
+		},
+	}
+
+	urpCommand.Flags().StringSliceVarP(
+		&urpConfig.topics,
+		"topics",
+		"t",
+		[]string{},
+		"under replicated partitions for the topics",
+	)
+
+	return urpCommand
+}
+
+func offlinePartitionsCmd() *cobra.Command {
+	opCommand := &cobra.Command{
+		Use:   "offline-partitions",
+		Short: "Fetch all offline partitions in the kafka cluster.",
+		Args:  cobra.MinimumNArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cliRunner, err := getCliRunnerAndCtx()
+			if err != nil {
+				return err
+			}
+			return cliRunner.GetOfflinePartitions(ctx, opConfig.topics)
+		},
+	}
+
+	opCommand.Flags().StringSliceVarP(
+		&opConfig.topics,
+		"topics",
+		"t",
+		[]string{},
+		"offline partitions for the topics",
+	)
+
+	return opCommand
 }

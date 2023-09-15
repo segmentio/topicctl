@@ -884,3 +884,117 @@ func maxMapValues(inputMap map[int]int) int {
 
 	return maxValue
 }
+
+// FormatURPs creates a pretty table that lists the details of the
+// under replicated topic partitions
+func FormatURPs(allTopicURPs []TopicURPsInfo) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Name",
+		"Partition",
+		"Leader",
+		"ISR",
+		"Replicas",
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for _, topicURPs := range allTopicURPs {
+		for _, topicPartition := range topicURPs.Partitions {
+			row := []string{
+				topicURPs.Name,
+				fmt.Sprintf("%d", topicPartition.ID),
+				fmt.Sprintf("%d", topicPartition.Leader),
+				fmt.Sprintf("%+v", topicPartition.ISR),
+				fmt.Sprintf("%+v", topicPartition.Replicas),
+			}
+
+			table.Append(row)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatOPs creates a pretty table that lists the details of the
+// offline topic partitions
+func FormatOPs(allTopicOPs []TopicOPsInfo) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Name",
+		"Partition",
+		"Leader",
+		"ISR",
+		"Replicas",
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for _, topicOPs := range allTopicOPs {
+		for _, topicPartition := range topicOPs.Partitions {
+			topicPartitionIsrs := []int{}
+			for _, topicPartitionIsr := range topicPartition.Isr {
+				topicPartitionIsrs = append(topicPartitionIsrs, topicPartitionIsr.ID)
+			}
+
+			topicPartitionReplicas := []int{}
+			for _, topicPartitionReplica := range topicPartition.Replicas {
+				topicPartitionReplicas = append(topicPartitionReplicas, topicPartitionReplica.ID)
+			}
+
+			row := []string{
+				topicOPs.Name,
+				fmt.Sprintf("%d", topicPartition.ID),
+				fmt.Sprintf("%d", topicPartition.Leader.ID),
+				fmt.Sprintf("%+v", topicPartitionIsrs),
+				fmt.Sprintf("%+v", topicPartitionReplicas),
+			}
+
+			table.Append(row)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}

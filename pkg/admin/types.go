@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -134,6 +135,16 @@ type zkElectionTopicPartition struct {
 type zkChangeNotification struct {
 	Version    int    `json:"version"`
 	EntityPath string `json:"entity_path"`
+}
+
+type TopicURPsInfo struct {
+	Name       string          `json:topic`
+	Partitions []PartitionInfo `json:"partitions"`
+}
+
+type TopicOPsInfo struct {
+	Name       string            `json:topic`
+	Partitions []kafka.Partition `json:"partitions"`
 }
 
 // Addr returns the address of the current BrokerInfo.
