@@ -208,6 +208,7 @@ func partitionsCmd() *cobra.Command {
 	}
 }
 
+>>>>>>> master
 func offsetsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "offsets [topic]",
