@@ -157,6 +157,8 @@ jobs:
           KAFKA_ADVERTISED_HOST_NAME: kafka1
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+          KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka2:
         image: wurstmeister/kafka:2.12-2.4.1
@@ -168,6 +170,8 @@ jobs:
           KAFKA_ADVERTISED_HOST_NAME: kafka2
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+          KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka3:
         image: wurstmeister/kafka:2.12-2.4.1
@@ -179,6 +183,8 @@ jobs:
           KAFKA_ADVERTISED_HOST_NAME: kafka3
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+          KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka4:
         image: wurstmeister/kafka:2.12-2.4.1
@@ -190,6 +196,8 @@ jobs:
           KAFKA_ADVERTISED_HOST_NAME: kafka4
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+          KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka5:
         image: wurstmeister/kafka:2.12-2.4.1
@@ -201,6 +209,8 @@ jobs:
           KAFKA_ADVERTISED_HOST_NAME: kafka5
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+          KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka6:
         image: wurstmeister/kafka:2.12-2.4.1
@@ -212,7 +222,8 @@ jobs:
           KAFKA_ADVERTISED_HOST_NAME: kafka6
           KAFKA_ADVERTISED_PORT: 9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-  
+          KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+          KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
   
   snyk:
     runs-on: ubuntu-latest
