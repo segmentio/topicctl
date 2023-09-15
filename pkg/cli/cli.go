@@ -534,7 +534,7 @@ func (c *CLIRunner) GetUnderReplicatedPartitions(ctx context.Context, topics []s
 	c.printer("Under Replicated Partitions:\n%s", admin.FormatURPs(allTopicURPs))
 
 	if urpsFound {
-		return fmt.Errorf("Cluster has Under Replicated Partitions")
+		return fmt.Errorf("Topics have Under Replicated Partitions")
 	}
 
 	return nil
@@ -614,7 +614,7 @@ func (c *CLIRunner) GetOfflinePartitions(ctx context.Context, topics []string) e
 	c.printer("Offline Partitions:\n%s", admin.FormatOPs(allTopicOPs))
 
 	if opsFound {
-		return fmt.Errorf("Cluster has Offline Partitions")
+		return fmt.Errorf("Topics have Offline Partitions")
 	}
 
 	return nil
