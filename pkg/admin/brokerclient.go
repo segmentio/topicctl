@@ -759,8 +759,14 @@ func (c *BrokerAdminClient) CreateACL(
 	if err != nil {
 		return err
 	}
-	if len(resp.Errors) > 0 {
-		return fmt.Errorf("%+v", resp.Errors)
+	var errors []error
+	for _, err := range resp.Errors {
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("%+v", errors)
 	}
 	return nil
 }
