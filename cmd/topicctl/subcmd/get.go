@@ -303,7 +303,7 @@ $ topicctl get acls --host 198.51.100.0
 	)
 	cmd.Flags().Var(
 		&aclsConfig.operationType,
-		"operations",
+		"operation",
 		`The operation that is being allowed or denied to filter on. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
 	)
 	cmd.Flags().Var(
