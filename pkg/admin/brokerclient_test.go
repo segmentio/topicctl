@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -651,4 +652,22 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, aclsInfo)
+}
+
+func TestBrokerClientCreateACLReadOnly(t *testing.T) {
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+
+	err = client.CreateACL(ctx, kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
+
 }
