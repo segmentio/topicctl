@@ -265,8 +265,18 @@ func aclsCmd() *cobra.Command {
 		Use:   "acls",
 		Short: "Displays information for ACLs in the cluster. Supports filtering with flags.",
 		Args:  cobra.NoArgs,
-		// TODO: make common examples here
-		// Example:
+		Example: `List all acls
+$ topicctl get acls
+
+List read acls for topic my-topic
+$ topicctl get acls --resource-type topic --resource-name my-topic --operations read
+
+List acls for user Alice with permission allow
+$ topicctl get acls --principal User:alice --permission-type allow
+
+List acls for host 198.51.100.0
+$ topicctl get acls --host 198.51.100.0
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cliRunner, err := getCliRunnerAndCtx()
 			if err != nil {
@@ -291,6 +301,7 @@ func aclsCmd() *cobra.Command {
 		"",
 		`The host to filter on. (e.g. 198.51.100.0)`,
 	)
+	// TODO: support multiple comma separated ones
 	cmd.Flags().Var(
 		&aclsConfig.operationType,
 		"operations",
@@ -316,8 +327,6 @@ func aclsCmd() *cobra.Command {
 	cmd.Flags().Var(
 		&aclsConfig.resourcePatternType,
 		"resource-pattern-type",
-		// TODO: document the behavior of each of these
-		// TODO: match isn't really supported right now, look into that
 		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed". "any" will match any pattern type (literal or prefixed), but will match the resource name exactly, where as "match" will perform pattern matching to list all acls that affect the supplied resource(s).`,
 	)
 	cmd.Flags().Var(
