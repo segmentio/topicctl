@@ -60,6 +60,9 @@ func init() {
 }
 
 func getPreRun(cmd *cobra.Command, args []string) error {
+	if err := RootCmd.PersistentPreRunE(cmd, args); err != nil {
+		return err
+	}
 	return getConfig.shared.validate()
 }
 
