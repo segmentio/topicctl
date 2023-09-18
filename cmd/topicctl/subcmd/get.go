@@ -316,10 +316,16 @@ List acls for host 198.51.100.0
 $ topicctl get acls --host 198.51.100.0
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 
 			filter := kafka.ACLFilter{
 				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
