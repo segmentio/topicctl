@@ -63,24 +63,6 @@ func getPreRun(cmd *cobra.Command, args []string) error {
 	return getConfig.shared.validate()
 }
 
-func getCliRunnerAndCtx() (
-	context.Context,
-	*cli.CLIRunner,
-	error,
-) {
-	ctx := context.Background()
-	sess := session.Must(session.NewSession())
-
-	adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer adminClient.Close()
-
-	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
-	return ctx, cliRunner, nil
-}
-
 func balanceCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "balance [optional topic]",
@@ -93,10 +75,16 @@ func balanceCmd() *cobra.Command {
 		),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 
 			var topicName string
 			if len(args) == 1 {
@@ -114,10 +102,16 @@ func brokersCmd() *cobra.Command {
 		Short: "Displays descriptions of each broker in the cluster.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetBrokers(ctx, getConfig.full)
 		},
 	}
@@ -129,11 +123,16 @@ func configCmd() *cobra.Command {
 		Short: "Displays configuration for the provider broker or topic.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
 
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetConfig(ctx, args[0])
 		},
 	}
@@ -145,10 +144,16 @@ func groupsCmd() *cobra.Command {
 		Short: "Displays consumer group informatin for the cluster.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetGroups(ctx)
 		},
 	}
@@ -160,10 +165,16 @@ func lagsCmd() *cobra.Command {
 		Short: "Displays consumer group lag for the specified topic and consumer group.",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetMemberLags(
 				ctx,
 				args[0],
@@ -181,10 +192,16 @@ func membersCmd() *cobra.Command {
 		Short: "Details of each member in the specified consumer group.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetGroupMembers(ctx, args[0], getConfig.full)
 		},
 	}
@@ -196,10 +213,16 @@ func partitionsCmd() *cobra.Command {
 		Short: "Displays partition information for the specified topic.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetPartitions(ctx, args[0])
 		},
 	}
@@ -211,10 +234,16 @@ func offsetsCmd() *cobra.Command {
 		Short: "Displays offset information for the specified topic along with start and end times.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetOffsets(ctx, args[0])
 		},
 	}
@@ -226,10 +255,16 @@ func topicsCmd() *cobra.Command {
 		Short: "Displays information for all topics in the cluster.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetTopics(ctx, getConfig.full)
 		},
 	}
