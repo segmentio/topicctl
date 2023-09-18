@@ -342,12 +342,12 @@ $ topicctl get acls --host 198.51.100.0
 	cmd.Flags().Var(
 		&aclsConfig.operationType,
 		"operation",
-		`The operation that is being allowed or denied to filter on. allowed: "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`,
+		`The operation that is being allowed or denied to filter on. allowed: [any, all, read, write, create, delete, alter, describe, clusteraction, describeconfigs, alterconfigs, idempotentwrite]`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.permissionType,
 		"permission-type",
-		`The permission type to filter on. allowed: "any", "allow", or "deny"`,
+		`The permission type to filter on. allowed: [any, allow, deny]`,
 	)
 	cmd.Flags().StringVar(
 		&aclsConfig.principalFilter,
@@ -364,12 +364,12 @@ $ topicctl get acls --host 198.51.100.0
 	cmd.Flags().Var(
 		&aclsConfig.resourcePatternType,
 		"resource-pattern-type",
-		`The type of the resource pattern or filter. allowed: "any", "match", "literal", "prefixed". "any" will match any pattern type (literal or prefixed), but will match the resource name exactly, where as "match" will perform pattern matching to list all acls that affect the supplied resource(s).`,
+		`The type of the resource pattern or filter. allowed: [any, match, literal, prefixed]. "any" will match any pattern type (literal or prefixed), but will match the resource name exactly, where as "match" will perform pattern matching to list all acls that affect the supplied resource(s).`,
 	)
 	cmd.Flags().Var(
 		&aclsConfig.resourceType,
 		"resource-type",
-		`The type of resource to filter on. allowed: "any", "topic", "group", "cluster", "transactionalid", "delegationtoken"`,
+		`The type of resource to filter on. allowed: [any, topic, group, cluster, transactionalid, delegationtoken]`,
 	)
 	return cmd
 }
