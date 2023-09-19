@@ -577,9 +577,8 @@ func TestBrokerClientCreateTopicError(t *testing.T) {
 }
 
 func TestBrokerClientCreateGetUsers(t *testing.T) {
-	// TODO: maybe use security util function here?
-	if !util.CanTestBrokerAdmin() {
-		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
 	}
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
