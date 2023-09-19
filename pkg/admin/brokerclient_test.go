@@ -749,5 +749,5 @@ func TestBrokerClientCreateUserReadOnly(t *testing.T) {
 
 	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
 
-	assert.Equal(t, err, errors.New("Cannot create user in read-only mode."))
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
 }
