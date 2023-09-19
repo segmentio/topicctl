@@ -679,6 +679,9 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 
 	require.NoError(t, err)
 
+	// TODO: use randomly generated name for user
+	// TODO: delete user
+
 	resp, err := client.GetUsers(ctx, []string{"junk"})
 	require.NoError(t, err)
 	assert.Equal(t, []UserInfo{
