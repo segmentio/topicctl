@@ -330,8 +330,8 @@ type UserInfo struct {
 // CredentialInfo represents read only information about
 // a users credentials in zookeeper.
 type CredentialInfo struct {
-	ScramMechanism ScramMechanism
-	Iterations     int
+	ScramMechanism ScramMechanism `json:"scramMechanism"`
+	Iterations     int            `json:"iterations"`
 }
 
 // ScramMechanism represents the ScramMechanism used
