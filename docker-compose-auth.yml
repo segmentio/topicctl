@@ -16,7 +16,7 @@ services:
       - "2181:2181"
 
   kafka:
-    image: wurstmeister/kafka:2.12-2.4.1
+    image: wurstmeister/kafka:2.13-2.7.1
     restart: on-failure:3
     links:
     - zookeeper
