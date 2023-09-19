@@ -319,7 +319,7 @@ func partitionsStatusCmd() *cobra.Command {
 		"topics",
 		"t",
 		[]string{},
-		"fetch specific topics partition status",
+		"fetch specific topics partition status (comma delimitted)",
 	)
 
 	partitionsStatusCommand.Flags().StringVarP(
