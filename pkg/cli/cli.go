@@ -612,42 +612,32 @@ func (c *CLIRunner) GetPartitionsStatus(
 		return nil
 	}
 
-	partitionsInfoByStatus := make(map[string][]admin.PartitionStatusInfo)
-	partitionsCountByStatus := 0
-	foundStatus := false
-
-	for topicName, partitionsStatusInfo := range partitionsInfoAllStatus {
-		statusPartitions := []admin.PartitionStatusInfo{}
-
-		for _, partitionStatusInfo := range partitionsStatusInfo {
-			for _, partitionStatus := range partitionStatusInfo.Statuses {
-				if partitionStatus == status {
-					statusPartitions = append(statusPartitions, partitionStatusInfo)
-					foundStatus = true
-				}
-			}
-		}
-
-		if len(statusPartitions) == 0 {
-			continue
-		}
-
-		partitionsInfoByStatus[topicName] = statusPartitions
-		partitionsCountByStatus += len(statusPartitions)
-	}
-
 	c.printer(
 		"%v Partitions:\n%s",
 		status,
-		admin.FormatPartitionsByStatus(partitionsInfoByStatus, full),
+		admin.FormatPartitionsByStatus(
+			partitionsInfoAllStatus,
+			status,
+			full,
+		),
 	)
 
-	log.Infof("%d Partitions are %v for topics", partitionsCountByStatus, status)
-
-	// preferred leader is not an error condition
-	if foundStatus && status != admin.PreferredLeader {
-		return fmt.Errorf("%v partitions are found for topics", status)
+	// Summary: get the count of partitions for the status
+	partitionsCountByStatus := 0
+	for _, partitionsStatusInfo := range partitionsInfoAllStatus {
+		for _, partitionStatusInfo := range partitionsStatusInfo {
+			for _, partitionStatus := range partitionStatusInfo.Statuses {
+				if partitionStatus == status {
+					partitionsCountByStatus += 1
+				}
+			}
+		}
 	}
+
+	if partitionsCountByStatus > 0 && status != admin.PreferredLeader {
+		return fmt.Errorf("%d Partitions are %v", partitionsCountByStatus, status)
+	}
+	log.Infof("%d Partitions are %v", partitionsCountByStatus, status)
 
 	return nil
 }

@@ -887,7 +887,8 @@ func maxMapValues(inputMap map[int]int) int {
 
 // FormatPartitionsByStatus creates a pretty table that lists the details of the partitions by status
 func FormatPartitionsByStatus(
-	partitionsInfoByStatus map[string][]PartitionStatusInfo,
+	partitionsInfoAllStatus map[string][]PartitionStatusInfo,
+	status PartitionStatus,
 	full bool,
 ) string {
 	buf := &bytes.Buffer{}
@@ -933,7 +934,7 @@ func FormatPartitionsByStatus(
 		},
 	)
 
-	for topicName, partitionsStatusInfo := range partitionsInfoByStatus {
+	for topicName, partitionsStatusInfo := range partitionsInfoAllStatus {
 		if full {
 			for _, partitionStatusInfo := range partitionsStatusInfo {
 				partitionIsrs := []int{}
@@ -946,20 +947,34 @@ func FormatPartitionsByStatus(
 					partitionReplicas = append(partitionReplicas, partitionReplica.ID)
 				}
 
-				row := []string{
-					topicName,
-					fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
-					fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID),
-					fmt.Sprintf("%+v", partitionIsrs),
-					fmt.Sprintf("%+v", partitionReplicas),
-				}
+				for _, partitionStatus := range partitionStatusInfo.Statuses {
+					if partitionStatus != status {
+						continue
+					}
 
-				table.Append(row)
+					row := []string{
+						topicName,
+						fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+						fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID),
+						fmt.Sprintf("%+v", partitionIsrs),
+						fmt.Sprintf("%+v", partitionReplicas),
+					}
+					table.Append(row)
+				}
 			}
 		} else {
 			partitionIDs := []int{}
 			for _, partitionStatusInfo := range partitionsStatusInfo {
-				partitionIDs = append(partitionIDs, partitionStatusInfo.Partition.ID)
+				for _, partitionStatus := range partitionStatusInfo.Statuses {
+					if partitionStatus != status {
+						continue
+					}
+					partitionIDs = append(partitionIDs, partitionStatusInfo.Partition.ID)
+				}
+			}
+
+			if len(partitionIDs) == 0 {
+				continue
 			}
 
 			row := []string{
