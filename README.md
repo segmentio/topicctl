@@ -175,6 +175,7 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
 | `get acls [flags]` | Describe access control levels (ACLs) in the cluster |
+| `get users` | All users in the cluster |
 
 #### rebalance
 
