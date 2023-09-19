@@ -777,15 +777,16 @@ func GetPartitionStatuses(partition kafka.Partition) []admin.PartitionStatus {
 	//
 	// NOTE:
 	// In general, partition error precedence is
-	// Offline > UnderReplicated > PreferredLeader > NotPreferredLeader
+	// Offline > UnderReplicated > NotPreferredLeader
 	//
-	// BUT offline partition triumps everything
+	// BUT offline partition triumphs everything
 	//
 	// Examples:
 	// - An under replicated can be preferredleader or not a preferred leader
 	// - An offline partition is NOT under replicated since there are no isrs
 	// Gotcha: what if offline partition has ISRs? Not sure how to replicate this
 	//
+
 	statuses := []admin.PartitionStatus{}
 
 	// check offline. If offline, return the statuses
