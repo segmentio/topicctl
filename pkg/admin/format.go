@@ -11,6 +11,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -883,4 +884,165 @@ func maxMapValues(inputMap map[int]int) int {
 	}
 
 	return maxValue
+}
+
+// FormatPartitionsByStatus creates a pretty table that lists the details of the partitions by status
+func FormatPartitionsByStatus(
+	partitionsInfo map[string][]kafka.Partition,
+	full bool,
+) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Topic",
+		"Partitions",
+		"Count",
+	}
+	colAlignment := []int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	}
+
+	if full {
+		headers = []string{
+			"Topic",
+			"Partition",
+			"Leader",
+			"ISR",
+			"Replicas",
+		}
+		colAlignment = []int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		}
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(colAlignment)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for topicName, partitions := range partitionsInfo {
+		if full {
+			for _, partition := range partitions {
+				partitionIsrs := []int{}
+				for _, partitionStatusIsr := range partition.Isr {
+					partitionIsrs = append(partitionIsrs, partitionStatusIsr.ID)
+				}
+
+				partitionReplicas := []int{}
+				for _, partitionReplica := range partition.Replicas {
+					partitionReplicas = append(partitionReplicas, partitionReplica.ID)
+				}
+
+				row := []string{
+					topicName,
+					fmt.Sprintf("%d", partition.ID),
+					fmt.Sprintf("%d", partition.Leader.ID),
+					fmt.Sprintf("%+v", partitionIsrs),
+					fmt.Sprintf("%+v", partitionReplicas),
+				}
+
+				table.Append(row)
+			}
+		} else {
+			partitionIDs := []int{}
+			for _, partition := range partitions {
+				partitionIDs = append(partitionIDs, partition.ID)
+			}
+
+			row := []string{
+				topicName,
+				fmt.Sprintf("%+v", partitionIDs),
+				fmt.Sprintf("%d", len(partitionIDs)),
+			}
+
+			table.Append(row)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatPartitionsAllStatus creates a pretty table that lists all partitions status
+func FormatPartitionsAllStatus(
+	partitionsInfo map[string][]PartitionStatusInfo,
+) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Topic",
+		"Partition",
+		"Leader",
+		"ISR",
+		"Replicas",
+		"Status",
+	}
+	colAlignment := []int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(colAlignment)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for topicName, partitions := range partitionsInfo {
+		for _, partition := range partitions {
+			partitionStatusIsrs := []int{}
+			for _, partitionStatusIsr := range partition.Partition.Isr {
+				partitionStatusIsrs = append(partitionStatusIsrs, partitionStatusIsr.ID)
+			}
+
+			partitionReplicas := []int{}
+			for _, partitionReplica := range partition.Partition.Replicas {
+				partitionReplicas = append(partitionReplicas, partitionReplica.ID)
+			}
+
+			partitionStatuses := []string{}
+			for _, status := range partition.Statuses {
+				partitionStatuses = append(partitionStatuses, string(status))
+			}
+
+			row := []string{
+				topicName,
+				fmt.Sprintf("%d", partition.Partition.ID),
+				fmt.Sprintf("%d", partition.Partition.Leader.ID),
+				fmt.Sprintf("%+v", partitionStatusIsrs),
+				fmt.Sprintf("%+v", partitionReplicas),
+				fmt.Sprintf("%s", strings.Join(partitionStatuses, ",")),
+			}
+
+			table.Append(row)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }

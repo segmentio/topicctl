@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -135,6 +136,25 @@ type zkChangeNotification struct {
 	Version    int    `json:"version"`
 	EntityPath string `json:"entity_path"`
 }
+
+type PartitionStatus string
+
+const (
+	UnderReplicated    PartitionStatus = "UNDER-REPLICATED"
+	Offline            PartitionStatus = "OFFLINE"
+	PreferredLeader    PartitionStatus = "PREFERRED-LEADER"
+	NotPreferredLeader PartitionStatus = "NOT-PREFERRED-LEADER"
+)
+
+type PartitionStatusInfo struct {
+	Topic     string
+	Partition kafka.Partition
+	Statuses  []PartitionStatus
+}
+
+const (
+	ListenerNotFoundError kafka.Error = 72
+)
 
 // Addr returns the address of the current BrokerInfo.
 func (b BrokerInfo) Addr() string {

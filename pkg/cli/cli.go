@@ -14,6 +14,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -576,4 +577,251 @@ func stringsToInts(strs []string) ([]int, error) {
 	}
 
 	return ints, nil
+}
+
+// kafka-go metadata call
+func (c *CLIRunner) GetAllTopicsMetaData(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	topicsInfo, err := c.adminClient.GetTopics(ctx, nil, false)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics info: %+v", err)
+	}
+
+	allTopics := []string{}
+	for _, topicInfo := range topicsInfo {
+		allTopics = append(allTopics, topicInfo.Name)
+	}
+
+	client := c.adminClient.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: allTopics,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching topic metadata: %+v", err)
+	}
+
+	return metadata, nil
+}
+
+// Get the partitions status for the specified status
+// This function displays the partitions in a Pretty format.
+// This functions prints and return error if
+// - under replicated partitions status
+// - offline partitions status
+// - non preferred leader partitions status
+// - unknown partitions status
+func (c *CLIRunner) GetPartitionsStatus(
+	ctx context.Context,
+	topics []string,
+	status admin.PartitionStatus,
+	full bool,
+) error {
+	c.startSpinner()
+
+	metadata, err := c.GetAllTopicsMetaData(ctx)
+	if err != nil {
+		c.stopSpinner()
+		return err
+	}
+
+	c.stopSpinner()
+	log.Debugf("kafka-go metadata response: %v", metadata)
+
+	partitionsInfo := getPartitionsStatus(topics, metadata)
+	log.Debugf("partitionsInfo: %v", partitionsInfo)
+	if status != "" {
+		partitionsInfoByStatus := make(map[string][]kafka.Partition)
+		partitionsCountByStatus := 0
+		found := false
+
+		for topicName, partitions := range partitionsInfo {
+			statusPartitions := []kafka.Partition{}
+
+			for _, partition := range partitions {
+				for _, partitionStatus := range partition.Statuses {
+					if partitionStatus == status {
+						statusPartitions = append(statusPartitions, partition.Partition)
+						found = true
+					}
+				}
+			}
+
+			if len(statusPartitions) == 0 {
+				continue
+			}
+
+			partitionsInfoByStatus[topicName] = statusPartitions
+			partitionsCountByStatus += len(statusPartitions)
+		}
+
+		c.printer(
+			"%v Partitions:\n%s",
+			status,
+			admin.FormatPartitionsByStatus(partitionsInfoByStatus, full),
+		)
+
+		log.Infof("%d Partitions are %v for topics", partitionsCountByStatus, status)
+
+		if found && status != admin.PreferredLeader {
+			return fmt.Errorf("%v partitions are found for topics", status)
+		}
+
+		return nil
+	}
+
+	c.printer(
+		"Partitions Status:\n%s",
+		admin.FormatPartitionsAllStatus(partitionsInfo),
+	)
+
+	return nil
+}
+
+// This is the actual function where we fetch all the topic partitions with status
+func getPartitionsStatus(
+	topics []string,
+	metadata *kafka.MetadataResponse,
+) map[string][]admin.PartitionStatusInfo {
+	filterTopics := make(map[string]bool)
+	for _, topic := range topics {
+		filterTopics[topic] = true
+	}
+
+	partitionsStatusInfo := make(map[string][]admin.PartitionStatusInfo)
+	for _, topicMetadata := range metadata.Topics {
+		if topicMetadata.Error != nil {
+			log.Errorf("topic metadata error: %v", topicMetadata.Error)
+			continue
+		}
+
+		if len(topics) != 0 && !filterTopics[topicMetadata.Name] {
+			continue
+		}
+
+		partitions := []admin.PartitionStatusInfo{}
+		for _, partition := range topicMetadata.Partitions {
+			partitionStatuses := GetPartitionStatuses(partition)
+			log.Debugf("Topic: %s, Partition is: %v. partition info: %v",
+				topicMetadata.Name,
+				partitionStatuses,
+				partition,
+			)
+
+			// kafka-go metadata call fetches the partition broker ID as 0 for partitions
+			// that are not found
+			//
+			// i.e
+			// - if a replica is missing for a partition, we get broker id as 0
+			// - if a isr is missing for a partition, we still get broker id as 0
+			// - if a leader is missing for a partition, we still get broker id as 0 (this is offline partition)
+			//
+			// It can be confusing to kafka-go users since broker IDs can start from 0
+			//
+			// However, Burrow metadata call fetches missing partitions broker ID as -1
+			//
+			// For user readability, we will modify
+			// - any ISR broker ID that does not have valid Host or Port from 0 to -1
+			// - any Replica broker ID that does not have valid Host or Port from 0 to -1
+			// - (Offline) Leader Broker ID that does not have a valid Host or Port from 0 to -1
+			//
+			for _, status := range partitionStatuses {
+				if status == admin.Offline || status == admin.UnderReplicated {
+					if status == admin.Offline {
+						partition.Leader.ID = -1
+					}
+
+					for i, _ := range partition.Isr {
+						if partition.Isr[i].Host == "" && partition.Isr[i].Port == 0 {
+							partition.Isr[i].ID = -1
+						}
+					}
+
+					for i, _ := range partition.Replicas {
+						if partition.Replicas[i].Host == "" && partition.Replicas[i].Port == 0 {
+							partition.Replicas[i].ID = -1
+						}
+					}
+				}
+			}
+
+			partitions = append(partitions, admin.PartitionStatusInfo{
+				Topic:     topicMetadata.Name,
+				Partition: partition,
+				Statuses:  partitionStatuses,
+			})
+		}
+
+		partitionsStatusInfo[topicMetadata.Name] = partitions
+	}
+
+	return partitionsStatusInfo
+}
+
+// Get the Partition Status
+// Currently supports
+// - under-replicated
+// - offline
+// - preferred-leader
+// - not-prefered-leader
+//
+// NOTE: partition is
+// 1. offline - if ListenerNotFound Error observed for leader partition
+// 2. underreplicated - if number of isrs are lesser than the replicas
+// 3. preferred leader - if the leader partition broker id is similar to first isr broker id
+// 4. not preferred leader - if the leader partitions broker id is not similar to first isr broker id
+func GetPartitionStatuses(partition kafka.Partition) []admin.PartitionStatus {
+	//
+	// NOTE:
+	// In general, partition error precedence is
+	// Offline > UnderReplicated > PreferredLeader > NotPreferredLeader
+	//
+	// BUT offline partition triumps everything
+	//
+	// Examples:
+	// - An under replicated can be preferredleader or not a preferred leader
+	// - An offline partition is NOT under replicated since there are no isrs
+	// Gotcha: what if offline partition has ISRs? Not sure how to replicate this
+	//
+	statuses := []admin.PartitionStatus{}
+
+	// check offline. If offline, return the statuses
+	if partition.Leader.Host == "" && partition.Leader.Port == 0 &&
+		admin.ListenerNotFoundError.Error() == partition.Error.Error() {
+		statuses = append(statuses, admin.Offline)
+		return statuses
+	}
+
+	// check under replicated
+	if len(partition.Isr) < len(partition.Replicas) {
+		statuses = append(statuses, admin.UnderReplicated)
+	}
+
+	// check preferred leader
+	if len(partition.Isr) > 0 && partition.Leader.ID == partition.Isr[0].ID {
+		statuses = append(statuses, admin.PreferredLeader)
+	}
+
+	// check not preferred leader
+	if len(partition.Isr) > 0 && partition.Leader.ID != partition.Isr[0].ID {
+		statuses = append(statuses, admin.NotPreferredLeader)
+	}
+
+	return statuses
+}
+
+// returns true|false when a string status value is given. Refer type PartitionStatus
+func IsValidPartitionStatusString(status string) bool {
+	switch status {
+	case string(admin.UnderReplicated),
+		string(admin.Offline),
+		string(admin.PreferredLeader),
+		string(admin.NotPreferredLeader):
+		return true
+	default:
+		return false
+	}
 }

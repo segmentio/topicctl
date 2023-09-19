@@ -2,9 +2,11 @@ package subcmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -31,6 +33,14 @@ type getCmdConfig struct {
 
 var getConfig getCmdConfig
 
+type partitionsStatusCmdConfig struct {
+	topics []string
+	status string
+}
+
+var partitionsStatusConfig partitionsStatusCmdConfig
+var partitionsStatusHelpText = "Allowed values: under-replicated, offline, preferred-leder, not-preferred-leader"
+
 func init() {
 	getCmd.PersistentFlags().BoolVar(
 		&getConfig.full,
@@ -55,6 +65,7 @@ func init() {
 		partitionsCmd(),
 		offsetsCmd(),
 		topicsCmd(),
+		partitionsStatusCmd(),
 	)
 	RootCmd.AddCommand(getCmd)
 }
@@ -271,4 +282,55 @@ func topicsCmd() *cobra.Command {
 			return cliRunner.GetTopics(ctx, getConfig.full)
 		},
 	}
+}
+
+func partitionsStatusCmd() *cobra.Command {
+	partitionsStatusCommand := &cobra.Command{
+		Use:   "partitions-status",
+		Short: "Fetch all partitions status",
+		Args:  cobra.MinimumNArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			status := strings.ToUpper(partitionsStatusConfig.status)
+			if status != "" && !cli.IsValidPartitionStatusString(status) {
+				return fmt.Errorf("Invalid status flag\n%s", partitionsStatusHelpText)
+			}
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetPartitionsStatus(
+				ctx,
+				partitionsStatusConfig.topics,
+				admin.PartitionStatus(status),
+				getConfig.full,
+			)
+		},
+	}
+
+	partitionsStatusCommand.Flags().StringSliceVarP(
+		&partitionsStatusConfig.topics,
+		"topics",
+		"t",
+		[]string{},
+		"fetch specific topics partition status",
+	)
+
+	partitionsStatusCommand.Flags().StringVarP(
+		&partitionsStatusConfig.status,
+		"status",
+		"s",
+		"",
+		fmt.Sprintf("Partition status\n%s", partitionsStatusHelpText),
+	)
+
+	// partitionsStatusCommand.MarkFlagRequired("status")
+
+	return partitionsStatusCommand
 }
