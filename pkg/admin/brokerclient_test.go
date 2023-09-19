@@ -656,7 +656,7 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 
 func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
-		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
 	}
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
