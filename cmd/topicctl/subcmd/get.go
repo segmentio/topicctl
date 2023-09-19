@@ -246,7 +246,7 @@ func usersCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return cliRunner.GetUsers(ctx, getConfig.full)
+			return cliRunner.GetUsers(ctx, nil)
 		},
 	}
 }

@@ -607,10 +607,10 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 	assert.Equal(t, []UserInfo{
 		{
 			Name: "junk",
-			CredentialInfos: []kafka.DescribeUserScramCredentialsCredentialInfo{
+			CredentialInfos: []CredentialInfo{
 				{
-					Mechanism:  kafka.ScramMechanismSha512,
-					Iterations: 15000,
+					ScramMechanism: ScramMechanism(kafka.ScramMechanismSha512),
+					Iterations:     15000,
 				},
 			},
 		},

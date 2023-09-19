@@ -752,7 +752,8 @@ func FormatUsers(users []UserInfo) string {
 
 	headers := []string{
 		"Name",
-		"CredentialsInfo",
+		"Mechanism",
+		"Iterations",
 	}
 
 	table := tablewriter.NewWriter(buf)
@@ -774,12 +775,15 @@ func FormatUsers(users []UserInfo) string {
 	)
 
 	for _, user := range users {
-		row := []string{
-			user.Name,
-			user.CredentialsInfo.String(),
-		}
+		for _, credential := range user.CredentialInfos {
+			row := []string{
+				user.Name,
+				credential.ScramMechanism.String(),
+				fmt.Sprintf("%d", credential.Iterations),
+			}
 
-		table.Append(row)
+			table.Append(row)
+		}
 	}
 
 	table.Render()
