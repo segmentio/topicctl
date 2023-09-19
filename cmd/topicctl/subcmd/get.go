@@ -280,10 +280,16 @@ func usersCmd() *cobra.Command {
 		Short: "Displays information for all users in the cluster.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cliRunner, err := getCliRunnerAndCtx()
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
 			if err != nil {
 				return err
 			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetUsers(ctx, nil)
 		},
 	}
