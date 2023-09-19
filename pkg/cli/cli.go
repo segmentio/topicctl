@@ -770,8 +770,8 @@ func getPartitionsStatus(
 // NOTE: partition is
 // 1. offline - if ListenerNotFound Error observed for leader partition
 // 2. underreplicated - if number of isrs are lesser than the replicas
-// 3. preferred leader - if the leader partition broker id is similar to first valid Replicas broker id
-// 4. not preferred leader - if the leader partitions broker id is not similar to first valid Replicas broker id
+// 3. preferred leader - if the leader partition broker id is similar to first available Replicas broker id
+// 4. not preferred leader - if the leader partitions broker id is not similar to first available Replicas broker id
 func GetPartitionStatuses(partition kafka.Partition) []admin.PartitionStatus {
 	//
 	// NOTE:
