@@ -520,6 +520,21 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	return nil
 }
 
+// GerUsers fetches the details of each user in the cluster and prints out a table of them.
+func (c *CLIRunner) GetUsers(ctx context.Context, names []string) error {
+	c.startSpinner()
+
+	users, err := c.adminClient.GetUsers(ctx, names)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Users:\n%s", admin.FormatUsers(users))
+
+	return nil
+}
+
 // ResetOffsets resets the offsets for a single consumer group / topic combination.
 func (c *CLIRunner) ResetOffsets(
 	ctx context.Context,
