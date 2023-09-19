@@ -654,9 +654,9 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 	assert.Equal(t, expected, aclsInfo)
 }
 
-func TestBrokerClientCreateACLReadOnly(t *testing.T) {
-	if !util.CanTestBrokerAdmin() {
-		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+func TestBrokerClientCreateGetUsers(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
 	}
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
@@ -665,18 +665,100 @@ func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 			ConnectorConfig: ConnectorConfig{
 				BrokerAddr: util.TestKafkaAddr(),
 			},
-			ReadOnly: true,
 		},
 	)
 	require.NoError(t, err)
 
-	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
+	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{
+		Name:           "junk",
+		Mechanism:      kafka.ScramMechanismSha512,
+		Iterations:     15000,
+		Salt:           []byte("my-salt"),
+		SaltedPassword: []byte("my-salted-password"),
+	})
 
-	assert.Equal(t, err, errors.New("Cannot create user in read-only mode."))
+	require.NoError(t, err)
+
+	resp, err := client.GetUsers(ctx, []string{"junk"})
+	require.NoError(t, err)
+	assert.Equal(t, []UserInfo{
+		{
+			Name: "junk",
+			CredentialInfos: []kafka.DescribeUserScramCredentialsCredentialInfo{
+				{
+					Mechanism:  kafka.ScramMechanismSha512,
+					Iterations: 15000,
+				},
+			},
+		},
+	}, resp)
 }
 
 func TestBrokerClientCreateGetUsers(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
 
+	name := util.RandomString("test-user-", 6)
+	mechanism := kafka.ScramMechanismSha512
+
+	defer func() {
+		resp, err := client.client.AlterUserScramCredentials(
+			ctx,
+			&kafka.AlterUserScramCredentialsRequest{
+				Deletions: []kafka.UserScramCredentialsDeletion{
+					{
+						Name:      name,
+						Mechanism: mechanism,
+					},
+				},
+			},
+		)
+
+		if err != nil {
+			t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+		}
+		for _, response := range resp.Results {
+			if err = response.Error; err != nil {
+				t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+			}
+		}
+
+	}()
+
+	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{
+		Name:           name,
+		Mechanism:      mechanism,
+		Iterations:     15000,
+		Salt:           []byte("my-salt"),
+		SaltedPassword: []byte("my-salted-password"),
+	})
+
+	require.NoError(t, err)
+
+	resp, err := client.GetUsers(ctx, []string{name})
+	require.NoError(t, err)
+	assert.Equal(t, []UserInfo{
+		{
+			Name: name,
+			CredentialInfos: []CredentialInfo{
+				{
+					ScramMechanism: ScramMechanism(mechanism),
+					Iterations:     15000,
+				},
+			},
+		},
+	}, resp)
 }
 
 func TestBrokerClientCreateUserReadOnly(t *testing.T) {
@@ -695,6 +777,38 @@ func TestBrokerClientCreateUserReadOnly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = client.CreateACL(ctx, kafka.ACLEntry{})
-	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
+	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
+
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
+}
+
+func TestZkGetACLs(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	acls, err := adminClient.GetACLs(ctx, kafka.ACLFilter{})
+	assert.Empty(t, acls)
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
+}
+
+func TestZkCreateACL(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	err = adminClient.CreateACL(ctx, kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
 }
