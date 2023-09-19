@@ -577,7 +577,44 @@ func TestBrokerClientCreateTopicError(t *testing.T) {
 }
 
 func TestBrokerClientCreateGetUsers(t *testing.T) {
+	// TODO: maybe use security util function here?
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
 
+	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{
+		Name:           "junk",
+		Mechanism:      kafka.ScramMechanismSha512,
+		Iterations:     15000,
+		Salt:           []byte("my-salt"),
+		SaltedPassword: []byte("my-salted-password"),
+	})
+
+	require.NoError(t, err)
+
+	resp, err := client.GetUsers(ctx, []string{"junk"})
+	require.NoError(t, err)
+	assert.Equal(t, []UserInfo{
+		{
+			Name: "junk",
+			CredentialInfos: []kafka.DescribeUserScramCredentialsCredentialInfo{
+				{
+					Mechanism:  kafka.ScramMechanismSha512,
+					Iterations: 15000,
+				},
+			},
+		},
+	}, resp)
 }
 
 func TestBrokerClientCreateUserReadOnly(t *testing.T) {
@@ -598,5 +635,5 @@ func TestBrokerClientCreateUserReadOnly(t *testing.T) {
 
 	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
 
-	assert.Equal(t, err, errors.New("Cannot create user in read-only mode."))
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
 }
