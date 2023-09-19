@@ -323,8 +323,30 @@ func (s *ScramMechanism) String() string {
 // UserInfo represents the information stored about a user
 // in zookeeper.
 type UserInfo struct {
-	Name            string                                             `json:"name"`
-	CredentialInfos []kafka.DescribeUserScramCredentialsCredentialInfo `json:"credentialInfos"`
+	Name            string           `json:"name"`
+	CredentialInfos []CredentialInfo `json:"credentialInfos"`
+}
+
+// CredentialInfo represents read only information about
+// a users credentials in zookeeper.
+type CredentialInfo struct {
+	ScramMechanism ScramMechanism
+	Iterations     int
+}
+
+// ScramMechanism represents the ScramMechanism used
+// for a users credential in zookeeper.
+type ScramMechanism kafka.ScramMechanism
+
+func (s *ScramMechanism) String() string {
+	switch kafka.ScramMechanism(*s) {
+	case kafka.ScramMechanismSha256:
+		return "sha256"
+	case kafka.ScramMechanismSha512:
+		return "sha512"
+	default:
+		return "unknown"
+	}
 }
 
 type zkClusterID struct {
