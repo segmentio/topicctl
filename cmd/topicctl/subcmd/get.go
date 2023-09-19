@@ -39,7 +39,7 @@ type partitionsStatusCmdConfig struct {
 }
 
 var partitionsStatusConfig partitionsStatusCmdConfig
-var partitionsStatusHelpText = "Allowed values: under-replicated, offline, preferred-leder, not-preferred-leader"
+var partitionsStatusHelpText = "Allowed values: under-replicated, offline, preferred-leader, not-preferred-leader"
 
 func init() {
 	getCmd.PersistentFlags().BoolVar(
