@@ -174,6 +174,7 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get partitions [topic]` | All partitions in a topic |
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
+| `get users` | All users in the cluster |
 
 #### rebalance
 
