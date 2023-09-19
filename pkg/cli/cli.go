@@ -608,12 +608,10 @@ func (c *CLIRunner) GetAllTopicsMetaData(
 }
 
 // Get the partitions status for the specified status
-// This function displays the partitions in a Pretty format.
-// This functions prints and return error if
-// - under replicated partitions status
-// - offline partitions status
-// - non preferred leader partitions status
-// - unknown partitions status
+// This function displays the partitions in a Pretty format and return error for below:
+// - under replicated partitions
+// - offline partitions
+// - non preferred leader partitions
 func (c *CLIRunner) GetPartitionsStatus(
 	ctx context.Context,
 	topics []string,
@@ -636,7 +634,7 @@ func (c *CLIRunner) GetPartitionsStatus(
 	if status != "" {
 		partitionsInfoByStatus := make(map[string][]kafka.Partition)
 		partitionsCountByStatus := 0
-		found := false
+		statusFound := false
 
 		for topicName, partitions := range partitionsInfo {
 			statusPartitions := []kafka.Partition{}
@@ -645,7 +643,7 @@ func (c *CLIRunner) GetPartitionsStatus(
 				for _, partitionStatus := range partition.Statuses {
 					if partitionStatus == status {
 						statusPartitions = append(statusPartitions, partition.Partition)
-						found = true
+						statusFound = true
 					}
 				}
 			}
@@ -666,7 +664,8 @@ func (c *CLIRunner) GetPartitionsStatus(
 
 		log.Infof("%d Partitions are %v for topics", partitionsCountByStatus, status)
 
-		if found && status != admin.PreferredLeader {
+		// preferred leader is not an error condition
+		if statusFound && status != admin.PreferredLeader {
 			return fmt.Errorf("%v partitions are found for topics", status)
 		}
 
@@ -771,8 +770,8 @@ func getPartitionsStatus(
 // NOTE: partition is
 // 1. offline - if ListenerNotFound Error observed for leader partition
 // 2. underreplicated - if number of isrs are lesser than the replicas
-// 3. preferred leader - if the leader partition broker id is similar to first isr broker id
-// 4. not preferred leader - if the leader partitions broker id is not similar to first isr broker id
+// 3. preferred leader - if the leader partition broker id is similar to first valid Replicas broker id
+// 4. not preferred leader - if the leader partitions broker id is not similar to first valid Replicas broker id
 func GetPartitionStatuses(partition kafka.Partition) []admin.PartitionStatus {
 	//
 	// NOTE:
@@ -801,14 +800,23 @@ func GetPartitionStatuses(partition kafka.Partition) []admin.PartitionStatus {
 		statuses = append(statuses, admin.UnderReplicated)
 	}
 
-	// check preferred leader
-	if len(partition.Isr) > 0 && partition.Leader.ID == partition.Isr[0].ID {
-		statuses = append(statuses, admin.PreferredLeader)
-	}
+	// check preferred leader or not-preferred-leader
+	if len(partition.Replicas) > 0 {
+		firstValidReplicaID := -1
+		for _, replica := range partition.Replicas {
+			if replica.Host == "" && replica.Port == 0 {
+				continue
+			}
 
-	// check not preferred leader
-	if len(partition.Isr) > 0 && partition.Leader.ID != partition.Isr[0].ID {
-		statuses = append(statuses, admin.NotPreferredLeader)
+			firstValidReplicaID = replica.ID
+			break
+		}
+
+		if partition.Leader.ID == firstValidReplicaID {
+			statuses = append(statuses, admin.PreferredLeader)
+		} else {
+			statuses = append(statuses, admin.NotPreferredLeader)
+		}
 	}
 
 	return statuses

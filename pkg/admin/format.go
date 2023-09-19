@@ -923,7 +923,7 @@ func FormatPartitionsByStatus(
 
 	table := tablewriter.NewWriter(buf)
 	table.SetHeader(headers)
-	table.SetAutoWrapText(false)
+	table.SetAutoWrapText(true)
 	table.SetColumnAlignment(colAlignment)
 	table.SetBorders(
 		tablewriter.Border{
