@@ -436,6 +436,20 @@ func (c *ZKAdminClient) CreateACLs(
 	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
+func (c *ZKAdminClient) GetUsers(
+	ctx context.Context,
+	names []string,
+) ([]UserInfo, error) {
+	return nil, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
+func (c *ZKAdminClient) CreateUser(
+	ctx context.Context,
+	user kafka.UserScramCredentialsUpsertion,
+) error {
+	return errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
 // UpdateTopicConfig updates the config JSON for a topic and sets a change
 // notification so that the brokers are notified. If overwrite is true, then
 // it will overwrite existing config entries.
