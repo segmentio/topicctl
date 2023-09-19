@@ -579,6 +579,79 @@ func stringsToInts(strs []string) ([]int, error) {
 	return ints, nil
 }
 
+// Get the partitions status for the specified status
+// This function displays the partitions in a Pretty format and return error for below:
+// - under replicated partitions
+// - offline partitions
+// - non preferred leader partitions
+func (c *CLIRunner) GetPartitionsStatus(
+	ctx context.Context,
+	topics []string,
+	status admin.PartitionStatus,
+	full bool,
+) error {
+	c.startSpinner()
+
+	metadata, err := c.GetAllTopicsMetaData(ctx)
+	if err != nil {
+		c.stopSpinner()
+		return err
+	}
+
+	c.stopSpinner()
+	log.Debugf("kafka-go metadata response: %v", metadata)
+
+	partitionsInfoAllStatus := getPartitionsStatus(topics, metadata)
+	log.Debugf("partitionsInfoAllStatus: %v", partitionsInfoAllStatus)
+	if status == "" {
+		c.printer(
+			"Partitions Status:\n%s",
+			admin.FormatPartitionsAllStatus(partitionsInfoAllStatus),
+		)
+
+		return nil
+	}
+
+	partitionsInfoByStatus := make(map[string][]admin.PartitionStatusInfo)
+	partitionsCountByStatus := 0
+	foundStatus := false
+
+	for topicName, partitionsStatusInfo := range partitionsInfoAllStatus {
+		statusPartitions := []admin.PartitionStatusInfo{}
+
+		for _, partitionStatusInfo := range partitionsStatusInfo {
+			for _, partitionStatus := range partitionStatusInfo.Statuses {
+				if partitionStatus == status {
+					statusPartitions = append(statusPartitions, partitionStatusInfo)
+					foundStatus = true
+				}
+			}
+		}
+
+		if len(statusPartitions) == 0 {
+			continue
+		}
+
+		partitionsInfoByStatus[topicName] = statusPartitions
+		partitionsCountByStatus += len(statusPartitions)
+	}
+
+	c.printer(
+		"%v Partitions:\n%s",
+		status,
+		admin.FormatPartitionsByStatus(partitionsInfoByStatus, full),
+	)
+
+	log.Infof("%d Partitions are %v for topics", partitionsCountByStatus, status)
+
+	// preferred leader is not an error condition
+	if foundStatus && status != admin.PreferredLeader {
+		return fmt.Errorf("%v partitions are found for topics", status)
+	}
+
+	return nil
+}
+
 // kafka-go metadata call
 func (c *CLIRunner) GetAllTopicsMetaData(
 	ctx context.Context,
@@ -605,79 +678,6 @@ func (c *CLIRunner) GetAllTopicsMetaData(
 	}
 
 	return metadata, nil
-}
-
-// Get the partitions status for the specified status
-// This function displays the partitions in a Pretty format and return error for below:
-// - under replicated partitions
-// - offline partitions
-// - non preferred leader partitions
-func (c *CLIRunner) GetPartitionsStatus(
-	ctx context.Context,
-	topics []string,
-	status admin.PartitionStatus,
-	full bool,
-) error {
-	c.startSpinner()
-
-	metadata, err := c.GetAllTopicsMetaData(ctx)
-	if err != nil {
-		c.stopSpinner()
-		return err
-	}
-
-	c.stopSpinner()
-	log.Debugf("kafka-go metadata response: %v", metadata)
-
-	partitionsInfo := getPartitionsStatus(topics, metadata)
-	log.Debugf("partitionsInfo: %v", partitionsInfo)
-	if status != "" {
-		partitionsInfoByStatus := make(map[string][]kafka.Partition)
-		partitionsCountByStatus := 0
-		statusFound := false
-
-		for topicName, partitions := range partitionsInfo {
-			statusPartitions := []kafka.Partition{}
-
-			for _, partition := range partitions {
-				for _, partitionStatus := range partition.Statuses {
-					if partitionStatus == status {
-						statusPartitions = append(statusPartitions, partition.Partition)
-						statusFound = true
-					}
-				}
-			}
-
-			if len(statusPartitions) == 0 {
-				continue
-			}
-
-			partitionsInfoByStatus[topicName] = statusPartitions
-			partitionsCountByStatus += len(statusPartitions)
-		}
-
-		c.printer(
-			"%v Partitions:\n%s",
-			status,
-			admin.FormatPartitionsByStatus(partitionsInfoByStatus, full),
-		)
-
-		log.Infof("%d Partitions are %v for topics", partitionsCountByStatus, status)
-
-		// preferred leader is not an error condition
-		if statusFound && status != admin.PreferredLeader {
-			return fmt.Errorf("%v partitions are found for topics", status)
-		}
-
-		return nil
-	}
-
-	c.printer(
-		"Partitions Status:\n%s",
-		admin.FormatPartitionsAllStatus(partitionsInfo),
-	)
-
-	return nil
 }
 
 // This is the actual function where we fetch all the topic partitions with status

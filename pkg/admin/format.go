@@ -11,7 +11,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
-	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -888,7 +887,7 @@ func maxMapValues(inputMap map[int]int) int {
 
 // FormatPartitionsByStatus creates a pretty table that lists the details of the partitions by status
 func FormatPartitionsByStatus(
-	partitionsInfo map[string][]kafka.Partition,
+	partitionsInfoByStatus map[string][]PartitionStatusInfo,
 	full bool,
 ) string {
 	buf := &bytes.Buffer{}
@@ -934,23 +933,23 @@ func FormatPartitionsByStatus(
 		},
 	)
 
-	for topicName, partitions := range partitionsInfo {
+	for topicName, partitionsStatusInfo := range partitionsInfoByStatus {
 		if full {
-			for _, partition := range partitions {
+			for _, partitionStatusInfo := range partitionsStatusInfo {
 				partitionIsrs := []int{}
-				for _, partitionStatusIsr := range partition.Isr {
+				for _, partitionStatusIsr := range partitionStatusInfo.Partition.Isr {
 					partitionIsrs = append(partitionIsrs, partitionStatusIsr.ID)
 				}
 
 				partitionReplicas := []int{}
-				for _, partitionReplica := range partition.Replicas {
+				for _, partitionReplica := range partitionStatusInfo.Partition.Replicas {
 					partitionReplicas = append(partitionReplicas, partitionReplica.ID)
 				}
 
 				row := []string{
 					topicName,
-					fmt.Sprintf("%d", partition.ID),
-					fmt.Sprintf("%d", partition.Leader.ID),
+					fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+					fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID),
 					fmt.Sprintf("%+v", partitionIsrs),
 					fmt.Sprintf("%+v", partitionReplicas),
 				}
@@ -959,8 +958,8 @@ func FormatPartitionsByStatus(
 			}
 		} else {
 			partitionIDs := []int{}
-			for _, partition := range partitions {
-				partitionIDs = append(partitionIDs, partition.ID)
+			for _, partitionStatusInfo := range partitionsStatusInfo {
+				partitionIDs = append(partitionIDs, partitionStatusInfo.Partition.ID)
 			}
 
 			row := []string{
@@ -979,7 +978,7 @@ func FormatPartitionsByStatus(
 
 // FormatPartitionsAllStatus creates a pretty table that lists all partitions status
 func FormatPartitionsAllStatus(
-	partitionsInfo map[string][]PartitionStatusInfo,
+	partitionsInfoAllStatus map[string][]PartitionStatusInfo,
 ) string {
 	buf := &bytes.Buffer{}
 
@@ -1013,27 +1012,27 @@ func FormatPartitionsAllStatus(
 		},
 	)
 
-	for topicName, partitions := range partitionsInfo {
-		for _, partition := range partitions {
+	for topicName, partitionsStatusInfo := range partitionsInfoAllStatus {
+		for _, partitionStatusInfo := range partitionsStatusInfo {
 			partitionStatusIsrs := []int{}
-			for _, partitionStatusIsr := range partition.Partition.Isr {
+			for _, partitionStatusIsr := range partitionStatusInfo.Partition.Isr {
 				partitionStatusIsrs = append(partitionStatusIsrs, partitionStatusIsr.ID)
 			}
 
 			partitionReplicas := []int{}
-			for _, partitionReplica := range partition.Partition.Replicas {
+			for _, partitionReplica := range partitionStatusInfo.Partition.Replicas {
 				partitionReplicas = append(partitionReplicas, partitionReplica.ID)
 			}
 
 			partitionStatuses := []string{}
-			for _, status := range partition.Statuses {
-				partitionStatuses = append(partitionStatuses, string(status))
+			for _, partitionStatus := range partitionStatusInfo.Statuses {
+				partitionStatuses = append(partitionStatuses, string(partitionStatus))
 			}
 
 			row := []string{
 				topicName,
-				fmt.Sprintf("%d", partition.Partition.ID),
-				fmt.Sprintf("%d", partition.Partition.Leader.ID),
+				fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+				fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID),
 				fmt.Sprintf("%+v", partitionStatusIsrs),
 				fmt.Sprintf("%+v", partitionReplicas),
 				fmt.Sprintf("%s", strings.Join(partitionStatuses, ",")),
