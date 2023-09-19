@@ -373,6 +373,65 @@ func (c *BrokerAdminClient) GetTopic(
 	return topicInfos[0], nil
 }
 
+func (c *BrokerAdminClient) GetUsers(
+	ctx context.Context,
+	names []string,
+) ([]UserInfo, error) {
+	var users []kafka.UserScramCredentialsUser
+	for _, name := range names {
+		users = append(users, kafka.UserScramCredentialsUser{
+			Name: name,
+		})
+	}
+
+	req := kafka.DescribeUserScramCredentialsRequest{
+		Users: users,
+	}
+	log.Debugf("DescribeUserScramCredentials request: %+v", req)
+
+	resp, err := c.client.DescribeUserScramCredentials(ctx, &req)
+	log.Debugf("DescribeUserScramCredentials response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = util.DescribeUserScramCredentialsResponseResultsError(resp.Results); err != nil {
+		return nil, err
+	}
+
+	results := []UserInfo{}
+
+	for _, result := range resp.Results {
+		results = append(results, UserInfo{
+			Name:            result.User,
+			CredentialInfos: result.CredentialInfos,
+		})
+	}
+	return results, err
+}
+
+func (c *BrokerAdminClient) CreateUser(
+	ctx context.Context,
+	user kafka.UserScramCredentialsUpsertion,
+) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot create user in read-only mode")
+	}
+	req := kafka.AlterUserScramCredentialsRequest{
+		Upsertions: []kafka.UserScramCredentialsUpsertion{user},
+	}
+	log.Debugf("AlterUserScramCredentials request: %+v", req)
+	resp, err := c.client.AlterUserScramCredentials(ctx, &req)
+	log.Debugf("AlterUserScramCredentials response: %+v", resp)
+	if err != nil {
+		return err
+	}
+	if err = resp.Results[0].Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 // keys that were updated.
 func (c *BrokerAdminClient) UpdateTopicConfig(

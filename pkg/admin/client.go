@@ -38,6 +38,12 @@ type Client interface {
 		detailed bool,
 	) (TopicInfo, error)
 
+	// GetUsers gets information about users in the cluster.
+	GetUsers(
+		ctx context.Context,
+		names []string,
+	) ([]UserInfo, error)
+
 	// UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 	// keys that were updated.
 	UpdateTopicConfig(
@@ -60,6 +66,12 @@ type Client interface {
 	CreateTopic(
 		ctx context.Context,
 		config kafka.TopicConfig,
+	) error
+
+	// CreateUser creates a user in zookeeper.
+	CreateUser(
+		ctx context.Context,
+		user kafka.UserScramCredentialsUpsertion,
 	) error
 
 	// AssignPartitions sets the replica broker IDs for one or more partitions in a topic.

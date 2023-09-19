@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -71,6 +72,13 @@ type PartitionInfo struct {
 type PartitionAssignment struct {
 	ID       int   `json:"id"`
 	Replicas []int `json:"replicas"`
+}
+
+// UserInfo represents the information stored about a user
+// in zookeeper.
+type UserInfo struct {
+	Name            string
+	CredentialInfos []kafka.DescribeUserScramCredentialsCredentialInfo
 }
 
 type zkClusterID struct {
