@@ -408,9 +408,16 @@ func (c *BrokerAdminClient) GetUsers(
 	results := []UserInfo{}
 
 	for _, result := range resp.Results {
+		var credentials []CredentialInfo
+		for _, credential := range result.CredentialInfos {
+			credentials = append(credentials, CredentialInfo{
+				ScramMechanism: ScramMechanism(credential.Mechanism),
+				Iterations:     credential.Iterations,
+			})
+		}
 		results = append(results, UserInfo{
 			Name:            result.User,
-			CredentialInfos: result.CredentialInfos,
+			CredentialInfos: credentials,
 		})
 	}
 	return results, err
