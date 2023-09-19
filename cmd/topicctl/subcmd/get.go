@@ -55,6 +55,7 @@ func init() {
 		partitionsCmd(),
 		offsetsCmd(),
 		topicsCmd(),
+		usersCmd(),
 	)
 	RootCmd.AddCommand(getCmd)
 }
@@ -231,6 +232,21 @@ func topicsCmd() *cobra.Command {
 				return err
 			}
 			return cliRunner.GetTopics(ctx, getConfig.full)
+		},
+	}
+}
+
+func usersCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "users",
+		Short: "Displays information for all users in the cluster.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cliRunner, err := getCliRunnerAndCtx()
+			if err != nil {
+				return err
+			}
+			return cliRunner.GetUsers(ctx, getConfig.full)
 		},
 	}
 }

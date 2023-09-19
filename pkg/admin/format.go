@@ -745,6 +745,47 @@ func FormatBrokerMaxPartitions(
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatUsers creates a pretty table that lists the details of the
+// argument users.
+func FormatUsers(users []UserInfo) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Name",
+		"CredentialsInfo",
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for _, user := range users {
+		row := []string{
+			user.Name,
+			user.CredentialsInfo.String(),
+		}
+
+		table.Append(row)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
 func prettyConfig(config map[string]string) string {
 	rows := []string{}
 
