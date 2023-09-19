@@ -78,13 +78,13 @@ type PartitionAssignment struct {
 // PartitionInfo represents the information stored about an ACL
 // in zookeeper.
 type ACLInfo struct {
-	ResourceType   ResourceType
-	ResourceName   string
-	PatternType    PatternType
-	Principal      string
-	Host           string
-	Operation      ACLOperationType
-	PermissionType ACLPermissionType
+	ResourceType   ResourceType      `json:"resourceType"`
+	ResourceName   string            `json:"resourceName"`
+	PatternType    PatternType       `json:"patternType"`
+	Principal      string            `json:"principal"`
+	Host           string            `json:"host"`
+	Operation      ACLOperationType  `json:"operation"`
+	PermissionType ACLPermissionType `json:"permissionType"`
 }
 
 // ResourceType presents the Kafka resource type.
