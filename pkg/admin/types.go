@@ -289,7 +289,8 @@ func (p *ACLPermissionType) Set(v string) error {
 // Type is used by Cobra in help text.
 func (p *ACLPermissionType) Type() string {
 	return "ACLPermissionType"
-	
+}
+
 // UserInfo represents the information stored about a user
 // in zookeeper.
 type UserInfo struct {
@@ -317,6 +318,13 @@ func (s *ScramMechanism) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+// UserInfo represents the information stored about a user
+// in zookeeper.
+type UserInfo struct {
+	Name            string
+	CredentialInfos []kafka.DescribeUserScramCredentialsCredentialInfo
 }
 
 type zkClusterID struct {
