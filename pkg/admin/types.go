@@ -293,8 +293,8 @@ func (p *ACLPermissionType) Type() string {
 // UserInfo represents the information stored about a user
 // in zookeeper.
 type UserInfo struct {
-	Name            string
-	CredentialInfos []kafka.DescribeUserScramCredentialsCredentialInfo
+	Name            string                                             `json:"name"`
+	CredentialInfos []kafka.DescribeUserScramCredentialsCredentialInfo `json:"credentialInfos"`
 }
 
 type zkClusterID struct {
