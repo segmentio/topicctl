@@ -592,9 +592,36 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	name := util.RandomString("test-user-", 6)
+	mechanism := kafka.ScramMechanismSha512
+
+	defer func() {
+		resp, err := client.client.AlterUserScramCredentials(
+			ctx,
+			&kafka.AlterUserScramCredentialsRequest{
+				Deletions: []kafka.UserScramCredentialsDeletion{
+					{
+						Name:      name,
+						Mechanism: mechanism,
+					},
+				},
+			},
+		)
+
+		if err != nil {
+			t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+		}
+		for _, response := range resp.Results {
+			if err = response.Error; err != nil {
+				t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+			}
+		}
+
+	}()
+
 	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{
-		Name:           "junk",
-		Mechanism:      kafka.ScramMechanismSha512,
+		Name:           name,
+		Mechanism:      mechanism,
 		Iterations:     15000,
 		Salt:           []byte("my-salt"),
 		SaltedPassword: []byte("my-salted-password"),
@@ -602,17 +629,14 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// TODO: use randomly generated name for user
-	// TODO: delete user
-
-	resp, err := client.GetUsers(ctx, []string{"junk"})
+	resp, err := client.GetUsers(ctx, []string{name})
 	require.NoError(t, err)
 	assert.Equal(t, []UserInfo{
 		{
-			Name: "junk",
+			Name: name,
 			CredentialInfos: []CredentialInfo{
 				{
-					ScramMechanism: ScramMechanism(kafka.ScramMechanismSha512),
+					ScramMechanism: ScramMechanism(mechanism),
 					Iterations:     15000,
 				},
 			},
