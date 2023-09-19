@@ -601,7 +601,7 @@ func (c *CLIRunner) GetPartitionsStatus(
 	c.stopSpinner()
 	log.Debugf("kafka-go metadata response: %v", metadata)
 
-	partitionsInfoAllStatus := getPartitionsStatus(topics, metadata)
+	partitionsInfoAllStatus := GetPartitionsStatusInfo(topics, metadata)
 	log.Debugf("partitionsInfoAllStatus: %v", partitionsInfoAllStatus)
 	if status == "" {
 		c.printer(
@@ -671,7 +671,7 @@ func (c *CLIRunner) GetAllTopicsMetaData(
 }
 
 // This is the actual function where we fetch all the topic partitions with status
-func getPartitionsStatus(
+func GetPartitionsStatusInfo(
 	topics []string,
 	metadata *kafka.MetadataResponse,
 ) map[string][]admin.PartitionStatusInfo {
