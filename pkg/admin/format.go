@@ -504,6 +504,178 @@ func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) str
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+func FormatTopicsPartitionsSummary(
+	topicsPartitionsStatusSummary map[string]map[PartitionStatus][]int,
+) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Topic",
+		"IDs",
+		"Status",
+		"Count",
+	}
+	columnAligment := []int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(true)
+	table.SetColumnAlignment(columnAligment)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for topicName, partitionsStatusSummary := range topicsPartitionsStatusSummary {
+		topicTableRows := [][]string{}
+
+		for partitionStatus, partitionStatusIDs := range partitionsStatusSummary {
+			topicTableRows = append(topicTableRows, []string{
+				fmt.Sprintf("%s", topicName),
+				fmt.Sprintf("%+v", partitionStatusIDs),
+				fmt.Sprintf("%s", partitionStatus),
+				fmt.Sprintf("%d", len(partitionStatusIDs)),
+			})
+		}
+
+		// sort the topicTableRows by partitionStatus
+		statusSort := func(i, j int) bool {
+			// third element in the row is of type PartitionStatus
+			return string(topicTableRows[i][2]) < string(topicTableRows[j][2])
+		}
+
+		sort.Slice(topicTableRows, statusSort)
+		for _, topicTableRow := range topicTableRows {
+			table.Append(topicTableRow)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatTopicsPartitions creates a pretty table with information on all of the
+// partitions for topics.
+func FormatTopicsPartitions(
+	topicsPartitionsStatusInfo map[string][]PartitionStatusInfo,
+	brokers []BrokerInfo,
+) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Topic",
+		"ID",
+		"Leader",
+		"ISR",
+		"Replicas",
+		"Distinct\nRacks",
+		"Racks",
+		"Status",
+	}
+	columnAligment := []int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(columnAligment)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	brokerRacks := BrokerRacks(brokers)
+
+	for topicName, partitionsStatusInfo := range topicsPartitionsStatusInfo {
+		for _, partitionStatusInfo := range partitionsStatusInfo {
+			racks := partitionStatusInfo.Racks(brokerRacks)
+
+			distinctRacks := make(map[string]int)
+			for _, rack := range racks {
+				distinctRacks[rack] += 1
+			}
+
+			partitionIsrs := []int{}
+			for _, partitionStatusIsr := range partitionStatusInfo.Partition.Isr {
+				partitionIsrs = append(partitionIsrs, partitionStatusIsr.ID)
+			}
+
+			partitionReplicas := []int{}
+			for _, partitionReplica := range partitionStatusInfo.Partition.Replicas {
+				partitionReplicas = append(partitionReplicas, partitionReplica.ID)
+			}
+
+			inSync := true
+			if partitionStatusInfo.Status != Ok {
+				inSync = false
+			}
+
+			correctLeader := true
+			if partitionStatusInfo.LeaderState != CorrectLeader {
+				correctLeader = false
+			}
+
+			var statusPrinter func(f string, a ...interface{}) string
+			if !util.InTerminal() || inSync {
+				statusPrinter = fmt.Sprintf
+			} else if !inSync {
+				statusPrinter = color.New(color.FgRed).SprintfFunc()
+			}
+
+			var statePrinter func(f string, a ...interface{}) string
+			if !util.InTerminal() || correctLeader {
+				statePrinter = fmt.Sprintf
+			} else if !correctLeader {
+				statePrinter = color.New(color.FgCyan).SprintfFunc()
+			}
+
+			leaderStateString := fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID)
+			if !correctLeader {
+				leaderStateString = fmt.Sprintf("%d %+v", partitionStatusInfo.Partition.Leader.ID,
+					statePrinter("(%s)", string(partitionStatusInfo.LeaderState)),
+				)
+			}
+
+			table.Append(
+				[]string{
+					fmt.Sprintf("%s", topicName),
+					fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+					leaderStateString,
+					fmt.Sprintf("%+v", partitionIsrs),
+					fmt.Sprintf("%+v", partitionReplicas),
+					fmt.Sprintf("%d", len(distinctRacks)),
+					fmt.Sprintf("%+v", racks),
+					fmt.Sprintf("%v", statusPrinter("%s", string(partitionStatusInfo.Status))),
+				},
+			)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
 // FormatConfig creates a pretty table with all of the keys and values in a topic or
 // broker config.
 func FormatConfig(configMap map[string]string) string {

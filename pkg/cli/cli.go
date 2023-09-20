@@ -14,6 +14,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -400,28 +401,266 @@ func (c *CLIRunner) GetMemberLags(
 
 // GetPartitions fetches the details of each partition in a topic and prints out a summary for
 // user inspection.
-func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
+func (c *CLIRunner) GetPartitions(
+	ctx context.Context,
+	topics []string,
+	status admin.PartitionStatus,
+	summary bool,
+) error {
 	c.startSpinner()
 
-	topicInfo, err := c.adminClient.GetTopic(ctx, topic, true)
+	metadata, err := c.GetAllTopicsMetadata(ctx)
 	if err != nil {
 		c.stopSpinner()
 		return err
 	}
 
 	brokers, err := c.adminClient.GetBrokers(ctx, nil)
-	c.stopSpinner()
 	if err != nil {
+		c.stopSpinner()
 		return err
 	}
 
+	if !summary {
+		topicsPartitionsStatusInfo := GetTopicsPartitionsStatusInfo(metadata, topics, status)
+		c.stopSpinner()
+
+		c.printer(
+			"Partitions:\n%s",
+			admin.FormatTopicsPartitions(topicsPartitionsStatusInfo, brokers),
+		)
+
+		return nil
+	}
+
+	statusSummary, ok, offline, underreplicated := GetTopicsPartitionsStatusSummary(metadata,
+		topics,
+		status,
+	)
+	c.stopSpinner()
+
 	c.printer(
-		"Partitions for topic %s:\n%s",
-		topic,
-		admin.FormatTopicPartitions(topicInfo.Partitions, brokers),
+		"Partitions Summary:\n%s",
+		admin.FormatTopicsPartitionsSummary(statusSummary),
 	)
 
+	return printPartitionsSummary(
+		status,
+		ok,
+		offline,
+		underreplicated,
+	)
+}
+
+// print partitions summary
+func printPartitionsSummary(
+	status admin.PartitionStatus,
+	okCount int,
+	offlineCount int,
+	underReplicatedCount int,
+) error {
+	switch status {
+	case admin.Offline:
+		if offlineCount > 0 {
+			return fmt.Errorf("%d %v partitions are found", offlineCount, status)
+		}
+	case admin.UnderReplicated:
+		if underReplicatedCount > 0 {
+			return fmt.Errorf("%d %v partitions are found", underReplicatedCount, status)
+		}
+	case admin.Ok:
+		log.Infof("%d %v partitions are found", okCount, status)
+	default:
+		if offlineCount > 0 || underReplicatedCount > 0 {
+			return fmt.Errorf(
+				"%d %v partitions, %d %v partitions, %d %v partitions are found",
+				okCount,
+				admin.Ok,
+				underReplicatedCount,
+				admin.UnderReplicated,
+				offlineCount,
+				admin.Offline,
+			)
+		}
+
+		log.Infof(
+			"%d %v partitions, %d %v partitions, %d %v partitions are found",
+			okCount,
+			admin.Ok,
+			underReplicatedCount,
+			admin.UnderReplicated,
+			offlineCount,
+			admin.Offline,
+		)
+	}
+
 	return nil
+}
+
+// Get the partition status summary
+func GetTopicsPartitionsStatusSummary(
+	metadata *kafka.MetadataResponse,
+	topics []string,
+	status admin.PartitionStatus,
+) (map[string]map[admin.PartitionStatus][]int, int, int, int) {
+	okCount := 0
+	offlineCount := 0
+	underReplicatedCount := 0
+	topicsPartitionsStatusSummary := make(map[string]map[admin.PartitionStatus][]int)
+
+	filterTopics := GetFilterTopicsFromMetadata(topics, metadata)
+	for _, topicMetadata := range metadata.Topics {
+
+		if topicMetadata.Error != nil {
+			log.Errorf("Topic: %s metadata error: %v", topicMetadata.Name, topicMetadata.Error)
+			continue
+		}
+
+		if len(topics) != 0 && !filterTopics[topicMetadata.Name] {
+			continue
+		}
+
+		_, exists := topicsPartitionsStatusSummary[topicMetadata.Name]
+		if !exists {
+			topicsPartitionsStatusSummary[topicMetadata.Name] = make(map[admin.PartitionStatus][]int)
+
+			if status == "" {
+				topicsPartitionsStatusSummary[topicMetadata.Name][admin.Ok] = []int{}
+				topicsPartitionsStatusSummary[topicMetadata.Name][admin.UnderReplicated] = []int{}
+				topicsPartitionsStatusSummary[topicMetadata.Name][admin.Offline] = []int{}
+			} else {
+				topicsPartitionsStatusSummary[topicMetadata.Name][status] = []int{}
+			}
+		}
+
+		for _, partition := range topicMetadata.Partitions {
+			partitionStatus := GetPartitionStatus(partition)
+
+			if status == admin.PartitionStatus("") || status == partitionStatus {
+				switch partitionStatus {
+				case admin.Ok:
+					okCount += 1
+				case admin.Offline:
+					offlineCount += 1
+				case admin.UnderReplicated:
+					underReplicatedCount += 1
+				default:
+					// unrecognized partition status
+				}
+
+				topicsPartitionsStatusSummary[topicMetadata.Name][partitionStatus] = append(
+					topicsPartitionsStatusSummary[topicMetadata.Name][partitionStatus],
+					partition.ID,
+				)
+			}
+		}
+	}
+
+	return topicsPartitionsStatusSummary, okCount, offlineCount, underReplicatedCount
+}
+
+// Get the partition status info for specified topics
+func GetTopicsPartitionsStatusInfo(
+	metadata *kafka.MetadataResponse,
+	topics []string,
+	status admin.PartitionStatus,
+) map[string][]admin.PartitionStatusInfo {
+	topicsPartitionsStatusInfo := make(map[string][]admin.PartitionStatusInfo)
+
+	filterTopics := GetFilterTopicsFromMetadata(topics, metadata)
+	for _, topicMetadata := range metadata.Topics {
+		if topicMetadata.Error != nil {
+			log.Errorf("Topic: %s metadata error: %v", topicMetadata.Name, topicMetadata.Error)
+			continue
+		}
+
+		if len(topics) != 0 && !filterTopics[topicMetadata.Name] {
+			continue
+		}
+
+		partitionsStatusInfo := []admin.PartitionStatusInfo{}
+		for _, partition := range topicMetadata.Partitions {
+			partitionStatus := GetPartitionStatus(partition)
+			log.Debugf("Topic: %s, Partition: %d status is: %v",
+				topicMetadata.Name,
+				partition.ID,
+				partitionStatus,
+			)
+
+			// kafka-go metadata call fetches the partition broker ID as 0 for partitions
+			// that are not found
+			//
+			// i.e
+			// - if a replica is missing for a partition, we get broker id as 0
+			// - if a isr is missing for a partition, we still get broker id as 0
+			// - if a leader is missing for a partition, we still get broker id as 0 (this is offline partition)
+			//
+			// It can be confusing to kafka-go users since broker IDs can start from 0
+			//
+			// However, Burrow metadata call fetches missing partitions broker ID as -1
+			//
+			// For user readability, we will modify
+			// - any ISR broker ID that does not have valid Host or Port from 0 to -1
+			// - any Replica broker ID that does not have valid Host or Port from 0 to -1
+			// - (Offline) Leader Broker ID that does not have a valid Host or Port from 0 to -1
+			//
+			switch partitionStatus {
+			case admin.Ok, admin.UnderReplicated, admin.Offline:
+				if partitionStatus != admin.Ok {
+					if partitionStatus == admin.Offline {
+						partition.Leader.ID = -1
+					}
+
+					for i, _ := range partition.Isr {
+						if partition.Isr[i].Host == "" && partition.Isr[i].Port == 0 {
+							partition.Isr[i].ID = -1
+						}
+					}
+
+					for i, _ := range partition.Replicas {
+						if partition.Replicas[i].Host == "" && partition.Replicas[i].Port == 0 {
+							partition.Replicas[i].ID = -1
+						}
+					}
+				}
+
+				leaderState := admin.WrongLeader
+				// check if preferred replica leader is the first valid replica ID
+				firstReplicaID := -1
+				for _, replica := range partition.Replicas {
+					if replica.ID == -1 {
+						continue
+					}
+
+					firstReplicaID = replica.ID
+					break
+				}
+
+				if len(partition.Replicas) > 0 &&
+					partitionStatus != admin.Offline &&
+					partition.Leader.ID == firstReplicaID {
+					leaderState = admin.CorrectLeader
+				}
+
+				if status == admin.PartitionStatus("") || status == partitionStatus {
+					partitionsStatusInfo = append(partitionsStatusInfo, admin.PartitionStatusInfo{
+						Topic:       topicMetadata.Name,
+						Partition:   partition,
+						Status:      partitionStatus,
+						LeaderState: leaderState,
+					})
+				}
+			default:
+				log.Errorf("Unrecognized partition status: %v", partitionStatus)
+			}
+		}
+
+		if len(partitionsStatusInfo) > 0 {
+			topicsPartitionsStatusInfo[topicMetadata.Name] = partitionsStatusInfo
+		}
+	}
+
+	return topicsPartitionsStatusInfo
 }
 
 // GetOffsets fetches details about all partition offsets in a single topic and prints out
@@ -576,4 +815,95 @@ func stringsToInts(strs []string) ([]int, error) {
 	}
 
 	return ints, nil
+}
+
+// kafka-go metadata call
+func (c *CLIRunner) GetAllTopicsMetadata(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	topicsInfo, err := c.adminClient.GetTopics(ctx, nil, false)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics info: %+v", err)
+	}
+	log.Debugf("topicsInfo: %v", topicsInfo)
+
+	allTopics := []string{}
+	for _, topicInfo := range topicsInfo {
+		allTopics = append(allTopics, topicInfo.Name)
+	}
+
+	client := c.adminClient.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: allTopics,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics metadata: %+v", err)
+	}
+
+	return metadata, nil
+}
+
+func GetFilterTopicsFromMetadata(
+	topics []string,
+	metadata *kafka.MetadataResponse,
+) map[string]bool {
+	filterTopics := make(map[string]bool)
+	allTopicNamesSet := GetAllTopicNamesFromMetadata(metadata)
+
+	for _, topic := range topics {
+		_, exists := allTopicNamesSet[topic]
+		if exists {
+			filterTopics[topic] = true
+		} else {
+			log.Errorf("Ignoring topic: %s. Not found in the kafka cluster", topic)
+		}
+	}
+
+	return filterTopics
+}
+
+func GetAllTopicNamesFromMetadata(
+	metadata *kafka.MetadataResponse,
+) map[string]bool {
+	topicsSet := make(map[string]bool)
+
+	for _, topicMetadata := range metadata.Topics {
+		topicsSet[topicMetadata.Name] = true
+	}
+
+	return topicsSet
+}
+
+// returns true|false when a string status value is given. Refer type PartitionStatus
+func IsValidPartitionStatus(status string) bool {
+	switch status {
+	case string(admin.Ok),
+		string(admin.Offline),
+		string(admin.UnderReplicated):
+		return true
+	default:
+		return false
+	}
+}
+
+// Get the Partition Status
+// - ok
+// - offline
+// - under-replicated
+//
+// NOTE: partition is
+// 1. offline - if ListenerNotFound Error observed for leader partition
+// 2. underreplicated - if number of isrs are lesser than the replicas
+func GetPartitionStatus(partition kafka.Partition) admin.PartitionStatus {
+	if partition.Leader.Host == "" && partition.Leader.Port == 0 &&
+		admin.ListenerNotFoundError.Error() == partition.Error.Error() {
+		return admin.Offline
+	} else if len(partition.Isr) < len(partition.Replicas) {
+		return admin.UnderReplicated
+	}
+
+	return admin.Ok
 }

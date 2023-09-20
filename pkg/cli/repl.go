@@ -300,11 +300,19 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "partitions":
+			// Note: get partitions can take more than one argument
+			// But for repl readbility, we will make get partitions work with only
+			// one argument
 			if err := command.checkArgs(3, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetPartitions(ctx, command.args[2]); err != nil {
+			if err := r.cliRunner.GetPartitions(
+				ctx,
+				[]string{command.args[2]},
+				admin.PartitionStatus(""),
+				false,
+			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}

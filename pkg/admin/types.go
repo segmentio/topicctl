@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -135,6 +136,32 @@ type zkChangeNotification struct {
 	Version    int    `json:"version"`
 	EntityPath string `json:"entity_path"`
 }
+
+type PartitionStatus string
+
+const (
+	Ok              PartitionStatus = "ok"
+	Offline         PartitionStatus = "offline"
+	UnderReplicated PartitionStatus = "under-replicated"
+)
+
+type PartitionLeaderState string
+
+const (
+	CorrectLeader PartitionLeaderState = "ok"
+	WrongLeader   PartitionLeaderState = "wrong"
+)
+
+type PartitionStatusInfo struct {
+	Topic       string
+	Partition   kafka.Partition
+	Status      PartitionStatus
+	LeaderState PartitionLeaderState
+}
+
+const (
+	ListenerNotFoundError kafka.Error = 72
+)
 
 // Addr returns the address of the current BrokerInfo.
 func (b BrokerInfo) Addr() string {
@@ -455,6 +482,20 @@ func (p PartitionInfo) Racks(brokerRacks map[int]string) ([]string, error) {
 	}
 
 	return racks, nil
+}
+
+// Racks returns a slice of all racks for the partition replicas.
+func (p PartitionStatusInfo) Racks(brokerRacks map[int]string) []string {
+	racks := []string{}
+
+	for _, replica := range p.Partition.Replicas {
+		rack, ok := brokerRacks[replica.ID]
+		if ok {
+			racks = append(racks, rack)
+		}
+	}
+
+	return racks
 }
 
 // NumRacks returns the number of distinct racks in the partition.
