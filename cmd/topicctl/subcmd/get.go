@@ -224,7 +224,7 @@ func membersCmd() *cobra.Command {
 func partitionsCmd() *cobra.Command {
 	partitionsCommand := &cobra.Command{
 		Use:   "partitions [topics]",
-		Short: "Get all partitions for topics",
+		Short: "Get all partitions information for topics",
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
