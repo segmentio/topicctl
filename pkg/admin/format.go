@@ -504,6 +504,8 @@ func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) str
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatTopicsPartitionsSummary creates a pretty table with summary of the
+// partitions for topics.
 func FormatTopicsPartitionsSummary(
 	topicsPartitionsStatusSummary map[string]map[PartitionStatus][]int,
 ) string {
