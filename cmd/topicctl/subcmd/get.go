@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,7 +34,7 @@ type getCmdConfig struct {
 var getConfig getCmdConfig
 
 type partitionsCmdConfig struct {
-	status  string
+	status  admin.PartitionStatus
 	summary bool
 }
 
@@ -222,7 +223,7 @@ func membersCmd() *cobra.Command {
 
 func partitionsCmd() *cobra.Command {
 	partitionsCommand := &cobra.Command{
-		Use:   "partitions [topics]",
+		Use:   "partitions [optional: topics]",
 		Short: "Get all partitions information for topics",
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -235,11 +236,6 @@ func partitionsCmd() *cobra.Command {
 			}
 			defer adminClient.Close()
 
-			status, valid := cli.StringToPartitionStatus(partitionsConfig.status)
-			if status != "" && !valid {
-				return fmt.Errorf("Invalid --status flag\n%s", partitionsStatusHelpText)
-			}
-
 			topics := []string{}
 			for _, arg := range args {
 				topics = append(topics, arg)
@@ -249,17 +245,15 @@ func partitionsCmd() *cobra.Command {
 			return cliRunner.GetPartitions(
 				ctx,
 				topics,
-				status,
+				partitionsConfig.status,
 				partitionsConfig.summary,
 			)
 		},
 	}
 
-	partitionsCommand.Flags().StringVarP(
+	partitionsCommand.Flags().Var(
 		&partitionsConfig.status,
 		"status",
-		"s",
-		"",
 		fmt.Sprintf("partition status\n%s", partitionsStatusHelpText),
 	)
 

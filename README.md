@@ -172,7 +172,7 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get groups` | All consumer groups in the cluster |
 | `get lags [topic] [group]` | Lag for each topic partition for a consumer group |
 | `get members [group]` | Details of each member in a consumer group |
-| `get partitions [topics]` | Get all partitions for topics |
+| `get partitions [optional: topics]` | Get all partitions for topics |
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
 
