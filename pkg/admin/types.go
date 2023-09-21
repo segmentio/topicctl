@@ -140,16 +140,16 @@ type zkChangeNotification struct {
 type PartitionStatus string
 
 const (
-	Ok              PartitionStatus = "ok"
-	Offline         PartitionStatus = "offline"
-	UnderReplicated PartitionStatus = "under-replicated"
+	Ok              PartitionStatus = "OK"
+	Offline         PartitionStatus = "Offline"
+	UnderReplicated PartitionStatus = "Under-replicated"
 )
 
 type PartitionLeaderState string
 
 const (
-	CorrectLeader PartitionLeaderState = "ok"
-	WrongLeader   PartitionLeaderState = "wrong"
+	CorrectLeader PartitionLeaderState = "OK"
+	WrongLeader   PartitionLeaderState = "Wrong"
 )
 
 type PartitionStatusInfo struct {

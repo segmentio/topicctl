@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -40,7 +39,7 @@ type partitionsCmdConfig struct {
 
 var partitionsConfig partitionsCmdConfig
 
-var partitionsStatusHelpText = "Allowed values: ok, under-replicated, offline"
+var partitionsStatusHelpText = "Allowed values: ok, offline, under-replicated"
 
 func init() {
 	getCmd.PersistentFlags().BoolVar(
@@ -236,9 +235,9 @@ func partitionsCmd() *cobra.Command {
 			}
 			defer adminClient.Close()
 
-			status := strings.ToLower(partitionsConfig.status)
-			if status != "" && !cli.IsValidPartitionStatus(status) {
-				return fmt.Errorf("Invalid status flag\n%s", partitionsStatusHelpText)
+			status, valid := cli.StringToPartitionStatus(partitionsConfig.status)
+			if status != "" && !valid {
+				return fmt.Errorf("Invalid --status flag\n%s", partitionsStatusHelpText)
 			}
 
 			topics := []string{}
@@ -250,7 +249,7 @@ func partitionsCmd() *cobra.Command {
 			return cliRunner.GetPartitions(
 				ctx,
 				topics,
-				admin.PartitionStatus(status),
+				status,
 				partitionsConfig.summary,
 			)
 		},

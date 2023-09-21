@@ -877,15 +877,17 @@ func GetAllTopicNamesFromMetadata(
 	return topicsSet
 }
 
-// returns true|false when a string status value is given. Refer type PartitionStatus
-func IsValidPartitionStatus(status string) bool {
-	switch status {
-	case string(admin.Ok),
-		string(admin.Offline),
-		string(admin.UnderReplicated):
-		return true
+// Get the status string as PartitionStatus type
+func StringToPartitionStatus(status string) (admin.PartitionStatus, bool) {
+	switch strings.ToLower(status) {
+	case strings.ToLower(string(admin.Ok)):
+		return admin.Ok, true
+	case strings.ToLower(string(admin.Offline)):
+		return admin.Offline, true
+	case strings.ToLower(string(admin.UnderReplicated)):
+		return admin.UnderReplicated, true
 	default:
-		return false
+		return admin.PartitionStatus(status), false
 	}
 }
 

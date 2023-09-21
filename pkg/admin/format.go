@@ -513,9 +513,9 @@ func FormatTopicsPartitionsSummary(
 
 	headers := []string{
 		"Topic",
-		"IDs",
 		"Status",
 		"Count",
+		"IDs",
 	}
 	columnAligment := []int{
 		tablewriter.ALIGN_LEFT,
@@ -537,27 +537,39 @@ func FormatTopicsPartitionsSummary(
 		},
 	)
 
+	topicNames := []string{}
+	tableData := make(map[string][][]string)
 	for topicName, partitionsStatusSummary := range topicsPartitionsStatusSummary {
 		topicTableRows := [][]string{}
 
 		for partitionStatus, partitionStatusIDs := range partitionsStatusSummary {
 			topicTableRows = append(topicTableRows, []string{
 				fmt.Sprintf("%s", topicName),
-				fmt.Sprintf("%+v", partitionStatusIDs),
 				fmt.Sprintf("%s", partitionStatus),
 				fmt.Sprintf("%d", len(partitionStatusIDs)),
+				fmt.Sprintf("%+v", partitionStatusIDs),
 			})
 		}
 
 		// sort the topicTableRows by partitionStatus
 		statusSort := func(i, j int) bool {
-			// third element in the row is of type PartitionStatus
-			return string(topicTableRows[i][2]) < string(topicTableRows[j][2])
+			// second element in the row is of type PartitionStatus
+			return string(topicTableRows[i][1]) < string(topicTableRows[j][1])
 		}
 
 		sort.Slice(topicTableRows, statusSort)
-		for _, topicTableRow := range topicTableRows {
-			table.Append(topicTableRow)
+
+		tableData[topicName] = topicTableRows
+		topicNames = append(topicNames, topicName)
+	}
+
+	sort.Strings(topicNames)
+	for _, topicName := range topicNames {
+		_, exists := tableData[topicName]
+		if exists {
+			for _, topicTableRow := range tableData[topicName] {
+				table.Append(topicTableRow)
+			}
 		}
 	}
 
@@ -607,9 +619,11 @@ func FormatTopicsPartitions(
 		},
 	)
 
+	topicNames := []string{}
 	brokerRacks := BrokerRacks(brokers)
-
+	tableData := make(map[string][][]string)
 	for topicName, partitionsStatusInfo := range topicsPartitionsStatusInfo {
+		topicTableRows := [][]string{}
 		for _, partitionStatusInfo := range partitionsStatusInfo {
 			racks := partitionStatusInfo.Racks(brokerRacks)
 
@@ -659,18 +673,29 @@ func FormatTopicsPartitions(
 				)
 			}
 
-			table.Append(
-				[]string{
-					fmt.Sprintf("%s", topicName),
-					fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
-					leaderStateString,
-					fmt.Sprintf("%+v", partitionIsrs),
-					fmt.Sprintf("%+v", partitionReplicas),
-					fmt.Sprintf("%d", len(distinctRacks)),
-					fmt.Sprintf("%+v", racks),
-					fmt.Sprintf("%v", statusPrinter("%s", string(partitionStatusInfo.Status))),
-				},
-			)
+			topicTableRows = append(topicTableRows, []string{
+				fmt.Sprintf("%s", topicName),
+				fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+				leaderStateString,
+				fmt.Sprintf("%+v", partitionIsrs),
+				fmt.Sprintf("%+v", partitionReplicas),
+				fmt.Sprintf("%d", len(distinctRacks)),
+				fmt.Sprintf("%+v", racks),
+				fmt.Sprintf("%v", statusPrinter("%s", string(partitionStatusInfo.Status))),
+			})
+		}
+
+		tableData[topicName] = topicTableRows
+		topicNames = append(topicNames, topicName)
+	}
+
+	sort.Strings(topicNames)
+	for _, topicName := range topicNames {
+		_, exists := tableData[topicName]
+		if exists {
+			for _, topicTableRow := range tableData[topicName] {
+				table.Append(topicTableRow)
+			}
 		}
 	}
 
