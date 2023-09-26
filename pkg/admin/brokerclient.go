@@ -401,13 +401,17 @@ func (c *BrokerAdminClient) GetUsers(
 		return nil, err
 	}
 
-	if err = util.DescribeUserScramCredentialsResponseResultsError(resp.Results); err != nil {
-		return nil, err
-	}
-
 	results := []UserInfo{}
 
 	for _, result := range resp.Results {
+		if result.Error != nil {
+			log.Debugf("got here")
+			if errors.Is(result.Error, kafka.ResourceNotFound) {
+				log.Debugf("Skipping over user %s because it does not exist", result.User)
+				continue
+			}
+			return nil, fmt.Errorf("Error getting description of user %s: %+v", result.User, result.Error)
+		}
 		var credentials []CredentialInfo
 		for _, credential := range result.CredentialInfos {
 			credentials = append(credentials, CredentialInfo{
@@ -420,7 +424,7 @@ func (c *BrokerAdminClient) GetUsers(
 			CredentialInfos: credentials,
 		})
 	}
-	return results, err
+	return results, nil
 }
 
 func (c *BrokerAdminClient) CreateUser(

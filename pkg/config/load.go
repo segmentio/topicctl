@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -82,6 +83,45 @@ func LoadTopicsFile(path string) ([]TopicConfig, error) {
 // LoadTopicBytes loads a TopicConfig from YAML bytes.
 func LoadTopicBytes(contents []byte) (TopicConfig, error) {
 	config := TopicConfig{}
+	err := unmarshalYAMLStrict(contents, &config)
+	fmt.Println(config)
+	return config, err
+}
+
+// LoadUsersFile loads one or more UserConfigs from a path to a YAML file.
+func LoadUsersFile(path string) ([]UserConfig, error) {
+	contents, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	contents = []byte(os.ExpandEnv(string(contents)))
+
+	trimmedFile := strings.TrimSpace(string(contents))
+	userStrs := sep.Split(trimmedFile, -1)
+
+	userConfigs := []UserConfig{}
+
+	for _, userStr := range userStrs {
+		userStr = strings.TrimSpace(userStr)
+		if isEmpty(userStr) {
+			continue
+		}
+
+		userConfig, err := LoadUserBytes([]byte(userStr))
+		if err != nil {
+			return nil, err
+		}
+
+		userConfigs = append(userConfigs, userConfig)
+	}
+
+	return userConfigs, nil
+}
+
+// LoadUserBytes loads a UserConfig from YAML bytes.
+func LoadUserBytes(contents []byte) (UserConfig, error) {
+	config := UserConfig{}
 	err := unmarshalYAMLStrict(contents, &config)
 	return config, err
 }

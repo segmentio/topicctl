@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -102,6 +103,73 @@ func TestLoadTopicsFile(t *testing.T) {
 	assert.Equal(t, 2, len(topicConfigs))
 	assert.Equal(t, "topic-test1", topicConfigs[0].Meta.Name)
 	assert.Equal(t, "topic-test2", topicConfigs[1].Meta.Name)
+}
+
+func TestLoadUsersFile(t *testing.T) {
+	userConfigs, err := LoadUsersFile("testdata/test-cluster/users/user-test.yaml")
+	require.NoError(t, err)
+	fmt.Println(userConfigs)
+	assert.Equal(t, 1, len(userConfigs))
+	userConfig := userConfigs[0]
+
+	assert.Equal(
+		t,
+		UserConfig{
+			Meta: UserMeta{
+				Name:        "user-test",
+				Cluster:     "test-cluster",
+				Region:      "test-region",
+				Environment: "test-env",
+				Description: "Test user\n",
+			},
+			Spec: UserSpec{
+				Authentication: AuthenticationConfig{
+					Type:     "scram-sha-512",
+					Username: "test-user",
+					Password: "test-password",
+				},
+				Authorization: AuthorizationConfig{
+					Type: SimpleAuthorization,
+					ACLs: []ACL{
+						{
+							Resource: ACLResource{
+								Type:        "topic",
+								Name:        "test-topic",
+								PatternType: "literal",
+							},
+							Operations: []ACLOperation{
+								"Read",
+								"Describe",
+							},
+						},
+						{
+							Resource: ACLResource{
+								Type:        "group",
+								Name:        "test-group",
+								PatternType: "prefix",
+							},
+							Operations: []ACLOperation{
+								"Read",
+							},
+						},
+					},
+				},
+			},
+		},
+		userConfig,
+	)
+	assert.NoError(t, userConfig.Validate())
+
+	// userConfigs, err = LoadUsersFile("testdata/test-cluster/users/user-test-invalid.yaml")
+	// assert.Equal(t, 1, len(userConfigs))
+	// userConfig = userConfigs[0]
+	// require.NoError(t, err)
+	// assert.Error(t, userConfig.Validate())
+
+	// userConfigs, err = LoadUsersFile("testdata/test-cluster/users/user-test-multi.yaml")
+	// assert.Equal(t, 2, len(userConfigs))
+	// assert.Equal(t, "user-test1", userConfigs[0].Meta.Name)
+	// assert.Equal(t, "user-test2", userConfigs[1].Meta.Name)
 }
 
 func TestCheckConsistency(t *testing.T) {

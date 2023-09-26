@@ -111,6 +111,38 @@ func (c *CLIRunner) ApplyTopic(
 	return nil
 }
 
+// ApplyUser does an apply run according to the spec in the argument config.
+func (c *CLIRunner) ApplyUser(
+	ctx context.Context,
+	applierConfig apply.UserApplierConfig,
+) error {
+	applier, err := apply.NewUserApplier(
+		ctx,
+		c.adminClient,
+		applierConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
+
+	c.printer(
+		"Starting apply for user %s in environment %s, cluster %s",
+		highlighter(applierConfig.UserConfig.Meta.Name),
+		highlighter(applierConfig.UserConfig.Meta.Environment),
+		highlighter(applierConfig.UserConfig.Meta.Cluster),
+	)
+
+	err = applier.Apply(ctx)
+	if err != nil {
+		return err
+	}
+
+	c.printer("Apply completed successfully!")
+	return nil
+}
+
 // BootstrapTopics creates configs for one or more topics based on their current state in the
 // cluster.
 func (c *CLIRunner) BootstrapTopics(
