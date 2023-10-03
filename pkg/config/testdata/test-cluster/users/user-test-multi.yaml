@@ -1,0 +1,62 @@
+# This is an empty config.
+---
+meta:
+  name: user-test1
+  cluster: test-cluster
+  environment: test-env
+  region: test-region
+  description: |
+    Test user
+
+spec:
+  authentication:
+    type: scram-sha-512
+    password: test-password
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: test-topic
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: group
+          name: test-group
+          patternType: prefix
+        operations:
+          - Read
+---
+meta:
+  name: user-test2
+  cluster: test-cluster
+  environment: test-env
+  region: test-region
+  description: |
+    Test user
+
+spec:
+  authentication:
+    type: scram-sha-512
+    password: test-password
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: test-topic
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: group
+          name: test-group
+          patternType: prefix
+        operations:
+          - Read
+---
+# Another empty one
+
