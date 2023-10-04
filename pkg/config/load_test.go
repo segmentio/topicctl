@@ -128,7 +128,7 @@ func TestLoadUsersFile(t *testing.T) {
 					Password: "test-password",
 				},
 				Authorization: AuthorizationConfig{
-					Type: SimpleAuthorization,
+					Type: "simple",
 					ACLs: []ACL{
 						{
 							Resource: ACLResource{
@@ -136,19 +136,19 @@ func TestLoadUsersFile(t *testing.T) {
 								Name:        "test-topic",
 								PatternType: "literal",
 							},
-							Operations: []ACLOperation{
-								"Read",
-								"Describe",
+							Operations: []string{
+								"read",
+								"describe",
 							},
 						},
 						{
 							Resource: ACLResource{
 								Type:        "group",
 								Name:        "test-group",
-								PatternType: "prefix",
+								PatternType: "prefixed",
 							},
-							Operations: []ACLOperation{
-								"Read",
+							Operations: []string{
+								"read",
 							},
 						},
 					},

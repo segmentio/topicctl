@@ -5,7 +5,9 @@ import (
 	"crypto/sha512"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/xdg-go/pbkdf2"
 )
 
@@ -33,10 +35,19 @@ type UserSpec struct {
 }
 
 type AuthenticationConfig struct {
-	// TODO: extend this type to capture future types
-	Type string `json:"type"`
+	Type AuthenticationType `json:"type"`
 	// TODO: extend this to a type that supports SSMRef
 	Password string `json:"password"`
+}
+
+type AuthenticationType string
+
+const (
+	ScramSha512 AuthenticationType = "scram-sha-512"
+)
+
+var allAuthenticationTypes = []AuthenticationType{
+	ScramSha512,
 }
 
 type AuthorizationConfig struct {
@@ -46,9 +57,17 @@ type AuthorizationConfig struct {
 
 type AuthorizationType string
 
+const (
+	SimpleAuthorization AuthorizationType = "simple"
+)
+
+var allAuthorizationTypes = []AuthorizationType{
+	SimpleAuthorization,
+}
+
 type ACL struct {
-	Resource   ACLResource    `json:"resource"`
-	Operations []ACLOperation `json:"operations"`
+	Resource   ACLResource `json:"resource"`
+	Operations []string    `json:"operations"`
 }
 
 type ACLResource struct {
@@ -59,19 +78,81 @@ type ACLResource struct {
 	Host        string `json:"host"`
 }
 
-type ACLOperation string
+func keys[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
 
-const (
-	SimpleAuthorization AuthorizationType = "simple"
-)
+var allResourceTypes = keys(admin.ResourceTypeMap)
+var allPatternTypes = keys(admin.PatternTypeMap)
+var allOperationTypes = keys(admin.AclOperationTypeMap)
+
+func (u *UserConfig) SetDefaults() {
+	if u.Spec.Authorization.Type == "" {
+		u.Spec.Authorization.Type = SimpleAuthorization
+	}
+}
 
 // TODO: add validation
 // maybe consider breaking out common functionality for Meta validation
 func (u *UserConfig) Validate() error {
-	// TODO: validation authenticationtype
-
-	// TODO: validate all enums
+	// TODO: validate meta
+	// TODO: validate password types
 	var err error
+
+	authenticationTypeFound := false
+	for _, authenticationType := range allAuthenticationTypes {
+		if authenticationType == u.Spec.Authentication.Type {
+			authenticationTypeFound = true
+		}
+	}
+
+	if !authenticationTypeFound {
+		err = multierror.Append(
+			err,
+			fmt.Errorf("Authentication Type must be in %+v", allAuthenticationTypes),
+		)
+	}
+
+	authorizationTypeFound := false
+	for _, authorizationType := range allAuthorizationTypes {
+		if authorizationType == u.Spec.Authorization.Type {
+			authorizationTypeFound = true
+		}
+	}
+
+	if !authorizationTypeFound {
+		err = multierror.Append(
+			err,
+			fmt.Errorf("Authorization Type must be in %+v", allAuthorizationTypes),
+		)
+	}
+
+	for _, acl := range u.Spec.Authorization.ACLs {
+		if _, ok := admin.ResourceTypeMap[acl.Resource.Type]; !ok {
+			err = multierror.Append(
+				err,
+				fmt.Errorf("ACL Resource Type must be in %+v", allResourceTypes),
+			)
+		}
+		if _, ok := admin.PatternTypeMap[acl.Resource.PatternType]; !ok {
+			err = multierror.Append(
+				err,
+				fmt.Errorf("ACL Resource PatternType must be in %+v", allPatternTypes),
+			)
+		}
+		for _, operation := range acl.Operations {
+			if _, ok := admin.AclOperationTypeMap[operation]; !ok {
+				err = multierror.Append(
+					err,
+					fmt.Errorf("ACL OperationType must be in %+v", allOperationTypes),
+				)
+			}
+		}
+	}
 
 	return err
 }

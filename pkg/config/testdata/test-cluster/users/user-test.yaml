@@ -18,11 +18,11 @@ spec:
           name: test-topic
           patternType: literal
         operations:
-          - Read
-          - Describe
+          - read
+          - describe
       - resource:
           type: group
           name: test-group
-          patternType: prefix
+          patternType: prefixed
         operations:
-          - Read
+          - read
