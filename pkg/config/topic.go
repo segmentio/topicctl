@@ -193,6 +193,7 @@ func (t TopicConfig) Validate(numRacks int) error {
 	if t.Meta.Environment == "" {
 		err = multierror.Append(err, errors.New("Environment must be set"))
 	}
+
 	if t.Spec.Partitions <= 0 {
 		err = multierror.Append(err, errors.New("Partitions must be a positive number"))
 	}

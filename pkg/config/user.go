@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/rand"
 	"crypto/sha512"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -18,8 +19,6 @@ type UserConfig struct {
 	Spec UserSpec `json:"spec"`
 }
 
-// UserMeta stores the (mostly immutable) metadata associated with a topic.
-// Inspired by the meta structs in Kubernetes objects.
 type UserMeta struct {
 	Name        string            `json:"name"`
 	Cluster     string            `json:"cluster"`
@@ -96,12 +95,22 @@ func (u *UserConfig) SetDefaults() {
 	}
 }
 
-// TODO: add validation
-// maybe consider breaking out common functionality for Meta validation
 func (u *UserConfig) Validate() error {
-	// TODO: validate meta
 	// TODO: validate password types
 	var err error
+
+	if u.Meta.Name == "" {
+		err = multierror.Append(err, errors.New("Name must be set"))
+	}
+	if u.Meta.Cluster == "" {
+		err = multierror.Append(err, errors.New("Cluster must be set"))
+	}
+	if u.Meta.Region == "" {
+		err = multierror.Append(err, errors.New("Region must be set"))
+	}
+	if u.Meta.Environment == "" {
+		err = multierror.Append(err, errors.New("Environment must be set"))
+	}
 
 	authenticationTypeFound := false
 	for _, authenticationType := range allAuthenticationTypes {
