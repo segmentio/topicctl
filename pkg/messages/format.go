@@ -159,7 +159,7 @@ func FormatBounds(boundsSlice []Bounds) string {
 				},
 			)
 		} else {
-			numMessages := bounds.LastOffset - bounds.FirstOffset
+			numMessages := bounds.LastOffset - bounds.FirstOffset + 1
 			duration := bounds.LastTime.Sub(bounds.FirstTime)
 
 			table.Append(
@@ -222,7 +222,7 @@ func FormatBoundTotals(boundsSlice []Bounds) string {
 
 	for _, bounds := range boundsSlice {
 		if bounds.FirstOffset < bounds.LastOffset {
-			totalMessages += bounds.LastOffset - bounds.FirstOffset
+			totalMessages += bounds.LastOffset - bounds.FirstOffset + 1
 
 			if earliestTime.IsZero() {
 				earliestTime = bounds.FirstTime
