@@ -300,11 +300,31 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "partitions":
-			if err := command.checkArgs(3, 3, nil); err != nil {
+			//
+			// from terminal, topicctl get partitions can take more than one argument
+			//
+			// from repl, filtering multiple topics can get tricky.
+			// current repl implementation takes only fixed number of words (command.args)
+			// hence in repl, we will make get partitions work with only
+			// one argument (topic) and PartitionStatus as "" implying all status
+			//
+			// repl get partitions expect minimum of 3 arguments and maximum of 4
+			// repl> get partitions <topic> -> this works
+			// repl> get partitions <topic> --summary -> this works
+			// repl> get partitions <topic1> <topic2> -> this works only for <topic1>
+			// repl> get partitions <topic1> <topic2> --summary -> this will not work
+			//
+			if err := command.checkArgs(3, 4, map[string]struct{}{"summary": {}}); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetPartitions(ctx, command.args[2]); err != nil {
+
+			if err := r.cliRunner.GetPartitions(
+				ctx,
+				[]string{command.args[2]},
+				admin.PartitionStatus(""),
+				command.getBoolValue("summary"),
+			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -457,7 +477,7 @@ func helpTable() string {
 				"Get the members of a consumer group",
 			},
 			{
-				"  get partitions [topic]",
+				"  get partitions [topic]  [--summary]",
 				"Get all partitions for a topic",
 			},
 			{

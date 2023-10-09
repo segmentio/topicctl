@@ -2,9 +2,11 @@ package subcmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -30,6 +32,15 @@ type getCmdConfig struct {
 }
 
 var getConfig getCmdConfig
+
+type partitionsCmdConfig struct {
+	status  admin.PartitionStatus
+	summary bool
+}
+
+var partitionsConfig partitionsCmdConfig
+
+var partitionsStatusHelpText = "Allowed values: ok, offline, under-replicated"
 
 func init() {
 	getCmd.PersistentFlags().BoolVar(
@@ -211,10 +222,10 @@ func membersCmd() *cobra.Command {
 }
 
 func partitionsCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "partitions [topic]",
-		Short: "Displays partition information for the specified topic.",
-		Args:  cobra.ExactArgs(1),
+	partitionsCommand := &cobra.Command{
+		Use:   "partitions [optional: topics]",
+		Short: "Get all partitions information for topics",
+		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 			sess := session.Must(session.NewSession())
@@ -225,10 +236,35 @@ func partitionsCmd() *cobra.Command {
 			}
 			defer adminClient.Close()
 
+			topics := []string{}
+			for _, arg := range args {
+				topics = append(topics, arg)
+			}
+
 			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
-			return cliRunner.GetPartitions(ctx, args[0])
+			return cliRunner.GetPartitions(
+				ctx,
+				topics,
+				partitionsConfig.status,
+				partitionsConfig.summary,
+			)
 		},
 	}
+
+	partitionsCommand.Flags().Var(
+		&partitionsConfig.status,
+		"status",
+		fmt.Sprintf("partition status\n%s", partitionsStatusHelpText),
+	)
+
+	partitionsCommand.Flags().BoolVar(
+		&partitionsConfig.summary,
+		"summary",
+		false,
+		fmt.Sprintf("Display summary of partitions"),
+	)
+
+	return partitionsCommand
 }
 
 func offsetsCmd() *cobra.Command {

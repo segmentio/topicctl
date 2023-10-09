@@ -1076,3 +1076,20 @@ func updateConfig(
 	configMap["config"] = configKVMap
 	return updatedKeys, nil
 }
+
+func (c *ZKAdminClient) GetAllTopicsMetadata(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	client := c.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: nil,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics metadata: %+v", err)
+	}
+
+	return metadata, nil
+}
