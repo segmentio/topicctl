@@ -460,13 +460,6 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 			return fmt.Errorf("Assign partitions change not reflected yet")
 		}
 
-		return nil
-	})
-
-	util.RetryUntil(t, 5*time.Second, func() error {
-		topicInfo, err = client.GetTopic(ctx, topicName, true)
-		require.NoError(t, err)
-
 		// ISR shrink completed
 		for _, partition := range topicInfo.Partitions {
 			if len(partition.Replicas) != 2 {
