@@ -433,8 +433,6 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 		return err
 	})
 
-	time.Sleep(250 * time.Millisecond)
-
 	err = client.AssignPartitions(
 		ctx,
 		topicName,
@@ -463,6 +461,9 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 
 		return nil
 	})
+
+	// TODO: Replace this with some sort of retry until.
+	time.Sleep(time.Second)
 
 	assert.Equal(
 		t,
