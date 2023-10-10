@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -432,6 +433,8 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 		_, err := client.GetTopic(ctx, topicName, true)
 		return err
 	})
+
+	time.Sleep(250 * time.Millisecond)
 
 	err = client.AssignPartitions(
 		ctx,
