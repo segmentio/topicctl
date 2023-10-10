@@ -455,15 +455,14 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 		topicInfo, err = client.GetTopic(ctx, topicName, true)
 		require.NoError(t, err)
 
-		if topicInfo.Partitions[2].Replicas[0] != 5 {
-			return fmt.Errorf("Assign partitions change not reflected yet")
+		for _, partition := range topicInfo.Partitions {
+			if len(partition.Replicas) != 2 {
+				return fmt.Errorf("Assign partitions change not reflected yet")
+			}
 		}
 
 		return nil
 	})
-
-	// TODO: Replace this with some sort of retry until.
-	time.Sleep(time.Second)
 
 	assert.Equal(
 		t,
