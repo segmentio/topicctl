@@ -44,6 +44,9 @@ type Client interface {
 		filter kafka.ACLFilter,
 	) ([]ACLInfo, error)
 
+	// GetAllTopicsMetadata performs kafka-go metadata call to get topic information
+	GetAllTopicsMetadata(ctx context.Context) (*kafka.MetadataResponse, error)
+
 	// UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 	// keys that were updated.
 	UpdateTopicConfig(

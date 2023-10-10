@@ -97,6 +97,7 @@ topicctl repl --cluster-config=examples/local-cluster/cluster.yaml
 ```
 get brokers
 get topics
+get partitions
 get partitions topic-default
 get offsets topic-default
 tail topic-default
@@ -171,7 +172,7 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get groups` | All consumer groups in the cluster |
 | `get lags [topic] [group]` | Lag for each topic partition for a consumer group |
 | `get members [group]` | Details of each member in a consumer group |
-| `get partitions [topic]` | All partitions in a topic |
+| `get partitions [optional: topics]` | Get all partitions for topics |
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
 | `get acls [flags]` | Describe access control levels (ACLs) in the cluster |
