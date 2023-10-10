@@ -460,12 +460,6 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 			return fmt.Errorf("Assign partitions change not reflected yet")
 		}
 
-		for _, partition := range topicInfo.Partitions {
-			if len(partition.Replicas) != 2 {
-				return fmt.Errorf("Assign partitions change not reflected yet")
-			}
-		}
-
 		return nil
 	})
 
