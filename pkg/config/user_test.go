@@ -283,6 +283,12 @@ func TestUserValidate(t *testing.T) {
 	}
 }
 
+// TODO: write this test
 func TestUserConfigFromUserInfo(t *testing.T) {
+	t.Fatal("implement me")
+}
+
+// TODO: write this test
+func TestACLEntryFromUser(t *testing.T) {
 	t.Fatal("implement me")
 }

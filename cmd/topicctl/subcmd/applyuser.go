@@ -142,6 +142,8 @@ func applyUser(
 		)
 
 		applierConfig := apply.UserApplierConfig{
+			DryRun:        applyConfig.dryRun,
+			SkipConfirm:   applyConfig.skipConfirm,
 			UserConfig:    userConfig,
 			ClusterConfig: clusterConfig,
 			// TODO: support dryrun and skipconfirm

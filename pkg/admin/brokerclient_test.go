@@ -616,16 +616,18 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		}
 	}()
 
-	err = client.CreateACL(
+	err = client.CreateACLs(
 		ctx,
-		kafka.ACLEntry{
-			Principal:           principal,
-			PermissionType:      kafka.ACLPermissionTypeAllow,
-			Operation:           kafka.ACLOperationTypeRead,
-			ResourceType:        kafka.ResourceTypeTopic,
-			ResourcePatternType: kafka.PatternTypeLiteral,
-			ResourceName:        topicName,
-			Host:                "*",
+		[]kafka.ACLEntry{
+			{
+				Principal:           principal,
+				PermissionType:      kafka.ACLPermissionTypeAllow,
+				Operation:           kafka.ACLOperationTypeRead,
+				ResourceType:        kafka.ResourceTypeTopic,
+				ResourcePatternType: kafka.PatternTypeLiteral,
+				ResourceName:        topicName,
+				Host:                "*",
+			},
 		},
 	)
 	require.NoError(t, err)

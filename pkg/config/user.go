@@ -12,8 +12,6 @@ import (
 	"github.com/xdg-go/pbkdf2"
 )
 
-// TODO: most of this could be abstracted away and made available for any resource
-
 type UserConfig struct {
 	Meta UserMeta `json:"meta"`
 	Spec UserSpec `json:"spec"`
@@ -69,6 +67,8 @@ type ACL struct {
 	Operations []string    `json:"operations"`
 }
 
+// TODO: how should principal and permission type be handled?
+// principal will always be the meta name and permission type will always be allowed
 type ACLResource struct {
 	Type        string `json:"type"`
 	Name        string `json:"name"`
@@ -122,7 +122,7 @@ func (u *UserConfig) Validate() error {
 	if !authenticationTypeFound {
 		err = multierror.Append(
 			err,
-			fmt.Errorf("Authentication Type must be in %+v", allAuthenticationTypes),
+			fmt.Errorf("Authentication Type must be in %+v, got: %s", allAuthenticationTypes, u.Spec.Authentication.Type),
 		)
 	}
 
@@ -136,7 +136,7 @@ func (u *UserConfig) Validate() error {
 	if !authorizationTypeFound {
 		err = multierror.Append(
 			err,
-			fmt.Errorf("Authorization Type must be in %+v", allAuthorizationTypes),
+			fmt.Errorf("Authorization Type must be in %+v, got: %s", allAuthorizationTypes, u.Spec.Authorization.Type),
 		)
 	}
 
@@ -144,20 +144,20 @@ func (u *UserConfig) Validate() error {
 		if _, ok := admin.ResourceTypeMap[acl.Resource.Type]; !ok {
 			err = multierror.Append(
 				err,
-				fmt.Errorf("ACL Resource Type must be in %+v", allResourceTypes),
+				fmt.Errorf("ACL Resource Type must be in %+v, got: %s", allResourceTypes, acl.Resource.Type),
 			)
 		}
 		if _, ok := admin.PatternTypeMap[acl.Resource.PatternType]; !ok {
 			err = multierror.Append(
 				err,
-				fmt.Errorf("ACL Resource PatternType must be in %+v", allPatternTypes),
+				fmt.Errorf("ACL Resource PatternType must be in %+v, got: %s", allPatternTypes, acl.Resource.PatternType),
 			)
 		}
 		for _, operation := range acl.Operations {
 			if _, ok := admin.AclOperationTypeMap[operation]; !ok {
 				err = multierror.Append(
 					err,
-					fmt.Errorf("ACL OperationType must be in %+v", allOperationTypes),
+					fmt.Errorf("ACL OperationType must be in %+v, got: %s", allOperationTypes, operation),
 				)
 			}
 		}
@@ -187,4 +187,30 @@ func (u UserConfig) ToNewUserScramCredentialsUpsertion() (kafka.UserScramCredent
 		Salt:           salt,
 		SaltedPassword: saltedPassword,
 	}, nil
+}
+
+func (u UserConfig) ToNewACLEntries() []kafka.ACLEntry {
+	acls := []kafka.ACLEntry{}
+
+	for _, acl := range u.Spec.Authorization.ACLs {
+		// Data has already been validated before calling this function so no need to check validity
+
+		resourceType, _ := admin.ResourceTypeMap[acl.Resource.Type]
+		resourcePatternType, _ := admin.PatternTypeMap[acl.Resource.PatternType]
+
+		for _, operation := range acl.Operations {
+			aclOperation, _ := admin.AclOperationTypeMap[operation]
+
+			acls = append(acls, kafka.ACLEntry{
+				ResourceType:        resourceType,
+				ResourceName:        acl.Resource.Name,
+				ResourcePatternType: resourcePatternType,
+				Principal:           fmt.Sprintf("User:%s", u.Meta.Name),
+				Host:                acl.Resource.Host,
+				Operation:           aclOperation,
+				PermissionType:      kafka.ACLPermissionTypeAllow,
+			})
+		}
+	}
+	return acls
 }

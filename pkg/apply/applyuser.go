@@ -3,7 +3,9 @@ package apply
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
@@ -25,7 +27,6 @@ type UserApplier struct {
 
 	clusterConfig config.ClusterConfig
 	userConfig    config.UserConfig
-	userName      string
 }
 
 func NewUserApplier(
@@ -45,7 +46,6 @@ func NewUserApplier(
 		adminClient:   adminClient,
 		clusterConfig: applierConfig.ClusterConfig,
 		userConfig:    applierConfig.UserConfig,
-		userName:      applierConfig.UserConfig.Meta.Name,
 	}, nil
 }
 
@@ -53,45 +53,117 @@ func (u *UserApplier) Apply(ctx context.Context) error {
 	log.Info("Validating configs...")
 
 	if err := u.clusterConfig.Validate(); err != nil {
-		return err
+		return fmt.Errorf("error validating cluster config: %v", err)
 	}
 
 	if err := u.userConfig.Validate(); err != nil {
-		return err
+		return fmt.Errorf("error validating user config: %v", err)
 	}
 
 	log.Info("Checking if user already exists...")
 
-	userInfo, err := u.adminClient.GetUsers(ctx, []string{u.userName})
+	userInfo, err := u.adminClient.GetUsers(ctx, []string{u.userConfig.Meta.Name})
 	if err != nil {
-		return err
+		return fmt.Errorf("error checking if user already exists: %v", err)
 	}
 
 	if len(userInfo) == 0 {
-		return u.applyNewUser(ctx)
+		err = u.applyNewUser(ctx)
+	} else {
+		// TODO: handle case where this returns multiple users due to multiple creds being created
+		err = u.applyExistingUser(ctx, userInfo[0])
 	}
-	// TODO: handle case where this returns multiple users due to multiple creds being created
 
-	return u.applyExistingUser(ctx, userInfo[0])
+	if err != nil {
+		return fmt.Errorf("error applying existing user: %v", err)
+	}
+
+	log.Info("Checking if ACLs already exist for this user...")
+
+	existingACLs, err := u.adminClient.GetACLs(ctx, kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeAny,
+		ResourcePatternTypeFilter: kafka.PatternTypeAny,
+		PrincipalFilter:           fmt.Sprintf("User:%s", u.userConfig.Meta.Name),
+		Operation:                 kafka.ACLOperationTypeAny,
+		PermissionType:            kafka.ACLPermissionTypeAny,
+	})
+
+	if err != nil {
+		return fmt.Errorf("error checking existing ACLs for user %s: %v", u.userConfig.Meta.Name, err)
+	}
+
+	log.Info("Found ", len(existingACLs), " existing ACLs: ", existingACLs)
+
+	// convert existingACLs from []kafka.ACLInfo to []kafka.ACLEntry
+	existingACLEntries := []kafka.ACLEntry{}
+	for _, acl := range existingACLs {
+		existingACLEntries = append(existingACLEntries, kafka.ACLEntry{
+			ResourceType:        kafka.ResourceType(acl.ResourceType),
+			ResourceName:        acl.ResourceName,
+			ResourcePatternType: kafka.PatternType(acl.PatternType),
+			Principal:           acl.Principal,
+			Host:                acl.Host,
+			Operation:           kafka.ACLOperationType(acl.Operation),
+			PermissionType:      kafka.ACLPermissionType(acl.PermissionType),
+		})
+	}
+
+	// TODO: find orphaned ACLs, new ACLs, existing ACLs
+
+	acls := u.userConfig.ToNewACLEntries()
+
+	// Compare acls and existingACLEntries
+
+	if len(acls) == 0 {
+		return nil
+	}
+
+	log.Infof("Creating new ACLs for user with config %+v", acls)
+
+	err = u.adminClient.CreateACLs(ctx, acls)
+	if err != nil {
+		return fmt.Errorf("error creating new ACLs: %v", err)
+	}
+	return nil
 }
 
 func (u *UserApplier) applyNewUser(ctx context.Context) error {
 	user, err := u.userConfig.ToNewUserScramCredentialsUpsertion()
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating UserScramCredentialsUpsertion: %v", err)
 	}
 
 	if u.config.DryRun {
 		log.Infof("Would create user with config %+v", user)
+		// TODO: dry run acls as well
 		return nil
 	}
-	return u.adminClient.CreateUser(ctx, user)
+
+	log.Infof(
+		"It looks like this user doesn't already exists. Will create it with this config:\n%s",
+		FormatNewUserConfig(user),
+	)
+
+	ok, _ := Confirm("OK to continue?", u.config.SkipConfirm)
+	if !ok {
+		return errors.New("Stopping because of user response")
+	}
+
+	log.Infof("Creating new user with config %+v", user)
+
+	err = u.adminClient.CreateUser(ctx, user)
+	if err != nil {
+		return fmt.Errorf("error creating new user: %v", err)
+	}
+
+	return nil
 }
 
+// TODO: support this
 func (u *UserApplier) applyExistingUser(
 	ctx context.Context,
 	userInfo admin.UserInfo,
 ) error {
-	log.Infof("Updating existing user '%s'", u.userName)
+	log.Infof("Updating existing user: %s", u.userConfig.Meta.Name)
 	return nil
 }

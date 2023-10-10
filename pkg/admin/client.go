@@ -74,10 +74,10 @@ type Client interface {
 		config kafka.TopicConfig,
 	) error
 
-	// Create ACL creates an ACL in the cluster.
-	CreateACL(
+	// CreateACLs creates ACLs in the cluster.
+	CreateACLs(
 		ctx context.Context,
-		entry kafka.ACLEntry,
+		acls []kafka.ACLEntry,
 	) error
 
 	// CreateUser creates a user in zookeeper.

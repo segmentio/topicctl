@@ -159,16 +159,18 @@ func TestLoadUsersFile(t *testing.T) {
 	)
 	assert.NoError(t, userConfig.Validate())
 
-	userConfigs, err = LoadUsersFile("testdata/test-cluster/users/user-test-invalid.yaml")
-	assert.Equal(t, 1, len(userConfigs))
-	userConfig = userConfigs[0]
+	invalidUserConfigs, err := LoadUsersFile("testdata/test-cluster/users/user-test-invalid.yaml")
+	assert.Equal(t, 1, len(invalidUserConfigs))
+	invalidUserConfig := invalidUserConfigs[0]
 	require.NoError(t, err)
-	assert.Error(t, userConfig.Validate())
+	assert.Error(t, invalidUserConfig.Validate())
 
-	userConfigs, err = LoadUsersFile("testdata/test-cluster/users/user-test-multi.yaml")
-	assert.Equal(t, 2, len(userConfigs))
-	assert.Equal(t, "user-test1", userConfigs[0].Meta.Name)
-	assert.Equal(t, "user-test2", userConfigs[1].Meta.Name)
+	multiUserConfigs, err := LoadUsersFile("testdata/test-cluster/users/user-test-multi.yaml")
+	assert.Equal(t, 2, len(multiUserConfigs))
+	assert.Equal(t, "user-test1", multiUserConfigs[0].Meta.Name)
+	assert.Equal(t, "user-test2", multiUserConfigs[1].Meta.Name)
+	assert.NoError(t, multiUserConfigs[0].Validate())
+	assert.NoError(t, multiUserConfigs[1].Validate())
 }
 
 func TestCheckConsistency(t *testing.T) {

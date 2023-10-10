@@ -1103,7 +1103,7 @@ func TestZkCreateACL(t *testing.T) {
 	require.NoError(t, err)
 	defer adminClient.Close()
 
-	err = adminClient.CreateACL(ctx, kafka.ACLEntry{})
+	err = adminClient.CreateACLs(ctx, []kafka.ACLEntry{})
 	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
 }
 
