@@ -616,16 +616,18 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 		}
 	}()
 
-	err = client.CreateACL(
+	err = client.CreateACLs(
 		ctx,
-		kafka.ACLEntry{
-			Principal:           principal,
-			PermissionType:      kafka.ACLPermissionTypeAllow,
-			Operation:           kafka.ACLOperationTypeRead,
-			ResourceType:        kafka.ResourceTypeTopic,
-			ResourcePatternType: kafka.PatternTypeLiteral,
-			ResourceName:        topicName,
-			Host:                "*",
+		[]kafka.ACLEntry{
+			{
+				Principal:           principal,
+				PermissionType:      kafka.ACLPermissionTypeAllow,
+				Operation:           kafka.ACLOperationTypeRead,
+				ResourceType:        kafka.ResourceTypeTopic,
+				ResourcePatternType: kafka.PatternTypeLiteral,
+				ResourceName:        topicName,
+				Host:                "*",
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -670,7 +672,7 @@ func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = client.CreateACL(ctx, kafka.ACLEntry{})
+	err = client.CreateACLs(ctx, []kafka.ACLEntry{})
 	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
 
 }

@@ -429,9 +429,9 @@ func (c *ZKAdminClient) GetACLs(
 	return nil, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
-func (c *ZKAdminClient) CreateACL(
+func (c *ZKAdminClient) CreateACLs(
 	ctx context.Context,
-	entry kafka.ACLEntry,
+	acls []kafka.ACLEntry,
 ) error {
 	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }

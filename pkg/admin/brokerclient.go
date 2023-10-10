@@ -736,19 +736,17 @@ func (c *BrokerAdminClient) GetACLs(
 	return aclinfos, nil
 }
 
-// CreateACL creates an ACL in the cluster.
-func (c *BrokerAdminClient) CreateACL(
+// CreateACLs creates an ACL in the cluster.
+func (c *BrokerAdminClient) CreateACLs(
 	ctx context.Context,
-	entry kafka.ACLEntry,
+	acls []kafka.ACLEntry,
 ) error {
 	if c.config.ReadOnly {
 		return errors.New("Cannot create ACL in read-only mode")
 	}
 
 	req := kafka.CreateACLsRequest{
-		ACLs: []kafka.ACLEntry{
-			entry,
-		},
+		ACLs: acls,
 	}
 	log.Debugf("CreateACLs request: %+v", req)
 
