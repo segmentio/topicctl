@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -1073,4 +1074,35 @@ func TestZkClientLocking(t *testing.T) {
 
 func testClusterID(name string) string {
 	return util.RandomString(fmt.Sprintf("cluster-%s-", name), 6)
+}
+
+func TestZkGetACLs(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	acls, err := adminClient.GetACLs(ctx, kafka.ACLFilter{})
+	assert.Empty(t, acls)
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
+}
+
+func TestZkCreateACL(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	err = adminClient.CreateACLs(ctx, []kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
 }

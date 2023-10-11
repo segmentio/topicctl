@@ -98,6 +98,12 @@ func NewBrokerAdminClient(
 	if _, ok := maxVersions["AlterClientQuotas"]; ok {
 		supportedFeatures.DynamicBrokerConfigs = true
 	}
+
+	// If we have DescribeAcls, than we're running a version of Kafka > 2.0.1,
+	// that will have support for all ACLs APIs.
+	if _, ok := maxVersions["DescribeAcls"]; ok {
+		supportedFeatures.ACLs = true
+	}
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
 	adminClient := &BrokerAdminClient{
@@ -689,6 +695,76 @@ func configEntriesToAPIConfigs(
 	}
 
 	return apiConfigs
+}
+
+// GetACLs gets full information about each ACL in the cluster.
+func (c *BrokerAdminClient) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) ([]ACLInfo, error) {
+	req := kafka.DescribeACLsRequest{
+		Filter: filter,
+	}
+	log.Debugf("DescribeACLs request: %+v", req)
+
+	resp, err := c.client.DescribeACLs(ctx, &req)
+	log.Debugf("DescribeACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	aclinfos := []ACLInfo{}
+
+	for _, resource := range resp.Resources {
+		for _, acl := range resource.ACLs {
+			aclinfos = append(aclinfos, ACLInfo{
+				ResourceType:   ResourceType(resource.ResourceType),
+				ResourceName:   resource.ResourceName,
+				PatternType:    PatternType(resource.PatternType),
+				Principal:      acl.Principal,
+				Host:           acl.Host,
+				Operation:      ACLOperationType(acl.Operation),
+				PermissionType: ACLPermissionType(acl.PermissionType),
+			})
+		}
+	}
+
+	return aclinfos, nil
+}
+
+// CreateACLs creates an ACL in the cluster.
+func (c *BrokerAdminClient) CreateACLs(
+	ctx context.Context,
+	acls []kafka.ACLEntry,
+) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot create ACL in read-only mode")
+	}
+
+	req := kafka.CreateACLsRequest{
+		ACLs: acls,
+	}
+	log.Debugf("CreateACLs request: %+v", req)
+
+	resp, err := c.client.CreateACLs(ctx, &req)
+	log.Debugf("CreateACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	var errors []error
+	for _, err := range resp.Errors {
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("%+v", errors)
+	}
+	return nil
 }
 
 func (c *BrokerAdminClient) GetAllTopicsMetadata(

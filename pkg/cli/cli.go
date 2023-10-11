@@ -14,6 +14,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -582,6 +583,24 @@ func (c *CLIRunner) Tail(
 	}
 
 	return err
+}
+
+// GetACLs fetches the details of each acl in the cluster and prints out a summary.
+func (c *CLIRunner) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) error {
+	c.startSpinner()
+
+	acls, err := c.adminClient.GetACLs(ctx, filter)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("ACLs:\n%s", admin.FormatACLs(acls))
+
+	return nil
 }
 
 func (c *CLIRunner) startSpinner() {

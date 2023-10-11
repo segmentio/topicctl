@@ -76,6 +76,221 @@ type PartitionAssignment struct {
 	Replicas []int `json:"replicas"`
 }
 
+// PartitionInfo represents the information stored about an ACL
+// in zookeeper.
+type ACLInfo struct {
+	ResourceType   ResourceType      `json:"resourceType"`
+	ResourceName   string            `json:"resourceName"`
+	PatternType    PatternType       `json:"patternType"`
+	Principal      string            `json:"principal"`
+	Host           string            `json:"host"`
+	Operation      ACLOperationType  `json:"operation"`
+	PermissionType ACLPermissionType `json:"permissionType"`
+}
+
+// ResourceType presents the Kafka resource type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type ResourceType kafka.ResourceType
+
+var resourceTypeMap = map[string]kafka.ResourceType{
+	"any":             kafka.ResourceTypeAny,
+	"topic":           kafka.ResourceTypeTopic,
+	"group":           kafka.ResourceTypeGroup,
+	"cluster":         kafka.ResourceTypeCluster,
+	"transactionalid": kafka.ResourceTypeTransactionalID,
+	"delegationtoken": kafka.ResourceTypeDelegationToken,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (r *ResourceType) String() string {
+	switch kafka.ResourceType(*r) {
+	case kafka.ResourceTypeAny:
+		return "any"
+	case kafka.ResourceTypeTopic:
+		return "topic"
+	case kafka.ResourceTypeGroup:
+		return "group"
+	case kafka.ResourceTypeCluster:
+		return "cluster"
+	case kafka.ResourceTypeTransactionalID:
+		return "transactionalid"
+	case kafka.ResourceTypeDelegationToken:
+		return "delegationtoken"
+	default:
+		return "unknown"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (r *ResourceType) Set(v string) error {
+	rt, ok := resourceTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "any", "topic", "group", "cluster", "transactionalid", or "delegationtoken"`)
+	}
+	*r = ResourceType(rt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (r *ResourceType) Type() string {
+	return "ResourceType"
+}
+
+// PatternType presents the Kafka pattern type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type PatternType kafka.PatternType
+
+var patternTypeMap = map[string]kafka.PatternType{
+	"any":      kafka.PatternTypeAny,
+	"match":    kafka.PatternTypeMatch,
+	"literal":  kafka.PatternTypeLiteral,
+	"prefixed": kafka.PatternTypePrefixed,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (p *PatternType) String() string {
+	switch kafka.PatternType(*p) {
+	case kafka.PatternTypeAny:
+		return "any"
+	case kafka.PatternTypeMatch:
+		return "match"
+	case kafka.PatternTypeLiteral:
+		return "literal"
+	case kafka.PatternTypePrefixed:
+		return "prefixed"
+	default:
+		return "unknown"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (p *PatternType) Set(v string) error {
+	pt, ok := patternTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "any", "match", "literal", or "prefixed"`)
+	}
+	*p = PatternType(pt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (r *PatternType) Type() string {
+	return "PatternType"
+}
+
+// ACLOperationType presents the Kafka operation type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type ACLOperationType kafka.ACLOperationType
+
+var aclOperationTypeMap = map[string]kafka.ACLOperationType{
+	"any":             kafka.ACLOperationTypeAny,
+	"all":             kafka.ACLOperationTypeAll,
+	"read":            kafka.ACLOperationTypeRead,
+	"write":           kafka.ACLOperationTypeWrite,
+	"create":          kafka.ACLOperationTypeCreate,
+	"delete":          kafka.ACLOperationTypeDelete,
+	"alter":           kafka.ACLOperationTypeAlter,
+	"describe":        kafka.ACLOperationTypeDescribe,
+	"clusteraction":   kafka.ACLOperationTypeClusterAction,
+	"describeconfigs": kafka.ACLOperationTypeDescribeConfigs,
+	"alterconfigs":    kafka.ACLOperationTypeAlterConfigs,
+	"idempotentwrite": kafka.ACLOperationTypeIdempotentWrite,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (o *ACLOperationType) String() string {
+	switch kafka.ACLOperationType(*o) {
+	case kafka.ACLOperationTypeAny:
+		return "any"
+	case kafka.ACLOperationTypeAll:
+		return "all"
+	case kafka.ACLOperationTypeRead:
+		return "read"
+	case kafka.ACLOperationTypeWrite:
+		return "write"
+	case kafka.ACLOperationTypeCreate:
+		return "create"
+	case kafka.ACLOperationTypeDelete:
+		return "delete"
+	case kafka.ACLOperationTypeAlter:
+		return "alter"
+	case kafka.ACLOperationTypeDescribe:
+		return "describe"
+	case kafka.ACLOperationTypeClusterAction:
+		return "clusteraction"
+	case kafka.ACLOperationTypeDescribeConfigs:
+		return "describeconfigs"
+	case kafka.ACLOperationTypeAlterConfigs:
+		return "alterconfigs"
+	case kafka.ACLOperationTypeIdempotentWrite:
+		return "idempotentwrite"
+	default:
+		return "unknown"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (o *ACLOperationType) Set(v string) error {
+	ot, ok := aclOperationTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`)
+	}
+	*o = ACLOperationType(ot)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (o *ACLOperationType) Type() string {
+	return "ACLOperationType"
+}
+
+// ACLPermissionType presents the Kafka operation type.
+// We need to subtype this to be able to define methods to
+// satisfy the Value interface from Cobra so we can use it
+// as a Cobra flag.
+type ACLPermissionType kafka.ACLPermissionType
+
+var aclPermissionTypeMap = map[string]kafka.ACLPermissionType{
+	"any":   kafka.ACLPermissionTypeAny,
+	"allow": kafka.ACLPermissionTypeAllow,
+	"deny":  kafka.ACLPermissionTypeDeny,
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func (p *ACLPermissionType) String() string {
+	switch kafka.ACLPermissionType(*p) {
+	case kafka.ACLPermissionTypeAny:
+		return "any"
+	case kafka.ACLPermissionTypeDeny:
+		return "deny"
+	case kafka.ACLPermissionTypeAllow:
+		return "allow"
+	default:
+		return "unknown"
+	}
+}
+
+// Set is used by Cobra to set the value of a variable from a Cobra flag.
+func (p *ACLPermissionType) Set(v string) error {
+	pt, ok := aclPermissionTypeMap[strings.ToLower(v)]
+	if !ok {
+		return errors.New(`must be one of "any", "allow", or "deny"`)
+	}
+	*p = ACLPermissionType(pt)
+	return nil
+}
+
+// Type is used by Cobra in help text.
+func (p *ACLPermissionType) Type() string {
+	return "ACLPermissionType"
+}
+
 type zkClusterID struct {
 	Version string `json:"version"`
 	ID      string `json:"id"`

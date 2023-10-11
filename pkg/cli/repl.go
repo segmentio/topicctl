@@ -40,6 +40,10 @@ var (
 
 	getSuggestions = []prompt.Suggest{
 		{
+			Text:        "acls",
+			Description: "Get all ACLs",
+		},
+		{
 			Text:        "balance",
 			Description: "Get positions of all brokers in a topic or across entire cluster",
 		},
@@ -226,6 +230,16 @@ func (r *Repl) executor(in string) {
 		}
 
 		switch command.args[1] {
+		case "acls":
+			if err := command.checkArgs(2, 2, nil); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+			if err := r.cliRunner.GetACLs(ctx, kafka.ACLFilter{}); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+
 		case "balance":
 			if err := command.checkArgs(2, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
@@ -452,6 +466,10 @@ func helpTable() string {
 
 	table.AppendBulk(
 		[][]string{
+			{
+				"  get acls",
+				"Get all ACLs",
+			},
 			{
 				"  get balance [optional topic]",
 				"Get positions of all brokers in topic or across cluster",

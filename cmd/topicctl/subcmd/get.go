@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
@@ -66,6 +67,7 @@ func init() {
 		partitionsCmd(),
 		offsetsCmd(),
 		topicsCmd(),
+		aclsCmd(),
 	)
 	RootCmd.AddCommand(getCmd)
 }
@@ -307,4 +309,108 @@ func topicsCmd() *cobra.Command {
 			return cliRunner.GetTopics(ctx, getConfig.full)
 		},
 	}
+}
+
+type aclsCmdConfig struct {
+	hostFilter          string
+	operationType       admin.ACLOperationType
+	permissionType      admin.ACLPermissionType
+	principalFilter     string
+	resourceNameFilter  string
+	resourcePatternType admin.PatternType
+	resourceType        admin.ResourceType
+}
+
+// aclsConfig defines the default values if a flag is not provided. These all default
+// to doing no filtering (e.g. "all" or null)
+var aclsConfig = aclsCmdConfig{
+	hostFilter:          "",
+	operationType:       admin.ACLOperationType(kafka.ACLOperationTypeAny),
+	permissionType:      admin.ACLPermissionType(kafka.ACLPermissionTypeAny),
+	principalFilter:     "",
+	resourceNameFilter:  "",
+	resourceType:        admin.ResourceType(kafka.ResourceTypeAny),
+	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
+}
+
+func aclsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "acls",
+		Short: "Displays information for ACLs in the cluster. Supports filtering with flags.",
+		Args:  cobra.NoArgs,
+		Example: `List all acls
+$ topicctl get acls
+
+List read acls for topic my-topic
+$ topicctl get acls --resource-type topic --resource-name my-topic --operation read
+
+List acls for user Alice with permission allow
+$ topicctl get acls --principal User:alice --permission-type allow
+
+List acls for host 198.51.100.0
+$ topicctl get acls --host 198.51.100.0
+`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+
+			filter := kafka.ACLFilter{
+				ResourceTypeFilter:        kafka.ResourceType(aclsConfig.resourceType),
+				ResourceNameFilter:        aclsConfig.resourceNameFilter,
+				ResourcePatternTypeFilter: kafka.PatternType(aclsConfig.resourcePatternType),
+				PrincipalFilter:           aclsConfig.principalFilter,
+				HostFilter:                aclsConfig.hostFilter,
+				Operation:                 kafka.ACLOperationType(aclsConfig.operationType),
+				PermissionType:            kafka.ACLPermissionType(aclsConfig.permissionType),
+			}
+			return cliRunner.GetACLs(ctx, filter)
+		},
+	}
+	cmd.Flags().StringVar(
+		&aclsConfig.hostFilter,
+		"host",
+		"",
+		`The host to filter on. (e.g. 198.51.100.0)`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.operationType,
+		"operation",
+		`The operation that is being allowed or denied to filter on. allowed: [any, all, read, write, create, delete, alter, describe, clusteraction, describeconfigs, alterconfigs, idempotentwrite]`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.permissionType,
+		"permission-type",
+		`The permission type to filter on. allowed: [any, allow, deny]`,
+	)
+	cmd.Flags().StringVar(
+		&aclsConfig.principalFilter,
+		"principal",
+		"",
+		`The principal to filter on in principalType:name format (e.g. User:alice).`,
+	)
+	cmd.Flags().StringVar(
+		&aclsConfig.resourceNameFilter,
+		"resource-name",
+		"",
+		`The resource name to filter on. (e.g. my-topic)`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.resourcePatternType,
+		"resource-pattern-type",
+		`The type of the resource pattern or filter. allowed: [any, match, literal, prefixed]. "any" will match any pattern type (literal or prefixed), but will match the resource name exactly, where as "match" will perform pattern matching to list all acls that affect the supplied resource(s).`,
+	)
+	cmd.Flags().Var(
+		&aclsConfig.resourceType,
+		"resource-type",
+		`The type of resource to filter on. allowed: [any, topic, group, cluster, transactionalid, delegationtoken]`,
+	)
+	return cmd
 }

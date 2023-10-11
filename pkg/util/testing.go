@@ -48,6 +48,16 @@ func CanTestBrokerAdmin() bool {
 	return false
 }
 
+// CanTestBrokerAdminSecurity returns whether we can test the broker-only admin client security features.
+func CanTestBrokerAdminSecurity() bool {
+	value, ok := os.LookupEnv("KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY")
+	if ok && value != "" {
+		return true
+	}
+
+	return false
+}
+
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // RandomString returns a random string with the argument length.

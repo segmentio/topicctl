@@ -422,6 +422,20 @@ func (c *ZKAdminClient) GetTopic(
 	return topics[0], nil
 }
 
+func (c *ZKAdminClient) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) ([]ACLInfo, error) {
+	return nil, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
+func (c *ZKAdminClient) CreateACLs(
+	ctx context.Context,
+	acls []kafka.ACLEntry,
+) error {
+	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
 // UpdateTopicConfig updates the config JSON for a topic and sets a change
 // notification so that the brokers are notified. If overwrite is true, then
 // it will overwrite existing config entries.
@@ -756,12 +770,14 @@ func (c *ZKAdminClient) LockHeld(
 
 // GetSupportedFeatures returns the features that are supported by this client.
 func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
-	// The zk-based client supports everything.
+	// The zk-based client supports everything except for ACLs.
+	// Zookeeper can support ACLs, topicctl just hasn't added support for it yet.
 	return SupportedFeatures{
 		Reads:                true,
 		Applies:              true,
 		Locks:                true,
 		DynamicBrokerConfigs: true,
+		ACLs:                 false,
 	}
 }
 

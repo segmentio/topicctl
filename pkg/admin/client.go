@@ -38,6 +38,12 @@ type Client interface {
 		detailed bool,
 	) (TopicInfo, error)
 
+	// GetACLs gets full information about each ACL in the cluster.
+	GetACLs(
+		ctx context.Context,
+		filter kafka.ACLFilter,
+	) ([]ACLInfo, error)
+
 	// GetAllTopicsMetadata performs kafka-go metadata call to get topic information
 	GetAllTopicsMetadata(ctx context.Context) (*kafka.MetadataResponse, error)
 
@@ -63,6 +69,12 @@ type Client interface {
 	CreateTopic(
 		ctx context.Context,
 		config kafka.TopicConfig,
+	) error
+
+	// Create ACLs creates ACLs in the cluster.
+	CreateACLs(
+		ctx context.Context,
+		acls []kafka.ACLEntry,
 	) error
 
 	// AssignPartitions sets the replica broker IDs for one or more partitions in a topic.
