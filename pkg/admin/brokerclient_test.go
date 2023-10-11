@@ -732,6 +732,10 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 }
 
 func TestBrokerClientCreateUserReadOnly(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
 	ctx := context.Background()
 	client, err := NewBrokerAdminClient(
 		ctx,
