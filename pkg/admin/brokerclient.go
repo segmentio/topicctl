@@ -104,6 +104,12 @@ func NewBrokerAdminClient(
 	if _, ok := maxVersions["DescribeAcls"]; ok {
 		supportedFeatures.ACLs = true
 	}
+
+	// If we have DescribeUserScramCredentials, than we're running a version of Kafka > 2.7.1,
+	// that will have support for all User APIs.
+	if _, ok := maxVersions["DescribeUserScramCredentials"]; ok {
+		supportedFeatures.Users = true
+	}
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
 	adminClient := &BrokerAdminClient{

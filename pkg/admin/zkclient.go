@@ -792,6 +792,7 @@ func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
 		Locks:                true,
 		DynamicBrokerConfigs: true,
 		ACLs:                 false,
+		Users:                false,
 	}
 }
 
