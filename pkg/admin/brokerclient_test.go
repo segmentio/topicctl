@@ -732,6 +732,23 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 }
 
 func TestBrokerClientCreateUserReadOnly(t *testing.T) {
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
+
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
+}
+
+func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
 	}
@@ -747,7 +764,7 @@ func TestBrokerClientCreateUserReadOnly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
+	err = client.CreateACLs(ctx, []kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
 
-	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
 }

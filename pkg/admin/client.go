@@ -89,12 +89,6 @@ type Client interface {
 		user kafka.UserScramCredentialsUpsertion,
 	) error
 
-	// CreateUser creates a user in zookeeper.
-	CreateUser(
-		ctx context.Context,
-		user kafka.UserScramCredentialsUpsertion,
-	) error
-
 	// AssignPartitions sets the replica broker IDs for one or more partitions in a topic.
 	AssignPartitions(
 		ctx context.Context,
