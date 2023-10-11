@@ -41,7 +41,7 @@ var (
 	getSuggestions = []prompt.Suggest{
 		{
 			Text:        "acls",
-			Description: "Get all acls",
+			Description: "Get all ACLs",
 		},
 		{
 			Text:        "balance",
@@ -468,7 +468,7 @@ func helpTable() string {
 		[][]string{
 			{
 				"  get acls",
-				"Get all acls",
+				"Get all ACLs",
 			},
 			{
 				"  get balance [optional topic]",
