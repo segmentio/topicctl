@@ -99,7 +99,7 @@ func NewBrokerAdminClient(
 		supportedFeatures.DynamicBrokerConfigs = true
 	}
 
-	// If we have DescribeAcls, than we're running a version of Kafka > 2.0.1,
+	// If we have DescribeAcls, then we're running a version of Kafka > 2.0.1,
 	// that will have support for all ACLs APIs.
 	if _, ok := maxVersions["DescribeAcls"]; ok {
 		supportedFeatures.ACLs = true
