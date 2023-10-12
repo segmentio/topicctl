@@ -44,6 +44,9 @@ type Client interface {
 		filter kafka.ACLFilter,
 	) ([]ACLInfo, error)
 
+	// GetAllTopicsMetadata performs kafka-go metadata call to get topic information
+	GetAllTopicsMetadata(ctx context.Context) (*kafka.MetadataResponse, error)
+
 	// GetUsers gets information about users in the cluster.
 	GetUsers(
 		ctx context.Context,
@@ -80,8 +83,8 @@ type Client interface {
 		acls []kafka.ACLEntry,
 	) error
 
-	// CreateUser creates a user in zookeeper.
-	CreateUser(
+	// UpsertUser creates or updates an user in zookeeper.
+	UpsertUser(
 		ctx context.Context,
 		user kafka.UserScramCredentialsUpsertion,
 	) error

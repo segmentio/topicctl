@@ -30,12 +30,11 @@ func init() {
 		false,
 		"Do a dry-run",
 	)
-	// TODO: fix this and make it work for users
 	applyUserCmd.Flags().StringVar(
 		&applyConfig.pathPrefix,
 		"path-prefix",
-		os.Getenv("TOPICCTL_APPLY_PATH_PREFIX"),
-		"Prefix for topic config paths",
+		os.Getenv("TOPICCTL_USER_APPLY_PATH_PREFIX"),
+		"Prefix for user config paths",
 	)
 	applyUserCmd.Flags().BoolVar(
 		&applyConfig.skipConfirm,

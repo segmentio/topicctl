@@ -456,8 +456,16 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 		topicInfo, err = client.GetTopic(ctx, topicName, true)
 		require.NoError(t, err)
 
+		// Alter partition succeeded
 		if topicInfo.Partitions[2].Replicas[0] != 5 {
 			return fmt.Errorf("Assign partitions change not reflected yet")
+		}
+
+		// ISR shrink completed
+		for _, partition := range topicInfo.Partitions {
+			if len(partition.Replicas) != 2 {
+				return fmt.Errorf("Assign partitions change not reflected yet")
+			}
 		}
 
 		return nil
@@ -698,7 +706,7 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 
 	}()
 
-	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{
+	err = client.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{
 		Name:           name,
 		Mechanism:      mechanism,
 		Iterations:     15000,
@@ -723,7 +731,28 @@ func TestBrokerClientCreateGetUsers(t *testing.T) {
 	}, resp)
 }
 
-func TestBrokerClientCreateUserReadOnly(t *testing.T) {
+func TestBrokerClientUpsertUserReadOnly(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+	err = client.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{})
+
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
+}
+
+func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
 	}
@@ -739,7 +768,6 @@ func TestBrokerClientCreateUserReadOnly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = client.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
-
-	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
+	err = client.CreateACLs(ctx, []kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
 }

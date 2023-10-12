@@ -99,11 +99,18 @@ func NewBrokerAdminClient(
 		supportedFeatures.DynamicBrokerConfigs = true
 	}
 
-	// If we have DescribeAcls, than we're running a version of Kafka > 2.0.1,
+	// If we have DescribeAcls, then we're running a version of Kafka > 2.0.1,
 	// that will have support for all ACLs APIs.
 	if _, ok := maxVersions["DescribeAcls"]; ok {
 		supportedFeatures.ACLs = true
 	}
+
+	// If we have DescribeUserScramCredentials, than we're running a version of Kafka > 2.7.1,
+	// that will have support for all User APIs.
+	if _, ok := maxVersions["DescribeUserScramCredentials"]; ok {
+		supportedFeatures.Users = true
+	}
+
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
 	adminClient := &BrokerAdminClient{
@@ -424,10 +431,10 @@ func (c *BrokerAdminClient) GetUsers(
 			CredentialInfos: credentials,
 		})
 	}
-	return results, nil
+	return results, err
 }
 
-func (c *BrokerAdminClient) CreateUser(
+func (c *BrokerAdminClient) UpsertUser(
 	ctx context.Context,
 	user kafka.UserScramCredentialsUpsertion,
 ) error {
@@ -835,4 +842,21 @@ func (c *BrokerAdminClient) CreateACLs(
 		return fmt.Errorf("%+v", errors)
 	}
 	return nil
+}
+
+func (c *BrokerAdminClient) GetAllTopicsMetadata(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	client := c.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: nil,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics metadata: %+v", err)
+	}
+
+	return metadata, nil
 }

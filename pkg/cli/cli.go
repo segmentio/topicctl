@@ -433,25 +433,57 @@ func (c *CLIRunner) GetMemberLags(
 
 // GetPartitions fetches the details of each partition in a topic and prints out a summary for
 // user inspection.
-func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
+func (c *CLIRunner) GetPartitions(
+	ctx context.Context,
+	topics []string,
+	status admin.PartitionStatus,
+	summary bool,
+) error {
 	c.startSpinner()
 
-	topicInfo, err := c.adminClient.GetTopic(ctx, topic, true)
+	metadata, err := c.adminClient.GetAllTopicsMetadata(ctx)
 	if err != nil {
 		c.stopSpinner()
 		return err
 	}
 
 	brokers, err := c.adminClient.GetBrokers(ctx, nil)
-	c.stopSpinner()
 	if err != nil {
+		c.stopSpinner()
 		return err
 	}
 
+	if !summary {
+		topicsPartitionsStatusInfo := admin.GetTopicsPartitionsStatusInfo(metadata, topics, status)
+		c.stopSpinner()
+
+		c.printer(
+			"Partitions:\n%s",
+			admin.FormatTopicsPartitions(topicsPartitionsStatusInfo, brokers),
+		)
+
+		return nil
+	}
+
+	statusSummary, okCount, offlineCount, underReplicatedCount := admin.GetTopicsPartitionsStatusSummary(metadata,
+		topics,
+		status,
+	)
+	c.stopSpinner()
+
 	c.printer(
-		"Partitions for topic %s:\n%s",
-		topic,
-		admin.FormatTopicPartitions(topicInfo.Partitions, brokers),
+		"Partitions Summary:\n%s",
+		admin.FormatTopicsPartitionsSummary(statusSummary),
+	)
+
+	c.printer(
+		"%d %v partitions, %d %v partitions, %d %v partitions are found",
+		okCount,
+		admin.Ok,
+		underReplicatedCount,
+		admin.UnderReplicated,
+		offlineCount,
+		admin.Offline,
 	)
 
 	return nil

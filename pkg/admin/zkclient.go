@@ -443,7 +443,7 @@ func (c *ZKAdminClient) GetUsers(
 	return nil, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
-func (c *ZKAdminClient) CreateUser(
+func (c *ZKAdminClient) UpsertUser(
 	ctx context.Context,
 	user kafka.UserScramCredentialsUpsertion,
 ) error {
@@ -792,6 +792,7 @@ func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
 		Locks:                true,
 		DynamicBrokerConfigs: true,
 		ACLs:                 false,
+		Users:                false,
 	}
 }
 
@@ -1105,4 +1106,21 @@ func updateConfig(
 
 	configMap["config"] = configKVMap
 	return updatedKeys, nil
+}
+
+func (c *ZKAdminClient) GetAllTopicsMetadata(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	client := c.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: nil,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics metadata: %+v", err)
+	}
+
+	return metadata, nil
 }

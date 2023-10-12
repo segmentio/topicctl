@@ -1123,7 +1123,7 @@ func TestZkGetUsers(t *testing.T) {
 	assert.Equal(t, err, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix."))
 }
 
-func TestZkCreateUser(t *testing.T) {
+func TestZkUpsertUser(t *testing.T) {
 	ctx := context.Background()
 	adminClient, err := NewZKAdminClient(
 		ctx,
@@ -1134,6 +1134,6 @@ func TestZkCreateUser(t *testing.T) {
 	require.NoError(t, err)
 	defer adminClient.Close()
 
-	err = adminClient.CreateUser(ctx, kafka.UserScramCredentialsUpsertion{})
+	err = adminClient.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{})
 	assert.Equal(t, err, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix."))
 }

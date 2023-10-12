@@ -40,6 +40,10 @@ var (
 
 	getSuggestions = []prompt.Suggest{
 		{
+			Text:        "acls",
+			Description: "Get all ACLs",
+		},
+		{
 			Text:        "balance",
 			Description: "Get positions of all brokers in a topic or across entire cluster",
 		},
@@ -74,6 +78,10 @@ var (
 		{
 			Text:        "topics",
 			Description: "Get all topics",
+		},
+		{
+			Text:        "users",
+			Description: "Get all users",
 		},
 	}
 
@@ -226,6 +234,15 @@ func (r *Repl) executor(in string) {
 		}
 
 		switch command.args[1] {
+		case "acls":
+			if err := command.checkArgs(2, 2, nil); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+			if err := r.cliRunner.GetACLs(ctx, kafka.ACLFilter{}); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
 		case "balance":
 			if err := command.checkArgs(2, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
@@ -300,11 +317,31 @@ func (r *Repl) executor(in string) {
 				return
 			}
 		case "partitions":
-			if err := command.checkArgs(3, 3, nil); err != nil {
+			//
+			// from terminal, topicctl get partitions can take more than one argument
+			//
+			// from repl, filtering multiple topics can get tricky.
+			// current repl implementation takes only fixed number of words (command.args)
+			// hence in repl, we will make get partitions work with only
+			// one argument (topic) and PartitionStatus as "" implying all status
+			//
+			// repl get partitions expect minimum of 3 arguments and maximum of 4
+			// repl> get partitions <topic> -> this works
+			// repl> get partitions <topic> --summary -> this works
+			// repl> get partitions <topic1> <topic2> -> this works only for <topic1>
+			// repl> get partitions <topic1> <topic2> --summary -> this will not work
+			//
+			if err := command.checkArgs(3, 4, map[string]struct{}{"summary": {}}); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetPartitions(ctx, command.args[2]); err != nil {
+
+			if err := r.cliRunner.GetPartitions(
+				ctx,
+				[]string{command.args[2]},
+				admin.PartitionStatus(""),
+				command.getBoolValue("summary"),
+			); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -323,6 +360,15 @@ func (r *Repl) executor(in string) {
 				return
 			}
 			if err := r.cliRunner.GetTopics(ctx, false); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+		case "users":
+			if err := command.checkArgs(2, 2, nil); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+			if err := r.cliRunner.GetUsers(ctx, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -433,6 +479,10 @@ func helpTable() string {
 	table.AppendBulk(
 		[][]string{
 			{
+				"  get acls",
+				"Get all ACLs",
+			},
+			{
 				"  get balance [optional topic]",
 				"Get positions of all brokers in topic or across cluster",
 			},
@@ -457,7 +507,7 @@ func helpTable() string {
 				"Get the members of a consumer group",
 			},
 			{
-				"  get partitions [topic]",
+				"  get partitions [topic]  [--summary]",
 				"Get all partitions for a topic",
 			},
 			{
@@ -467,6 +517,10 @@ func helpTable() string {
 			{
 				"  get topics",
 				"Get all topics",
+			},
+			{
+				"  get users",
+				"Get all users",
 			},
 			{
 				"  tail [topic] [optional filter regexp] [--raw]",
