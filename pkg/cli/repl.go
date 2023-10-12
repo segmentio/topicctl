@@ -79,6 +79,10 @@ var (
 			Text:        "topics",
 			Description: "Get all topics",
 		},
+		{
+			Text:        "users",
+			Description: "Get all users",
+		},
 	}
 
 	helpTableStr = helpTable()
@@ -239,7 +243,6 @@ func (r *Repl) executor(in string) {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-
 		case "balance":
 			if err := command.checkArgs(2, 3, nil); err != nil {
 				log.Errorf("Error: %+v", err)
@@ -357,6 +360,15 @@ func (r *Repl) executor(in string) {
 				return
 			}
 			if err := r.cliRunner.GetTopics(ctx, false); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+		case "users":
+			if err := command.checkArgs(2, 2, nil); err != nil {
+				log.Errorf("Error: %+v", err)
+				return
+			}
+			if err := r.cliRunner.GetUsers(ctx, nil); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
@@ -505,6 +517,10 @@ func helpTable() string {
 			{
 				"  get topics",
 				"Get all topics",
+			},
+			{
+				"  get users",
+				"Get all users",
 			},
 			{
 				"  tail [topic] [optional filter regexp] [--raw]",

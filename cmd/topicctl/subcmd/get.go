@@ -68,6 +68,7 @@ func init() {
 		offsetsCmd(),
 		topicsCmd(),
 		aclsCmd(),
+		usersCmd(),
 	)
 	RootCmd.AddCommand(getCmd)
 }
@@ -413,4 +414,25 @@ $ topicctl get acls --host 198.51.100.0
 		`The type of resource to filter on. allowed: [any, topic, group, cluster, transactionalid, delegationtoken]`,
 	)
 	return cmd
+}
+
+func usersCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "users",
+		Short: "Displays information for all users in the cluster.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetUsers(ctx, nil)
+		},
+	}
 }

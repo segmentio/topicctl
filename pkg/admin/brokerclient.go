@@ -99,10 +99,16 @@ func NewBrokerAdminClient(
 		supportedFeatures.DynamicBrokerConfigs = true
 	}
 
-	// If we have DescribeAcls, than we're running a version of Kafka > 2.0.1,
+	// If we have DescribeAcls, then we're running a version of Kafka > 2.0.1,
 	// that will have support for all ACLs APIs.
 	if _, ok := maxVersions["DescribeAcls"]; ok {
 		supportedFeatures.ACLs = true
+	}
+
+	// If we have DescribeUserScramCredentials, than we're running a version of Kafka > 2.7.1,
+	// that will have support for all User APIs.
+	if _, ok := maxVersions["DescribeUserScramCredentials"]; ok {
+		supportedFeatures.Users = true
 	}
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
@@ -377,6 +383,72 @@ func (c *BrokerAdminClient) GetTopic(
 		return TopicInfo{}, ErrTopicDoesNotExist
 	}
 	return topicInfos[0], nil
+}
+
+func (c *BrokerAdminClient) GetUsers(
+	ctx context.Context,
+	names []string,
+) ([]UserInfo, error) {
+	var users []kafka.UserScramCredentialsUser
+	for _, name := range names {
+		users = append(users, kafka.UserScramCredentialsUser{
+			Name: name,
+		})
+	}
+
+	req := kafka.DescribeUserScramCredentialsRequest{
+		Users: users,
+	}
+	log.Debugf("DescribeUserScramCredentials request: %+v", req)
+
+	resp, err := c.client.DescribeUserScramCredentials(ctx, &req)
+	log.Debugf("DescribeUserScramCredentials response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = util.DescribeUserScramCredentialsResponseResultsError(resp.Results); err != nil {
+		return nil, err
+	}
+
+	results := []UserInfo{}
+
+	for _, result := range resp.Results {
+		var credentials []CredentialInfo
+		for _, credential := range result.CredentialInfos {
+			credentials = append(credentials, CredentialInfo{
+				ScramMechanism: ScramMechanism(credential.Mechanism),
+				Iterations:     credential.Iterations,
+			})
+		}
+		results = append(results, UserInfo{
+			Name:            result.User,
+			CredentialInfos: credentials,
+		})
+	}
+	return results, err
+}
+
+func (c *BrokerAdminClient) UpsertUser(
+	ctx context.Context,
+	user kafka.UserScramCredentialsUpsertion,
+) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot create user in read-only mode")
+	}
+	req := kafka.AlterUserScramCredentialsRequest{
+		Upsertions: []kafka.UserScramCredentialsUpsertion{user},
+	}
+	log.Debugf("AlterUserScramCredentials request: %+v", req)
+	resp, err := c.client.AlterUserScramCredentials(ctx, &req)
+	log.Debugf("AlterUserScramCredentials response: %+v", resp)
+	if err != nil {
+		return err
+	}
+	if err = resp.Results[0].Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateTopicConfig updates the configuration for the argument topic. It returns the config

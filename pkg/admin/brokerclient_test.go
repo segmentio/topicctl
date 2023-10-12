@@ -664,6 +664,94 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 	assert.Equal(t, expected, aclsInfo)
 }
 
+func TestBrokerClientCreateGetUsers(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	name := util.RandomString("test-user-", 6)
+	mechanism := kafka.ScramMechanismSha512
+
+	defer func() {
+		resp, err := client.client.AlterUserScramCredentials(
+			ctx,
+			&kafka.AlterUserScramCredentialsRequest{
+				Deletions: []kafka.UserScramCredentialsDeletion{
+					{
+						Name:      name,
+						Mechanism: mechanism,
+					},
+				},
+			},
+		)
+
+		if err != nil {
+			t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+		}
+		for _, response := range resp.Results {
+			if err = response.Error; err != nil {
+				t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+			}
+		}
+
+	}()
+
+	err = client.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{
+		Name:           name,
+		Mechanism:      mechanism,
+		Iterations:     15000,
+		Salt:           []byte("my-salt"),
+		SaltedPassword: []byte("my-salted-password"),
+	})
+
+	require.NoError(t, err)
+
+	resp, err := client.GetUsers(ctx, []string{name})
+	require.NoError(t, err)
+	assert.Equal(t, []UserInfo{
+		{
+			Name: name,
+			CredentialInfos: []CredentialInfo{
+				{
+					ScramMechanism: ScramMechanism(mechanism),
+					Iterations:     15000,
+				},
+			},
+		},
+	}, resp)
+}
+
+func TestBrokerClientUpsertUserReadOnly(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+	err = client.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{})
+
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
+}
+
 func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")

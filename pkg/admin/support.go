@@ -19,4 +19,7 @@ type SupportedFeatures struct {
 
 	// ACLs indicates whether the client supports access control levels.
 	ACLs bool
+
+	// Users indicates whether the client supports SASL Users.
+	Users bool
 }
