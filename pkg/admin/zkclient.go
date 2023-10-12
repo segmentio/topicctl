@@ -443,7 +443,7 @@ func (c *ZKAdminClient) GetUsers(
 	return nil, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
-func (c *ZKAdminClient) CreateUser(
+func (c *ZKAdminClient) UpsertUser(
 	ctx context.Context,
 	user kafka.UserScramCredentialsUpsertion,
 ) error {

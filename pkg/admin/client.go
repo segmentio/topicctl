@@ -83,8 +83,8 @@ type Client interface {
 		acls []kafka.ACLEntry,
 	) error
 
-	// CreateUser creates a user in zookeeper.
-	CreateUser(
+	// UpsertUser creates or updates an user in zookeeper.
+	UpsertUser(
 		ctx context.Context,
 		user kafka.UserScramCredentialsUpsertion,
 	) error

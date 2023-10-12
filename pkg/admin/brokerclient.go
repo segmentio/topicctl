@@ -429,7 +429,7 @@ func (c *BrokerAdminClient) GetUsers(
 	return results, err
 }
 
-func (c *BrokerAdminClient) CreateUser(
+func (c *BrokerAdminClient) UpsertUser(
 	ctx context.Context,
 	user kafka.UserScramCredentialsUpsertion,
 ) error {
