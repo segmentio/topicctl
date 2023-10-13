@@ -158,7 +158,7 @@ func configCmd() *cobra.Command {
 func groupsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "groups",
-		Short: "Displays consumer group informatin for the cluster.",
+		Short: "Displays consumer group information for the cluster.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
