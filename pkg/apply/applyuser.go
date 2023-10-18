@@ -37,7 +37,7 @@ func NewUserApplier(
 	if !adminClient.GetSupportedFeatures().Applies {
 		return nil,
 			errors.New(
-				"Admin client does not support features needed for apply; please us zk-based client instead.",
+				"Admin client does not support features needed for apply; You need to upgrade to Kafka version >2.7.0.",
 			)
 	}
 
@@ -94,7 +94,6 @@ func (u *UserApplier) Apply(ctx context.Context) error {
 
 	log.Info("Found ", len(existingACLs), " existing ACLs: ", existingACLs)
 
-	// convert existingACLs from []kafka.ACLInfo to []kafka.ACLEntry
 	existingACLEntries := []kafka.ACLEntry{}
 	for _, acl := range existingACLs {
 		existingACLEntries = append(existingACLEntries, kafka.ACLEntry{
@@ -118,6 +117,22 @@ func (u *UserApplier) Apply(ctx context.Context) error {
 		return nil
 	}
 
+	if u.config.DryRun {
+		log.Infof("Would create ACLs with config %+v", acls)
+		return nil
+	}
+
+	log.Infof(
+		"It looks like these ACLs doesn't already exists. Will create them with this config:\n%s",
+		// TODO: pretty format these ACLs
+		acls,
+	)
+
+	ok, _ := Confirm("OK to continue?", u.config.SkipConfirm)
+	if !ok {
+		return errors.New("Stopping because of user response")
+	}
+
 	log.Infof("Creating new ACLs for user with config %+v", acls)
 
 	err = u.adminClient.CreateACLs(ctx, acls)
@@ -135,7 +150,6 @@ func (u *UserApplier) applyNewUser(ctx context.Context) error {
 
 	if u.config.DryRun {
 		log.Infof("Would create user with config %+v", user)
-		// TODO: dry run acls as well
 		return nil
 	}
 
@@ -151,7 +165,7 @@ func (u *UserApplier) applyNewUser(ctx context.Context) error {
 
 	log.Infof("Creating new user with config %+v", user)
 
-	err = u.adminClient.CreateUser(ctx, user)
+	err = u.adminClient.UpsertUser(ctx, user)
 	if err != nil {
 		return fmt.Errorf("error creating new user: %v", err)
 	}

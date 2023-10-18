@@ -27,7 +27,7 @@ type UserMeta struct {
 }
 
 type UserSpec struct {
-	Authentication AuthenticationConfig `json:"authentication"`
+	Authentication AuthenticationConfig `json:"authentication,omitempty"`
 	Authorization  AuthorizationConfig  `json:"authorization,omitempty"`
 }
 

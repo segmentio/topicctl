@@ -145,7 +145,6 @@ func applyUser(
 			SkipConfirm:   applyConfig.skipConfirm,
 			UserConfig:    userConfig,
 			ClusterConfig: clusterConfig,
-			// TODO: support dryrun and skipconfirm
 		}
 
 		if err := cliRunner.ApplyUser(ctx, applierConfig); err != nil {
