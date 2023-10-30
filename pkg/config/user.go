@@ -214,3 +214,22 @@ func (u UserConfig) ToNewACLEntries() []kafka.ACLEntry {
 	}
 	return acls
 }
+
+func KafkaGoACLEntriesToACLs(acls []kafka.ACLEntry) []ACL {
+	ACLs := []ACL{}
+
+	for _, acl := range acls {
+		ACLs = append(ACLs, ACL{
+			Resource: ACLResource{
+				Type:        acl.ResourceType.String(),
+				Name:        acl.ResourceName,
+				PatternType: acl.ResourcePatternType.String(),
+				Principal:   acl.Principal,
+				Host:        acl.Host,
+			},
+			Operations: []string{acl.Operation.String()},
+		})
+	}
+
+	return ACLs
+}

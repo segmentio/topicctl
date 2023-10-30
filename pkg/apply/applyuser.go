@@ -92,22 +92,8 @@ func (u *UserApplier) Apply(ctx context.Context) error {
 		return fmt.Errorf("error checking existing ACLs for user %s: %v", u.userConfig.Meta.Name, err)
 	}
 
+	// TODO: pretty print these ACLs
 	log.Info("Found ", len(existingACLs), " existing ACLs: ", existingACLs)
-
-	existingACLEntries := []kafka.ACLEntry{}
-	for _, acl := range existingACLs {
-		existingACLEntries = append(existingACLEntries, kafka.ACLEntry{
-			ResourceType:        kafka.ResourceType(acl.ResourceType),
-			ResourceName:        acl.ResourceName,
-			ResourcePatternType: kafka.PatternType(acl.PatternType),
-			Principal:           acl.Principal,
-			Host:                acl.Host,
-			Operation:           kafka.ACLOperationType(acl.Operation),
-			PermissionType:      kafka.ACLPermissionType(acl.PermissionType),
-		})
-	}
-
-	// TODO: find orphaned ACLs, new ACLs, existing ACLs
 
 	acls := u.userConfig.ToNewACLEntries()
 
@@ -118,14 +104,16 @@ func (u *UserApplier) Apply(ctx context.Context) error {
 	}
 
 	if u.config.DryRun {
-		log.Infof("Would create ACLs with config %+v", acls)
+		log.Infof(
+			"Would create ACLs with config %+v",
+			FormatNewACLsConfig(acls),
+		)
 		return nil
 	}
 
 	log.Infof(
 		"It looks like these ACLs doesn't already exists. Will create them with this config:\n%s",
-		// TODO: pretty format these ACLs
-		acls,
+		FormatNewACLsConfig(acls),
 	)
 
 	ok, _ := Confirm("OK to continue?", u.config.SkipConfirm)
