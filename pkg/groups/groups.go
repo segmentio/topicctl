@@ -160,6 +160,8 @@ func GetMemberLags(
 			GroupId: groupID,
 		},
 	)
+	log.Debugf("Offsets received: %+v", offsets)
+
 	if err != nil {
 		return nil, err
 	}
@@ -172,16 +174,24 @@ func GetMemberLags(
 	partitionLags := []MemberPartitionLag{}
 
 	for _, bound := range bounds {
+		// no messages are in the topic partition if consumeroffsets returned for a partitions is -1
+		memberOffset := offsets[bound.Partition]
+		if offsets[bound.Partition] < 0 {
+			memberOffset = -1
+		} else {
+			memberOffset -= 1
+		}
+
 		partitionLag := MemberPartitionLag{
 			Topic:        topic,
 			Partition:    bound.Partition,
 			MemberID:     partitionMembers[bound.Partition].MemberID,
-			MemberOffset: offsets[bound.Partition],
+			MemberOffset: memberOffset,
 			NewestOffset: bound.LastOffset,
 			NewestTime:   bound.LastTime,
 		}
 
-		if bound.FirstOffset == offsets[bound.Partition] {
+		if bound.FirstOffset == offsets[bound.Partition]-1 {
 			partitionLag.MemberTime = bound.FirstTime
 		}
 

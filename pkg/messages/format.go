@@ -145,7 +145,7 @@ func FormatBounds(boundsSlice []Bounds) string {
 	)
 
 	for _, bounds := range boundsSlice {
-		if bounds.FirstOffset == bounds.LastOffset {
+		if bounds.FirstOffset == bounds.LastOffset && bounds.Messages == 0 {
 			table.Append(
 				[]string{
 					fmt.Sprintf("%d", bounds.Partition),
@@ -159,7 +159,6 @@ func FormatBounds(boundsSlice []Bounds) string {
 				},
 			)
 		} else {
-			numMessages := bounds.LastOffset - bounds.FirstOffset + 1
 			duration := bounds.LastTime.Sub(bounds.FirstTime)
 
 			table.Append(
@@ -169,9 +168,9 @@ func FormatBounds(boundsSlice []Bounds) string {
 					bounds.FirstTime.Format(time.RFC3339),
 					fmt.Sprintf("%d", bounds.LastOffset),
 					bounds.LastTime.Format(time.RFC3339),
-					fmt.Sprintf("%d", numMessages),
+					fmt.Sprintf("%d", bounds.Messages),
 					util.PrettyDuration(duration),
-					util.PrettyRate(numMessages, duration),
+					util.PrettyRate(bounds.Messages, duration),
 				},
 			)
 		}
@@ -221,8 +220,8 @@ func FormatBoundTotals(boundsSlice []Bounds) string {
 	var latestTime time.Time
 
 	for _, bounds := range boundsSlice {
-		if bounds.FirstOffset < bounds.LastOffset {
-			totalMessages += bounds.LastOffset - bounds.FirstOffset + 1
+		if bounds.Messages != 0 {
+			totalMessages += bounds.Messages
 
 			if earliestTime.IsZero() {
 				earliestTime = bounds.FirstTime

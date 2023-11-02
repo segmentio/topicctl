@@ -39,6 +39,7 @@ type Bounds struct {
 	FirstOffset int64
 	LastTime    time.Time
 	LastOffset  int64
+	Messages    int64
 }
 
 // GetAllPartitionBounds gets the bounds for all partitions in the argument topic.
@@ -165,12 +166,39 @@ func GetPartitionBounds(
 		lastOffset,
 	)
 
-	if firstOffset == lastOffset {
+	//
+	// kafka-go library conn.ReadOffsets() has following outcomes
+	// - no messages in topic
+	//      conn.ReadOffsets() -> firstOffset = 0, lastOffset = 0
+	// - 1 message in topic (before retention.ms)
+	//      conn.ReadOffsets() -> firstOffset = 0, lastOffset = 1
+	// - 2 messages in topic (before retention.ms)
+	//      conn.ReadOffsets() -> firstOffset = 0, lastOffset = 2
+	//
+	// kafka-go library connector.KafkaClient.ConsumerOffsets()
+	// - returns offsets for partitions as -1 for for a consumergroup of a topic with no messages
+	//
+	// Also, If we push 10 messages to a new topic, offsets start from 0 to 9. There is a need
+	// to distinguish no messages in topic to a single message in topic
+	//
+	// Hence we will return the first and last offset as -1 for topic with no messages
+	// NOTE: This function is also used to fetch offsets and reset offsets
+	//
+	if (firstOffset == lastOffset) && firstOffset == 0 {
+		// This means that there's no data in the partition also it is a new topic
+		return Bounds{
+			Partition:   partition,
+			FirstOffset: -1,
+			LastOffset:  -1,
+			Messages:    0,
+		}, nil
+	} else if firstOffset == lastOffset {
 		// This means that there's no data in the partition
 		return Bounds{
 			Partition:   partition,
 			FirstOffset: firstOffset,
 			LastOffset:  lastOffset,
+			Messages:    0,
 		}, nil
 	}
 
@@ -179,7 +207,7 @@ func GetPartitionBounds(
 			"Moving first offset forward to match min offset (%d)",
 			minOffset,
 		)
-		firstOffset = minOffset
+		firstOffset = minOffset - 1
 	}
 
 	var firstMessage kafka.Message
@@ -233,12 +261,20 @@ func GetPartitionBounds(
 		)
 	}
 
+	log.Debugf(
+		"Final found offsets for %d: %d->%d",
+		partition,
+		firstMessage.Offset,
+		lastMessage.Offset,
+	)
+
 	return Bounds{
 		Partition:   partition,
 		FirstOffset: firstMessage.Offset,
 		FirstTime:   firstMessage.Time,
 		LastOffset:  lastMessage.Offset,
 		LastTime:    lastMessage.Time,
+		Messages:    lastMessage.Offset - firstMessage.Offset + 1,
 	}, nil
 }
 
