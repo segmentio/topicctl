@@ -27,11 +27,41 @@ func GetGroups(
 	groupCoordinators := []GroupCoordinator{}
 
 	for _, kafkaGroupInfo := range listGroupsResp.Groups {
+
+		topicsList := []string{}
+		topicsMap := map[string]bool{}
+
+		describeGroupsRequest := kafka.DescribeGroupsRequest{
+			GroupIDs: []string{kafkaGroupInfo.GroupID},
+		}
+
+		describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &describeGroupsRequest)
+		if err != nil {
+			log.Warnf("Cannot list topics for group :%s \n Error in describing group : %s", kafkaGroupInfo.GroupID, err)
+		} else {
+			if len(describeGroupsResponse.Groups) != 1 {
+				log.Warnf("Cannot list topics for group :%s \n Unexpected response length: %d, from describeGroups", kafkaGroupInfo.GroupID, len(describeGroupsResponse.Groups))
+			} else {
+				groupMembers := describeGroupsResponse.Groups[0].Members
+				for _, groupMember := range groupMembers {
+					for _, topic := range groupMember.MemberMetadata.Topics {
+						topicsMap[topic] = true
+					}
+				}
+
+				for key := range topicsMap {
+					topicsList = append(topicsList, key)
+				}
+				sort.Strings(topicsList)
+			}
+		}
+
 		groupCoordinators = append(
 			groupCoordinators,
 			GroupCoordinator{
 				GroupID:     kafkaGroupInfo.GroupID,
 				Coordinator: int(kafkaGroupInfo.Coordinator),
+				Topics:      topicsList,
 			},
 		)
 	}
@@ -191,4 +221,28 @@ func ResetOffsets(
 			topic: partitionOffsets,
 		},
 	)
+}
+
+// GetEarliestorLatestOffset gets earliest/latest offset for a given topic partition for resetting offsets of consumer group
+func GetEarliestOrLatestOffset(
+	ctx context.Context,
+	connector *admin.Connector,
+	topic string,
+	strategy string,
+	partition int,
+) (int64, error) {
+	if strategy == EarliestResetOffsetsStrategy {
+		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+		if err != nil {
+			return 0, err
+		}
+		return partitionBound.FirstOffset, nil
+	} else if strategy == LatestResetOffsetsStrategy {
+		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
+		if err != nil {
+			return 0, err
+		}
+		return partitionBound.LastOffset, nil
+	}
+	return 0, errors.New("Invalid reset offset strategy provided.")
 }

@@ -3,6 +3,7 @@ package groups
 import (
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -49,14 +50,18 @@ func TestGetGroups(t *testing.T) {
 	assert.GreaterOrEqual(t, len(groups), 1)
 
 	var match bool
+	var groupCoordinator GroupCoordinator
 
 	for _, group := range groups {
 		if group.GroupID == groupID {
+			groupCoordinator = group
 			match = true
 			break
 		}
 	}
 	require.True(t, match)
+	assert.Equal(t, 1, len(groupCoordinator.Topics))
+	assert.Equal(t, topicName, groupCoordinator.Topics[0])
 
 	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
 	require.NoError(t, err)
@@ -71,6 +76,183 @@ func TestGetGroups(t *testing.T) {
 		t,
 		[]int{0, 1},
 		groupPartitions,
+	)
+}
+
+func TestGetGroupsMultiMember(t *testing.T) {
+	ctx := context.Background()
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
+	groupID := fmt.Sprintf("test-group-%s", topicName)
+
+	reader1 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+	reader2 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	readerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for i := 0; i < 4; i++ {
+		_, err := reader1.ReadMessage(readerCtx)
+		require.NoError(t, err)
+		_, err = reader2.ReadMessage(readerCtx)
+		require.NoError(t, err)
+	}
+
+	groups, err := GetGroups(ctx, connector)
+	require.NoError(t, err)
+
+	// There could be older groups in here, just ignore them
+	assert.GreaterOrEqual(t, len(groups), 1)
+
+	var match bool
+	var groupCoordinator GroupCoordinator
+
+	for _, group := range groups {
+		if group.GroupID == groupID {
+			groupCoordinator = group
+			match = true
+			break
+		}
+	}
+	require.True(t, match)
+	assert.Equal(t, 1, len(groupCoordinator.Topics))
+	assert.Equal(t, topicName, groupCoordinator.Topics[0])
+
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
+	require.NoError(t, err)
+	assert.Equal(t, groupID, groupDetails.GroupID)
+	assert.Equal(t, "Stable", groupDetails.State)
+	assert.Equal(t, 2, len(groupDetails.Members))
+	require.Equal(t, 2, len(groupDetails.Members))
+
+	groupPartitions := []int{}
+	for _, member := range groupDetails.Members {
+		groupPartitions = append(groupPartitions, member.TopicPartitions[topicName]...)
+	}
+
+	assert.ElementsMatch(
+		t,
+		[]int{0, 1},
+		groupPartitions,
+	)
+
+}
+
+func TestGetGroupsMultiMemberMultiTopic(t *testing.T) {
+	ctx := context.Background()
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName1 := createTestTopic(ctx, t, connector)
+	topicName2 := createTestTopic(ctx, t, connector)
+
+	groupID := fmt.Sprintf("test-group-%s", topicName1+topicName2)
+
+	reader1 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName1,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+	reader2 := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName2,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	readerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for i := 0; i < 8; i++ {
+		_, err := reader1.ReadMessage(readerCtx)
+		require.NoError(t, err)
+		_, err = reader2.ReadMessage(readerCtx)
+		require.NoError(t, err)
+	}
+
+	groups, err := GetGroups(ctx, connector)
+	require.NoError(t, err)
+
+	// There could be older groups in here, just ignore them
+	assert.GreaterOrEqual(t, len(groups), 1)
+
+	var match bool
+	var groupCoordinator GroupCoordinator
+
+	for _, group := range groups {
+		if group.GroupID == groupID {
+			groupCoordinator = group
+			match = true
+			break
+		}
+	}
+	require.True(t, match)
+	assert.Equal(t, 2, len(groupCoordinator.Topics))
+
+	topicsList := []string{topicName1, topicName2}
+	sort.Strings(topicsList)
+	assert.Equal(t, topicsList, groupCoordinator.Topics)
+
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
+	require.NoError(t, err)
+	assert.Equal(t, groupID, groupDetails.GroupID)
+	assert.Equal(t, "Stable", groupDetails.State)
+	assert.Equal(t, 2, len(groupDetails.Members))
+	require.Equal(t, 2, len(groupDetails.Members))
+
+	groupPartitionsOfTopic1 := []int{}
+	for _, member := range groupDetails.Members {
+		groupPartitionsOfTopic1 = append(groupPartitionsOfTopic1, member.TopicPartitions[topicName1]...)
+	}
+
+	assert.ElementsMatch(
+		t,
+		[]int{0, 1},
+		groupPartitionsOfTopic1,
+	)
+
+	groupPartitionsOfTopic2 := []int{}
+	for _, member := range groupDetails.Members {
+		groupPartitionsOfTopic2 = append(groupPartitionsOfTopic2, member.TopicPartitions[topicName2]...)
+	}
+
+	assert.ElementsMatch(
+		t,
+		[]int{0, 1},
+		groupPartitionsOfTopic2,
 	)
 }
 
@@ -111,6 +293,51 @@ func TestGetLags(t *testing.T) {
 		assert.Equal(t, l, lag.Partition)
 		assert.Equal(t, int64(4), lag.NewestOffset)
 		assert.LessOrEqual(t, lag.MemberOffset, int64(4))
+	}
+}
+
+func TestGetEarliestOrLatestOffset(t *testing.T) {
+	ctx := context.Background()
+	connector, err := admin.NewConnector(admin.ConnectorConfig{
+		BrokerAddr: util.TestKafkaAddr(),
+	})
+	require.NoError(t, err)
+
+	topicName := createTestTopic(ctx, t, connector)
+	groupID := fmt.Sprintf("test-group-%s", topicName)
+
+	reader := kafka.NewReader(
+		kafka.ReaderConfig{
+			Brokers:  []string{connector.Config.BrokerAddr},
+			Dialer:   connector.Dialer,
+			GroupID:  groupID,
+			Topic:    topicName,
+			MinBytes: 50,
+			MaxBytes: 10000,
+		},
+	)
+
+	readerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for i := 0; i < 8; i++ {
+		_, err := reader.ReadMessage(readerCtx)
+		require.NoError(t, err)
+	}
+
+	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
+	require.NoError(t, err)
+
+	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
+
+	for _, partition := range groupPartitions {
+		offset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), offset)
+
+		offset, err = GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), offset)
 	}
 }
 
@@ -162,6 +389,33 @@ func TestResetOffsets(t *testing.T) {
 	require.Equal(t, 2, len(lags))
 	assert.Equal(t, int64(2), lags[0].MemberOffset)
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
+
+	// latest offset of partition 0
+	latestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
+	require.NoError(t, err)
+	// earliest offset of partition 1
+	earliestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
+	require.NoError(t, err)
+
+	err = ResetOffsets(
+		ctx,
+		connector,
+		topicName,
+		groupID,
+		map[int]int64{
+			0: latestOffset,
+			1: earliestOffset,
+		},
+	)
+	require.NoError(t, err)
+
+	lags, err = GetMemberLags(ctx, connector, topicName, groupID)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(lags))
+	assert.Equal(t, int64(4), lags[0].MemberOffset)
+	assert.Equal(t, int64(0), lags[1].MemberOffset)
+
 }
 
 func createTestTopic(

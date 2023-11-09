@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -519,8 +520,16 @@ func TestBrokerClientAlterAssignments(t *testing.T) {
 		topicInfo, err = client.GetTopic(ctx, topicName, true)
 		require.NoError(t, err)
 
+		// Alter partition succeeded
 		if topicInfo.Partitions[2].Replicas[0] != 5 {
 			return fmt.Errorf("Assign partitions change not reflected yet")
+		}
+
+		// ISR shrink completed
+		for _, partition := range topicInfo.Partitions {
+			if len(partition.Replicas) != 2 {
+				return fmt.Errorf("Assign partitions change not reflected yet")
+			}
 		}
 
 		return nil
@@ -602,4 +611,228 @@ func TestBrokerClientGetApiVersions(t *testing.T) {
 
 	_, err = client.getAPIVersions(ctx)
 	require.NoError(t, err)
+}
+
+func TestBrokerClientCreateTopicError(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	topicName := util.RandomString("topic-create-", 6)
+
+	err = client.CreateTopic(
+		ctx,
+		kafka.TopicConfig{
+			Topic:             topicName,
+			NumPartitions:     3,
+			ReplicationFactor: 2,
+			ConfigEntries: []kafka.ConfigEntry{
+				{
+					ConfigName:  "invalid.config",
+					ConfigValue: "invalid.value",
+				},
+			},
+		},
+	)
+	require.Error(t, err)
+}
+
+func TestBrokerClientCreateGetACL(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	principal := util.RandomString("User:user-create-", 6)
+	topicName := util.RandomString("topic-create-", 6)
+
+	defer func() {
+		_, err := client.client.DeleteACLs(
+			ctx,
+			&kafka.DeleteACLsRequest{
+				Filters: []kafka.DeleteACLsFilter{
+					{
+						ResourceTypeFilter:        kafka.ResourceTypeTopic,
+						ResourceNameFilter:        topicName,
+						ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+						Operation:                 kafka.ACLOperationTypeRead,
+						PermissionType:            kafka.ACLPermissionTypeAllow,
+					},
+				},
+			},
+		)
+
+		if err != nil {
+			t.Fatal(fmt.Errorf("failed to clean up ACL, err: %v", err))
+		}
+	}()
+
+	err = client.CreateACLs(
+		ctx,
+		[]kafka.ACLEntry{
+			{
+				Principal:           principal,
+				PermissionType:      kafka.ACLPermissionTypeAllow,
+				Operation:           kafka.ACLOperationTypeRead,
+				ResourceType:        kafka.ResourceTypeTopic,
+				ResourcePatternType: kafka.PatternTypeLiteral,
+				ResourceName:        topicName,
+				Host:                "*",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	filter := kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		Operation:                 kafka.ACLOperationTypeRead,
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+	}
+
+	aclsInfo, err := client.GetACLs(ctx, filter)
+	require.NoError(t, err)
+	expected := []ACLInfo{
+		{
+			ResourceType:   ResourceType(kafka.ResourceTypeTopic),
+			ResourceName:   topicName,
+			PatternType:    PatternType(kafka.PatternTypeLiteral),
+			Principal:      principal,
+			Host:           "*",
+			Operation:      ACLOperationType(kafka.ACLOperationTypeRead),
+			PermissionType: ACLPermissionType(kafka.ACLPermissionTypeAllow),
+		},
+	}
+	assert.Equal(t, expected, aclsInfo)
+}
+
+func TestBrokerClientCreateGetUsers(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	name := util.RandomString("test-user-", 6)
+	mechanism := kafka.ScramMechanismSha512
+
+	defer func() {
+		resp, err := client.client.AlterUserScramCredentials(
+			ctx,
+			&kafka.AlterUserScramCredentialsRequest{
+				Deletions: []kafka.UserScramCredentialsDeletion{
+					{
+						Name:      name,
+						Mechanism: mechanism,
+					},
+				},
+			},
+		)
+
+		if err != nil {
+			t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+		}
+		for _, response := range resp.Results {
+			if err = response.Error; err != nil {
+				t.Fatal(fmt.Errorf("failed to clean up user, err: %v", err))
+			}
+		}
+
+	}()
+
+	err = client.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{
+		Name:           name,
+		Mechanism:      mechanism,
+		Iterations:     15000,
+		Salt:           []byte("my-salt"),
+		SaltedPassword: []byte("my-salted-password"),
+	})
+
+	require.NoError(t, err)
+
+	resp, err := client.GetUsers(ctx, []string{name})
+	require.NoError(t, err)
+	assert.Equal(t, []UserInfo{
+		{
+			Name: name,
+			CredentialInfos: []CredentialInfo{
+				{
+					ScramMechanism: ScramMechanism(mechanism),
+					Iterations:     15000,
+				},
+			},
+		},
+	}, resp)
+}
+
+func TestBrokerClientUpsertUserReadOnly(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+	err = client.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{})
+
+	assert.Equal(t, errors.New("Cannot create user in read-only mode"), err)
+}
+
+func TestBrokerClientCreateACLReadOnly(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+
+	err = client.CreateACLs(ctx, []kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
+
 }

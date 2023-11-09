@@ -75,6 +75,7 @@ func TestCheck(t *testing.T) {
 		checkTopicConfig config.TopicConfig
 		expectedResults  map[CheckName]bool
 		validateOnly     bool
+		numRacks         int
 	}
 
 	testCases := []testCase{
@@ -194,6 +195,30 @@ func TestCheck(t *testing.T) {
 				CheckNameLeadersCorrect:           true,
 			},
 		},
+		{
+			description: "too few racks",
+			checkTopicConfig: config.TopicConfig{
+				Meta: topicConfig.Meta,
+				// topicConfig.Spec but CrossRack
+				Spec: config.TopicSpec{
+					Partitions:        9,
+					ReplicationFactor: 2,
+					RetentionMinutes:  500,
+					PlacementConfig: config.TopicPlacementConfig{
+						Strategy: config.PlacementStrategyCrossRack,
+						Picker:   config.PickerMethodLowestIndex,
+					},
+					MigrationConfig: &config.TopicMigrationConfig{
+						ThrottleMB:         2,
+						PartitionBatchSize: 3,
+					},
+				},
+			},
+			expectedResults: map[CheckName]bool{
+				CheckNameConfigCorrect: false,
+			},
+			numRacks: 1, // ReplicationFactor - 1
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -203,7 +228,7 @@ func TestCheck(t *testing.T) {
 				AdminClient:   adminClient,
 				ClusterConfig: clusterConfig,
 				CheckLeaders:  true,
-				NumRacks:      -1,
+				NumRacks:      testCase.numRacks,
 				TopicConfig:   testCase.checkTopicConfig,
 				ValidateOnly:  testCase.validateOnly,
 			},

@@ -84,11 +84,12 @@ type TopicConfig struct {
 // TopicMeta stores the (mostly immutable) metadata associated with a topic.
 // Inspired by the meta structs in Kubernetes objects.
 type TopicMeta struct {
-	Name        string `json:"name"`
-	Cluster     string `json:"cluster"`
-	Region      string `json:"region"`
-	Environment string `json:"environment"`
-	Description string `json:"description"`
+	Name        string            `json:"name"`
+	Cluster     string            `json:"cluster"`
+	Region      string            `json:"region"`
+	Environment string            `json:"environment"`
+	Description string            `json:"description"`
+	Labels      map[string]string `json:"labels"`
 
 	// Consumers is a list of consumers who are expected to consume from this
 	// topic.
@@ -212,6 +213,12 @@ func (t TopicConfig) Validate(numRacks int) error {
 			errors.New("Cannot set both RetentionMinutes and retention.ms in settings"),
 		)
 	}
+	if (t.Spec.Settings["local.retention.bytes"] != nil || t.Spec.Settings["local.retention.ms"] != nil) && t.Spec.Settings["remote.storage.enable"] == nil {
+		err = multierror.Append(
+			err,
+			errors.New("Setting local retention parameters requires remote.storage.enable to be set in settings"),
+		)
+	}
 
 	placement := t.Spec.PlacementConfig
 
@@ -267,7 +274,7 @@ func (t TopicConfig) Validate(numRacks int) error {
 			)
 		}
 	case PlacementStrategyCrossRack:
-		if t.Spec.ReplicationFactor > numRacks {
+		if numRacks > 0 && t.Spec.ReplicationFactor > numRacks {
 			err = multierror.Append(
 				err,
 				fmt.Errorf(

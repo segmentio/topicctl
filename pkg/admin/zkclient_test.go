@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -725,6 +726,37 @@ func TestZkClientCreateTopic(t *testing.T) {
 	assert.Equal(t, topicName, topics[0].Name)
 }
 
+func TestZkClientCreateTopicError(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs:        []string{util.TestZKAddr()},
+			ZKPrefix:       "",
+			BootstrapAddrs: []string{util.TestKafkaAddr()},
+			ReadOnly:       false,
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	topicName := util.RandomString("topic-create-", 6)
+
+	config := kafka.TopicConfig{
+		Topic:             topicName,
+		NumPartitions:     2,
+		ReplicationFactor: 2,
+		ConfigEntries: []kafka.ConfigEntry{
+			{
+				ConfigName:  "invalid.config",
+				ConfigValue: "invalid.value",
+			},
+		},
+	}
+	err = adminClient.CreateTopic(ctx, config)
+	require.Error(t, err)
+}
+
 func TestZkClientUpdateAssignments(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
@@ -1042,4 +1074,66 @@ func TestZkClientLocking(t *testing.T) {
 
 func testClusterID(name string) string {
 	return util.RandomString(fmt.Sprintf("cluster-%s-", name), 6)
+}
+
+func TestZkGetACLs(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	acls, err := adminClient.GetACLs(ctx, kafka.ACLFilter{})
+	assert.Empty(t, acls)
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
+}
+
+func TestZkCreateACL(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	err = adminClient.CreateACLs(ctx, []kafka.ACLEntry{})
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
+}
+
+func TestZkGetUsers(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	acls, err := adminClient.GetUsers(ctx, []string{})
+	assert.Empty(t, acls)
+	assert.Equal(t, err, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix."))
+}
+
+func TestZkUpsertUser(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	err = adminClient.UpsertUser(ctx, kafka.UserScramCredentialsUpsertion{})
+	assert.Equal(t, err, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix."))
 }

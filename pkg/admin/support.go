@@ -16,4 +16,10 @@ type SupportedFeatures struct {
 	// DynamicBrokerConfigs indicates whether the client can return dynamic broker configs
 	// like leader.replication.throttled.rate.
 	DynamicBrokerConfigs bool
+
+	// ACLs indicates whether the client supports access control levels.
+	ACLs bool
+
+	// Users indicates whether the client supports SASL Users.
+	Users bool
 }

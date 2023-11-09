@@ -1,4 +1,4 @@
-[![Circle CI](https://circleci.com/gh/segmentio/topicctl.svg?style=svg&circle-token=1f82ab114a8b160f3e12291ab0fa959132c4c97c)](https://circleci.com/gh/segmentio/topicctl)
+![GitHub Actions](https://github.com/segmentio/topicctl/actions/workflows/ci.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/segmentio/topicctl)](https://goreportcard.com/report/github.com/segmentio/topicctl)
 
 # topicctl
@@ -97,6 +97,7 @@ topicctl repl --cluster-config=examples/local-cluster/cluster.yaml
 ```
 get brokers
 get topics
+get partitions
 get partitions topic-default
 get offsets topic-default
 tail topic-default
@@ -140,9 +141,9 @@ expected file formats.
 topicctl [flags] bootstrap
 ```
 
-The `bootstrap` subcommand creates apply topic configs from the existing topics
-in a cluster. The output can be sent to either a directory (if the `--output` flag
-is set) or `stdout`.
+The `bootstrap` subcommand creates apply topic configs from the existing topics in a
+cluster. This can be used to "import" topics not created or previously managed by topicctl.
+The output can be sent to either a directory (if the `--output` flag is set) or `stdout`.
 
 #### check
 
@@ -171,9 +172,23 @@ resource type in the cluster. Currently, the following operations are supported:
 | `get groups` | All consumer groups in the cluster |
 | `get lags [topic] [group]` | Lag for each topic partition for a consumer group |
 | `get members [group]` | Details of each member in a consumer group |
-| `get partitions [topic]` | All partitions in a topic |
+| `get partitions [optional: topics]` | Get all partitions for topics |
 | `get offsets [topic]` | Number of messages per partition along with start and end times |
 | `get topics` | All topics in the cluster |
+| `get acls [flags]` | Describe access control levels (ACLs) in the cluster |
+| `get users` | All users in the cluster |
+
+#### rebalance
+
+```
+topicctl rebalance [flags]
+```
+
+The `apply` subcommand can be used with flag `--rebalance` rebalances a specified topics across a cluster.
+
+The `rebalance` subcommand, on the other hand, performs a rebalance for **all** the topics defined at a given topic prefix path.
+
+See the [rebalancing](#rebalancing) section below for more information on rebalancing.
 
 #### delete
 
@@ -204,8 +219,13 @@ By default, `repl` is in read-only mode. Disable this behaviour with: `--read-on
 topicctl reset-offsets [topic] [group] [flags]
 ```
 
-The `reset-offsets` subcommand allows resetting the offsets for a consumer group
-in a topic. The partition and offset values are set in the flags.
+The `reset-offsets` subcommand allows resetting the offsets for a consumer group in a topic. There are 2 main approaches for setting the offsets:
+
+1. Use a combination of `--partitions`, `--offset`, `--to-earliest` and `--to-latest` flags. `--partitions` flag specifies a list of partitions to be reset e.g. `1,2,3 ...`. If not used, the command defaults to resetting consumer group offsets for ALL of the partitions. `--offset` flag indicates the specific value that all desired consumer group partitions will be set to. If not set, it will default to -2. Finally, `--to-earliest` flag resets offsets of consumer group members to earliest offsets of partitions while `--to-latest` resets offsets of consumer group members to latest offsets of partitions. However, only one of the `--to-earliest`, `--to-latest` and `--offset` flags can be used at a time. This approach is easy to use but lacks the ability for detailed offset configuration.
+
+2. Use `--partition-offset-map` flag to specify a detailed offset configuration for individual partitions. For example, `1=5,2=10,7=12,...` means that the consumer group offset for partition 1 must be set to 5, partition 2 to offset 10, partition 7 to offset 12 and so on. This approach provides greater flexibility and fine-grained control for this operation. Note that `--partition-offset-map` flag is standalone and cannot be coupled with any of the previous flags.
+
+
 
 #### tail
 
@@ -325,6 +345,9 @@ meta:
   region: us-west-2                     # Region of the cluster
   description: |                        # Free-text description of the topic (optional)
     Test topic in my-cluster.
+  labels:                               # Custom key-value pairs purposed for topic bookkeeping (optional)
+    key1: value1
+    key2: value2
 
 spec:
   partitions: 9                         # Number of topic partitions
@@ -360,8 +383,8 @@ The tool supports the following per-partition, replica placement strategies:
 | `balanced-leaders` | Ensure that the leaders of each partition are evenly distributed across the broker racks  |
 | `in-rack` | Ensure that the followers for each partition are in the same rack as the leader; generally this is done when the leaders are already balanced, but this isn't required |
 | `cross-rack` | Ensure that the replicas for each partition are all in different racks; generally this is done when the leaders are already balanced, but this isn't required |
-| `static` | Specify the placement manually, via an extra `staticAssignments` field |
-| `static-in-rack` | Specify the rack placement per partition manually, via an extra `staticRackAssignments` field |
+| `static` | Specify the placement manually, via an extra `staticAssignments` field. ([example](examples/local-cluster/topics/topic-static.yaml)) |
+| `static-in-rack` | Specify the rack placement per partition manually, via an extra `staticRackAssignments` field ([example](examples/local-cluster/topics/topic-static-in-rack.yaml))|
 
 #### Picker methods
 
@@ -383,21 +406,32 @@ Note that these all try to achieve in-topic balance, and only vary in the case o
 Thus, the placements won't be significantly different in most cases.
 
 In the future, we may add pickers that allow for some in-topic imbalance, e.g. to correct a
-cluster-wide broker inbalance.
+cluster-wide broker imbalance.
 
 #### Rebalancing
 
-If `apply` is run with the `--rebalance` flag set, then `topicctl` will do a full broker rebalance
+If `apply` is run with the `--rebalance` flag, then `topicctl` will rebalance specified topics
 after the usual apply steps. This process will check the balance of the brokers for each index
-position (i.e., first, second, third, etc.) in each partition and make replacements if there
+position (i.e., first, second, third, etc.) for each partition and make replacements if there
 are any brokers that are significantly over- or under-represented.
 
-The rebalance process can optionally remove brokers from a topic too. To use this feature, set the
+The rebalance process can optionally remove brokers from a topic. To use this feature, set the
 `--to-remove` flag. Note that this flag has no effect unless `--rebalance` is also set.
 
 Rebalancing is not done by default on all apply runs because it can be fairly disruptive and
-generally shouldn't be necessary unless the topic started off in an inbalanced state or there
+generally shouldn't be necessary unless the topic started off in an imbalanced state or there
 has been a change in the number of brokers.
+
+To rebalance **all** topics in a cluster, use the `rebalance` subcommand, which will perform the `apply --rebalance`
+function on all qualifying topics. It will inventory all topic configs found at  `--path-prefix` for a cluster
+specified by `--cluster-config`.
+
+This subcommand will not rebalance a topic if:
+
+1. the topic config is inconsistent with the cluster config (name, region, environment etc...)
+1. the partition count of a topic in the kafka cluster does not match the topic partition setting in the topic config
+1. a topic's `retention.ms` in the kafka cluster does not match the topic's `retentionMinutes` setting in the topic config
+1. a topic does not exist in the kafka cluster
 
 ## Tool safety
 
@@ -425,8 +459,9 @@ The `reset-offsets` command can also make changes in the cluster and should be u
 
 Apply runs are designed to be idemponent- the effects should be the same no matter how many
 times they are run, assuming everything else in the cluster remains constant (e.g., the number of
-brokers, each broker's rack, etc.). Changes in other topics should generally not effect idempotency,
-unless, possibly, if the topic is configured to use the `cluster-use` picker.
+brokers, each broker's rack, etc.). An exception is replica rebalance operations, which can be
+non-deterministic. Changes in other topics should generally not effect idempotency, unless,
+possibly, if the topic is configured to use the `cluster-use` picker.
 
 ### Interruptibility
 
@@ -541,4 +576,8 @@ details on the available versions.
 To run the `get`, `repl`, and `tail` subcommands against the local cluster,
 set `--zk-addr=localhost:2181` and leave the `--zk-prefix` flag unset.
 
-To test out `apply`, you can use the configs in `examples/local-cluster/`.
+To test out `apply`, you can use the configs in `examples/local-cluster/`. For example,
+to create all topics defined for that cluster:
+```
+topicctl apply examples/local-cluster/topics/*.yaml
+```

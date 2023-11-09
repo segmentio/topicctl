@@ -581,7 +581,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 		return errors.New("Stopping because of user response")
 	}
 
-	err = t.updatePartitionsIteration(ctx, currAssignments, desiredAssignments, true)
+	err = t.updatePartitionsIteration(ctx, currAssignments, desiredAssignments, true, "")
 	if err != nil {
 		return err
 	}
@@ -861,7 +861,7 @@ func (t *TopicApplier) updatePlacementRunner(
 	}
 
 	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
-	roundScoreboard := color.New(color.FgYellow, color.Bold).SprintfFunc()
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
 		end := i + batchSize
 
@@ -869,18 +869,48 @@ func (t *TopicApplier) updatePlacementRunner(
 			end = len(assignmentsToUpdate)
 		}
 
+		var roundLabel string // "x of y" used to mark progress in balancing rounds
+		roundLabel = highlighter("%d of %d", round, numRounds)
 		log.Infof(
 			"Balancing round %s",
-			roundScoreboard("%d of %d", round, numRounds),
+			roundLabel,
 		)
+
+		// at the moment show-progress option is available only with action: rebalance
+		showProgress := false
+		var stopChan chan bool
+		rebalanceCtxStruct, ok := ctx.Value("progress").(util.RebalanceCtxStruct)
+		if ok && rebalanceCtxStruct.Enabled {
+			stopChan = make(chan bool)
+			showProgress = true
+
+			go util.ShowProgress(
+				ctx,
+				util.RebalanceRoundProgressConfig{
+					CurrRound:          round,
+					TotalRounds:        numRounds,
+					TopicName:          t.topicName,
+					ClusterName:        t.clusterConfig.Meta.Name,
+					ClusterEnvironment: t.clusterConfig.Meta.Environment,
+					ToRemove:           t.config.BrokersToRemove,
+				},
+				rebalanceCtxStruct.Interval,
+				stopChan,
+			)
+		}
 
 		err := t.updatePartitionsIteration(
 			ctx,
 			currDiffAssignments[i:end],
 			assignmentsToUpdate[i:end],
 			newTopic,
+			roundLabel,
 		)
 		if err != nil {
+			// error handler. stop showing progress for this iteration
+			if showProgress {
+				stopChan <- true
+			}
 			return err
 		}
 
@@ -891,6 +921,11 @@ func (t *TopicApplier) updatePlacementRunner(
 			if !ok {
 				return errors.New("Stopping because of user response")
 			}
+		}
+
+		// stop showing progress for this iteration
+		if showProgress {
+			stopChan <- true
 		}
 	}
 
@@ -912,6 +947,7 @@ func (t *TopicApplier) updatePartitionsIteration(
 	currAssignments []admin.PartitionAssignment,
 	assignmentsToUpdate []admin.PartitionAssignment,
 	newTopic bool,
+	roundLabel string,
 ) error {
 	idsToUpdate := []int{}
 	for _, assignment := range assignmentsToUpdate {
@@ -952,12 +988,14 @@ func (t *TopicApplier) updatePartitionsIteration(
 	defer checkTimer.Stop()
 
 	log.Info("Sleeping then entering check loop")
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
+	roundStartTime := time.Now()
 
 outerLoop:
 	for {
 		select {
 		case <-checkTimer.C:
-			log.Info("Checking if all partitions in topic are properly replicated...")
+			log.Infof("Checking if all partitions in topic %s are properly replicated...", highlighter(t.topicName))
 
 			topicInfo, err := t.adminClient.GetTopic(ctx, t.topicName, true)
 			if err != nil {
@@ -981,7 +1019,7 @@ outerLoop:
 				partitionInfo := topicInfo.Partitions[assignment.ID]
 
 				if !util.SameElements(partitionInfo.Replicas, partitionInfo.ISR) {
-					log.Infof("Out of sync: %+v, %+v", partitionInfo.Replicas, partitionInfo.ISR)
+					log.Debugf("Out of sync: %+v, %+v", partitionInfo.Replicas, partitionInfo.ISR)
 					notReady = append(notReady, partitionInfo)
 					continue
 				}
@@ -997,7 +1035,11 @@ outerLoop:
 			}
 
 			if len(notReady) == 0 {
-				log.Infof("Partition(s) %+v looks good, continuing", idsToUpdate)
+				elapsed := time.Now().Sub(roundStartTime)
+				log.Infof("Partition(s) %+v looks good, continuing (last round duration: %s)",
+					idsToUpdate,
+					highlighter("%.1fs", float64(elapsed)/1000000000), // time.Duration is int64 nanoseconds
+				)
 				break outerLoop
 			}
 			log.Infof(">>> Not ready: %+v", notReady)
@@ -1008,7 +1050,14 @@ outerLoop:
 				len(assignmentsToUpdate),
 				admin.FormatTopicPartitions(notReady, t.brokers),
 			)
-			log.Infof("Sleeping for %s", t.config.SleepLoopDuration.String())
+
+			var roundString string // convert to " (round x of y)" if roundLabel is present
+			if roundLabel != "" {
+				roundString = fmt.Sprintf(" (current round %s, %+v elapsed)", roundLabel, time.Now().Sub(roundStartTime))
+			} else {
+				roundString = roundLabel
+			}
+			log.Infof("Sleeping for %s%s", t.config.SleepLoopDuration.String(), roundString)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -1050,7 +1099,7 @@ func (t *TopicApplier) applyThrottles(
 	var throttledTopic bool
 
 	if len(topicConfigEntries) > 0 {
-		log.Infof("Applying topic throttles: %+v", topicConfigEntries)
+		log.Infof("Applying topic throttles (%d MB/sec): %+v", t.throttleBytes/1000000, topicConfigEntries)
 		_, err := t.adminClient.UpdateTopicConfig(
 			ctx,
 			t.topicName,
@@ -1066,7 +1115,7 @@ func (t *TopicApplier) applyThrottles(
 	throttledBrokers := []int{}
 
 	for _, brokerThrottle := range brokerThrottles {
-		log.Infof("Applying throttle to broker %d", brokerThrottle.Broker)
+		log.Debugf("Applying throttle to broker %d", brokerThrottle.Broker)
 		updatedKeys, err := t.adminClient.UpdateBrokerConfig(
 			ctx,
 			brokerThrottle.Broker,
@@ -1074,6 +1123,8 @@ func (t *TopicApplier) applyThrottles(
 			false,
 		)
 		if err != nil {
+			log.Infof("Applied throttles to brokers %+v", throttledBrokers)                    // report on successful ones
+			log.Errorf("Error occurred applying throttle to broker %d", brokerThrottle.Broker) // log failed one here
 			return throttledTopic, throttledBrokers, err
 		}
 
@@ -1084,6 +1135,7 @@ func (t *TopicApplier) applyThrottles(
 			)
 		}
 	}
+	log.Infof("Applied throttles to brokers %+v", throttledBrokers)
 
 	return throttledTopic, throttledBrokers, nil
 }
@@ -1123,7 +1175,7 @@ func (t *TopicApplier) removeThottles(
 	}
 
 	for _, throttledBroker := range throttledBrokers {
-		log.Infof("Removing throttle from broker %d", throttledBroker)
+		log.Debugf("Removing throttle from broker %d", throttledBroker)
 		_, brokerErr := t.adminClient.UpdateBrokerConfig(
 			ctx,
 			throttledBroker,
@@ -1148,6 +1200,7 @@ func (t *TopicApplier) removeThottles(
 			err = multierror.Append(err, brokerErr)
 		}
 	}
+	log.Infof("Removed throttles from brokers %+v", throttledBrokers)
 
 	return err
 }

@@ -41,6 +41,21 @@ type Client interface {
 	// DeleteTopic deletes a single topic in the cluster.
 	DeleteTopic(ctx context.Context, topic string) error
 
+	// GetACLs gets full information about each ACL in the cluster.
+	GetACLs(
+		ctx context.Context,
+		filter kafka.ACLFilter,
+	) ([]ACLInfo, error)
+
+	// GetAllTopicsMetadata performs kafka-go metadata call to get topic information
+	GetAllTopicsMetadata(ctx context.Context) (*kafka.MetadataResponse, error)
+
+	// GetUsers gets information about users in the cluster.
+	GetUsers(
+		ctx context.Context,
+		names []string,
+	) ([]UserInfo, error)
+
 	// UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 	// keys that were updated.
 	UpdateTopicConfig(
@@ -63,6 +78,18 @@ type Client interface {
 	CreateTopic(
 		ctx context.Context,
 		config kafka.TopicConfig,
+	) error
+
+	// Create ACLs creates ACLs in the cluster.
+	CreateACLs(
+		ctx context.Context,
+		acls []kafka.ACLEntry,
+	) error
+
+	// UpsertUser creates or updates an user in zookeeper.
+	UpsertUser(
+		ctx context.Context,
+		user kafka.UserScramCredentialsUpsertion,
 	) error
 
 	// AssignPartitions sets the replica broker IDs for one or more partitions in a topic.

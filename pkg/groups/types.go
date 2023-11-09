@@ -11,6 +11,7 @@ import (
 type GroupCoordinator struct {
 	GroupID     string
 	Coordinator int
+	Topics      []string
 }
 
 // GroupDetails stores the state and members for a consumer group.
@@ -99,3 +100,9 @@ func (m MemberPartitionLag) OffsetLag() int64 {
 func (m MemberPartitionLag) TimeLag() time.Duration {
 	return m.NewestTime.Sub(m.MemberTime)
 }
+
+// Consumer Group Offset reset strategies
+const (
+	LatestResetOffsetsStrategy   string = "latest"
+	EarliestResetOffsetsStrategy string = "earliest"
+)

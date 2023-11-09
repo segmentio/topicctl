@@ -475,7 +475,7 @@ func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) str
 		} else if !inSync {
 			statusPrinter = color.New(color.FgRed).SprintfFunc()
 		} else if !correctLeader {
-			statusPrinter = color.New(color.FgBlue).SprintfFunc()
+			statusPrinter = color.New(color.FgCyan).SprintfFunc()
 		}
 
 		var statusStr string
@@ -498,6 +498,205 @@ func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) str
 				statusPrinter("%s", statusStr),
 			},
 		)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatTopicsPartitionsSummary creates a pretty table with summary of the
+// partitions for topics.
+func FormatTopicsPartitionsSummary(
+	topicsPartitionsStatusSummary map[string]map[PartitionStatus][]int,
+) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Topic",
+		"Status",
+		"Count",
+		"IDs",
+	}
+	columnAligment := []int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(true)
+	table.SetColumnAlignment(columnAligment)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	topicNames := []string{}
+	tableData := make(map[string][][]string)
+	for topicName, partitionsStatusSummary := range topicsPartitionsStatusSummary {
+		topicTableRows := [][]string{}
+
+		for partitionStatus, partitionStatusIDs := range partitionsStatusSummary {
+			topicTableRows = append(topicTableRows, []string{
+				fmt.Sprintf("%s", topicName),
+				fmt.Sprintf("%s", partitionStatus),
+				fmt.Sprintf("%d", len(partitionStatusIDs)),
+				fmt.Sprintf("%+v", partitionStatusIDs),
+			})
+		}
+
+		// sort the topicTableRows by partitionStatus
+		statusSort := func(i, j int) bool {
+			// second element in the row is of type PartitionStatus
+			return string(topicTableRows[i][1]) < string(topicTableRows[j][1])
+		}
+
+		sort.Slice(topicTableRows, statusSort)
+
+		tableData[topicName] = topicTableRows
+		topicNames = append(topicNames, topicName)
+	}
+
+	sort.Strings(topicNames)
+	for _, topicName := range topicNames {
+		_, exists := tableData[topicName]
+		if exists {
+			for _, topicTableRow := range tableData[topicName] {
+				table.Append(topicTableRow)
+			}
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatTopicsPartitions creates a pretty table with information on all of the
+// partitions for topics.
+func FormatTopicsPartitions(
+	topicsPartitionsStatusInfo map[string][]PartitionStatusInfo,
+	brokers []BrokerInfo,
+) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Topic",
+		"ID",
+		"Leader",
+		"ISR",
+		"Replicas",
+		"Distinct\nRacks",
+		"Racks",
+		"Status",
+	}
+	columnAligment := []int{
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+		tablewriter.ALIGN_LEFT,
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(columnAligment)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	topicNames := []string{}
+	brokerRacks := BrokerRacks(brokers)
+	tableData := make(map[string][][]string)
+	for topicName, partitionsStatusInfo := range topicsPartitionsStatusInfo {
+		topicTableRows := [][]string{}
+		for _, partitionStatusInfo := range partitionsStatusInfo {
+			racks := partitionStatusInfo.Racks(brokerRacks)
+
+			distinctRacks := make(map[string]int)
+			for _, rack := range racks {
+				distinctRacks[rack] += 1
+			}
+
+			partitionIsrs := []int{}
+			for _, partitionStatusIsr := range partitionStatusInfo.Partition.Isr {
+				partitionIsrs = append(partitionIsrs, partitionStatusIsr.ID)
+			}
+
+			partitionReplicas := []int{}
+			for _, partitionReplica := range partitionStatusInfo.Partition.Replicas {
+				partitionReplicas = append(partitionReplicas, partitionReplica.ID)
+			}
+
+			inSync := true
+			if partitionStatusInfo.Status != Ok {
+				inSync = false
+			}
+
+			correctLeader := true
+			if partitionStatusInfo.LeaderState != CorrectLeader {
+				correctLeader = false
+			}
+
+			var statusPrinter func(f string, a ...interface{}) string
+			if !util.InTerminal() || inSync {
+				statusPrinter = fmt.Sprintf
+			} else if !inSync {
+				statusPrinter = color.New(color.FgRed).SprintfFunc()
+			}
+
+			var statePrinter func(f string, a ...interface{}) string
+			if !util.InTerminal() || correctLeader {
+				statePrinter = fmt.Sprintf
+			} else if !correctLeader {
+				statePrinter = color.New(color.FgCyan).SprintfFunc()
+			}
+
+			leaderStateString := fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID)
+			if !correctLeader {
+				leaderStateString = fmt.Sprintf("%d %+v", partitionStatusInfo.Partition.Leader.ID,
+					statePrinter("(%s)", string(partitionStatusInfo.LeaderState)),
+				)
+			}
+
+			topicTableRows = append(topicTableRows, []string{
+				fmt.Sprintf("%s", topicName),
+				fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+				leaderStateString,
+				fmt.Sprintf("%+v", partitionIsrs),
+				fmt.Sprintf("%+v", partitionReplicas),
+				fmt.Sprintf("%d", len(distinctRacks)),
+				fmt.Sprintf("%+v", racks),
+				fmt.Sprintf("%v", statusPrinter("%s", string(partitionStatusInfo.Status))),
+			})
+		}
+
+		tableData[topicName] = topicTableRows
+		topicNames = append(topicNames, topicName)
+	}
+
+	sort.Strings(topicNames)
+	for _, topicName := range topicNames {
+		_, exists := tableData[topicName]
+		if exists {
+			for _, topicTableRow := range tableData[topicName] {
+				table.Append(topicTableRow)
+			}
+		}
 	}
 
 	table.Render()
@@ -745,6 +944,107 @@ func FormatBrokerMaxPartitions(
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatACLs creates a pretty table that lists the details of the
+// argument acls.
+func FormatACLs(acls []ACLInfo) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Resource Type",
+		"Pattern Type",
+		"Resource Name",
+		"Principal",
+		"Host",
+		"Operation",
+		"Permission Type",
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for _, acl := range acls {
+		row := []string{
+			acl.ResourceType.String(),
+			acl.PatternType.String(),
+			acl.ResourceName,
+			acl.Principal,
+			acl.Host,
+			acl.Operation.String(),
+			acl.PermissionType.String(),
+		}
+
+		table.Append(row)
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatUsers creates a pretty table that lists the details of the
+// argument users.
+func FormatUsers(users []UserInfo) string {
+	buf := &bytes.Buffer{}
+
+	headers := []string{
+		"Name",
+		"Mechanism",
+		"Iterations",
+	}
+
+	table := tablewriter.NewWriter(buf)
+	table.SetHeader(headers)
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	for _, user := range users {
+		for _, credential := range user.CredentialInfos {
+			row := []string{
+				user.Name,
+				credential.ScramMechanism.String(),
+				fmt.Sprintf("%d", credential.Iterations),
+			}
+
+			table.Append(row)
+		}
+	}
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
 func prettyConfig(config map[string]string) string {
 	rows := []string{}
 
@@ -797,7 +1097,7 @@ func assignmentRacksDiffStr(
 	elements := []string{}
 
 	added := color.New(color.FgRed).SprintfFunc()
-	moved := color.New(color.FgBlue).SprintfFunc()
+	moved := color.New(color.FgCyan).SprintfFunc()
 
 	for r, replica := range new.Replicas {
 		var element string
@@ -829,7 +1129,7 @@ func partitionCountDiffStr(diffValue int) string {
 		decreasedSprintf = fmt.Sprintf
 	} else {
 		increasedSprintf = color.New(color.FgRed).SprintfFunc()
-		decreasedSprintf = color.New(color.FgBlue).SprintfFunc()
+		decreasedSprintf = color.New(color.FgCyan).SprintfFunc()
 	}
 
 	if diffValue > 0 {

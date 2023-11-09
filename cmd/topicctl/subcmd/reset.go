@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
@@ -21,8 +22,11 @@ var resetOffsetsCmd = &cobra.Command{
 }
 
 type resetOffsetsCmdConfig struct {
-	offset     int64
-	partitions []int
+	offset             int64
+	partitions         []int
+	partitionOffsetMap map[string]int64
+	toEarliest         bool
+	toLatest           bool
 
 	shared sharedOptions
 }
@@ -34,20 +38,51 @@ func init() {
 		&resetOffsetsConfig.offset,
 		"offset",
 		-2,
-		"Offset",
+		"Desired offset for the target partitions",
 	)
 	resetOffsetsCmd.Flags().IntSliceVar(
 		&resetOffsetsConfig.partitions,
 		"partitions",
 		[]int{},
-		"Partition (defaults to all)",
+		"List of partitions to reset e.g. 1,2,3,.. (defaults to all)",
 	)
+	resetOffsetsCmd.Flags().StringToInt64Var(
+		&resetOffsetsConfig.partitionOffsetMap,
+		"partition-offset-map",
+		map[string]int64{},
+		"Map of partition IDs to their corresponding desired offsets e.g. 1=5,2=10,3=12,...",
+	)
+	resetOffsetsCmd.Flags().BoolVar(
+		&resetOffsetsConfig.toEarliest,
+		"to-earliest",
+		false,
+		"Resets offsets of consumer group members to earliest offsets of partitions")
+	resetOffsetsCmd.Flags().BoolVar(
+		&resetOffsetsConfig.toLatest,
+		"to-latest",
+		false,
+		"Resets offsets of consumer group members to latest offsets of partitions")
 
 	addSharedFlags(resetOffsetsCmd, &resetOffsetsConfig.shared)
 	RootCmd.AddCommand(resetOffsetsCmd)
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
+	resetOffsetSpecification := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
+	offsetMapSpecification := "--partition-offset-map option cannot be coupled with any of the following options: --partitions, --to-earliest, --to-latest, --offset."
+
+	if len(resetOffsetsConfig.partitionOffsetMap) > 0 && (cmd.Flags().Changed("offset") ||
+		len(resetOffsetsConfig.partitions) > 0 ||
+		resetOffsetsConfig.toEarliest ||
+		resetOffsetsConfig.toLatest) {
+		return errors.New(offsetMapSpecification)
+
+	} else if resetOffsetsConfig.toEarliest && resetOffsetsConfig.toLatest {
+		return errors.New(resetOffsetSpecification)
+
+	} else if cmd.Flags().Changed("offset") && (resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest) {
+		return errors.New(resetOffsetSpecification)
+	}
 	return resetOffsetsConfig.shared.validate()
 }
 
@@ -72,20 +107,53 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	for _, partitionInfo := range topicInfo.Partitions {
 		partitionIDsMap[partitionInfo.ID] = struct{}{}
 	}
-
+	var resetOffsetsStrategy string
+	if resetOffsetsConfig.toLatest {
+		resetOffsetsStrategy = groups.LatestResetOffsetsStrategy
+	} else if resetOffsetsConfig.toEarliest {
+		resetOffsetsStrategy = groups.EarliestResetOffsetsStrategy
+	}
 	partitionOffsets := map[int]int64{}
 
-	if len(resetOffsetsConfig.partitions) > 0 {
+	if len(resetOffsetsConfig.partitionOffsetMap) > 0 {
+		for partition, offset := range resetOffsetsConfig.partitionOffsetMap {
+			var partitionID int
+			if partitionID, err = strconv.Atoi(partition); err != nil {
+				return fmt.Errorf("Partition value %s must be a number", partition)
+			}
+			if _, ok := partitionIDsMap[partitionID]; !ok {
+				return fmt.Errorf("Partition %d not found in topic %s", partitionID, topic)
+			}
+
+			partitionOffsets[partitionID] = offset
+
+		}
+
+	} else if len(resetOffsetsConfig.partitions) > 0 {
 		for _, partition := range resetOffsetsConfig.partitions {
 			if _, ok := partitionIDsMap[partition]; !ok {
 				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
 			}
+			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
+				partitionOffsets[partition], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition)
+				if err != nil {
+					return err
+				}
+			} else {
+				partitionOffsets[partition] = resetOffsetsConfig.offset
+			}
 
-			partitionOffsets[partition] = resetOffsetsConfig.offset
 		}
 	} else {
 		for _, partitionInfo := range topicInfo.Partitions {
-			partitionOffsets[partitionInfo.ID] = resetOffsetsConfig.offset
+			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
+				partitionOffsets[partitionInfo.ID], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID)
+				if err != nil {
+					return err
+				}
+			} else {
+				partitionOffsets[partitionInfo.ID] = resetOffsetsConfig.offset
+			}
 		}
 	}
 

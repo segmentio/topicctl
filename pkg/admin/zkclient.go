@@ -422,6 +422,34 @@ func (c *ZKAdminClient) GetTopic(
 	return topics[0], nil
 }
 
+func (c *ZKAdminClient) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) ([]ACLInfo, error) {
+	return nil, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
+func (c *ZKAdminClient) CreateACLs(
+	ctx context.Context,
+	acls []kafka.ACLEntry,
+) error {
+	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
+func (c *ZKAdminClient) GetUsers(
+	ctx context.Context,
+	names []string,
+) ([]UserInfo, error) {
+	return nil, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
+func (c *ZKAdminClient) UpsertUser(
+	ctx context.Context,
+	user kafka.UserScramCredentialsUpsertion,
+) error {
+	return errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
 // UpdateTopicConfig updates the config JSON for a topic and sets a change
 // notification so that the brokers are notified. If overwrite is true, then
 // it will overwrite existing config entries.
@@ -574,7 +602,14 @@ func (c *ZKAdminClient) CreateTopic(
 	}
 	log.Debugf("Creating topic with config %+v", config)
 
-	_, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	resp, err := c.Connector.KafkaClient.CreateTopics(ctx, &req)
+	if err != nil {
+		return err
+	}
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -772,12 +807,15 @@ func (c *ZKAdminClient) LockHeld(
 
 // GetSupportedFeatures returns the features that are supported by this client.
 func (c *ZKAdminClient) GetSupportedFeatures() SupportedFeatures {
-	// The zk-based client supports everything.
+	// The zk-based client supports everything except for ACLs.
+	// Zookeeper can support ACLs, topicctl just hasn't added support for it yet.
 	return SupportedFeatures{
 		Reads:                true,
 		Applies:              true,
 		Locks:                true,
 		DynamicBrokerConfigs: true,
+		ACLs:                 false,
+		Users:                false,
 	}
 }
 
@@ -1091,4 +1129,21 @@ func updateConfig(
 
 	configMap["config"] = configKVMap
 	return updatedKeys, nil
+}
+
+func (c *ZKAdminClient) GetAllTopicsMetadata(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	client := c.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: nil,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics metadata: %+v", err)
+	}
+
+	return metadata, nil
 }

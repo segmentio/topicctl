@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/zk"
 	log "github.com/sirupsen/logrus"
 )
@@ -96,6 +97,18 @@ func NewBrokerAdminClient(
 	// that will provide the correct values for dynamic broker configs.
 	if _, ok := maxVersions["AlterClientQuotas"]; ok {
 		supportedFeatures.DynamicBrokerConfigs = true
+	}
+
+	// If we have DescribeAcls, then we're running a version of Kafka > 2.0.1,
+	// that will have support for all ACLs APIs.
+	if _, ok := maxVersions["DescribeAcls"]; ok {
+		supportedFeatures.ACLs = true
+	}
+
+	// If we have DescribeUserScramCredentials, than we're running a version of Kafka > 2.7.1,
+	// that will have support for all User APIs.
+	if _, ok := maxVersions["DescribeUserScramCredentials"]; ok {
+		supportedFeatures.Users = true
 	}
 	log.Debugf("Supported features: %+v", supportedFeatures)
 
@@ -372,6 +385,72 @@ func (c *BrokerAdminClient) GetTopic(
 	return topicInfos[0], nil
 }
 
+func (c *BrokerAdminClient) GetUsers(
+	ctx context.Context,
+	names []string,
+) ([]UserInfo, error) {
+	var users []kafka.UserScramCredentialsUser
+	for _, name := range names {
+		users = append(users, kafka.UserScramCredentialsUser{
+			Name: name,
+		})
+	}
+
+	req := kafka.DescribeUserScramCredentialsRequest{
+		Users: users,
+	}
+	log.Debugf("DescribeUserScramCredentials request: %+v", req)
+
+	resp, err := c.client.DescribeUserScramCredentials(ctx, &req)
+	log.Debugf("DescribeUserScramCredentials response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = util.DescribeUserScramCredentialsResponseResultsError(resp.Results); err != nil {
+		return nil, err
+	}
+
+	results := []UserInfo{}
+
+	for _, result := range resp.Results {
+		var credentials []CredentialInfo
+		for _, credential := range result.CredentialInfos {
+			credentials = append(credentials, CredentialInfo{
+				ScramMechanism: ScramMechanism(credential.Mechanism),
+				Iterations:     credential.Iterations,
+			})
+		}
+		results = append(results, UserInfo{
+			Name:            result.User,
+			CredentialInfos: credentials,
+		})
+	}
+	return results, err
+}
+
+func (c *BrokerAdminClient) UpsertUser(
+	ctx context.Context,
+	user kafka.UserScramCredentialsUpsertion,
+) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot create user in read-only mode")
+	}
+	req := kafka.AlterUserScramCredentialsRequest{
+		Upsertions: []kafka.UserScramCredentialsUpsertion{user},
+	}
+	log.Debugf("AlterUserScramCredentials request: %+v", req)
+	resp, err := c.client.AlterUserScramCredentials(ctx, &req)
+	log.Debugf("AlterUserScramCredentials response: %+v", resp)
+	if err != nil {
+		return err
+	}
+	if err = resp.Results[0].Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateTopicConfig updates the configuration for the argument topic. It returns the config
 // keys that were updated.
 func (c *BrokerAdminClient) UpdateTopicConfig(
@@ -399,6 +478,9 @@ func (c *BrokerAdminClient) UpdateTopicConfig(
 	resp, err := c.client.IncrementalAlterConfigs(ctx, &req)
 	log.Debugf("IncrementalAlterConfigs response: %+v (%+v)", resp, err)
 	if err != nil {
+		return nil, err
+	}
+	if err = util.IncrementalAlterConfigsResponseResourcesError(resp.Resources); err != nil {
 		return nil, err
 	}
 
@@ -439,6 +521,9 @@ func (c *BrokerAdminClient) UpdateBrokerConfig(
 	if err != nil {
 		return nil, err
 	}
+	if err = util.IncrementalAlterConfigsResponseResourcesError(resp.Resources); err != nil {
+		return nil, err
+	}
 
 	updated := []string{}
 	for _, entry := range configEntries {
@@ -464,7 +549,13 @@ func (c *BrokerAdminClient) CreateTopic(
 
 	resp, err := c.client.CreateTopics(ctx, &req)
 	log.Debugf("CreateTopics response: %+v (%+v)", resp, err)
-	return err
+	if err != nil {
+		return err
+	}
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
+		return err
+	}
+	return nil
 }
 
 // AssignPartitions sets the replica broker IDs for one or more partitions in a topic.
@@ -495,6 +586,16 @@ func (c *BrokerAdminClient) AssignPartitions(
 
 	resp, err := c.client.AlterPartitionReassignments(ctx, &req)
 	log.Debugf("AlterPartitionReassignments response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = resp.Error; err != nil {
+		return err
+	}
+	if err = util.AlterPartitionReassignmentsRequestAssignmentError(resp.PartitionResults); err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -567,6 +668,12 @@ func (c *BrokerAdminClient) AddPartitions(
 
 	resp, err := c.client.CreatePartitions(ctx, &req)
 	log.Debugf("CreatePartitions response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = util.KafkaErrorsToErr(resp.Errors); err != nil {
+		return err
+	}
 
 	return err
 }
@@ -590,6 +697,12 @@ func (c *BrokerAdminClient) RunLeaderElection(
 
 	resp, err := c.client.ElectLeaders(ctx, &req)
 	log.Debugf("ElectLeaders response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	if err = resp.Error; err != nil {
+		return err
+	}
 
 	return err
 }
@@ -679,4 +792,91 @@ func configEntriesToAPIConfigs(
 	}
 
 	return apiConfigs
+}
+
+// GetACLs gets full information about each ACL in the cluster.
+func (c *BrokerAdminClient) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) ([]ACLInfo, error) {
+	req := kafka.DescribeACLsRequest{
+		Filter: filter,
+	}
+	log.Debugf("DescribeACLs request: %+v", req)
+
+	resp, err := c.client.DescribeACLs(ctx, &req)
+	log.Debugf("DescribeACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	aclinfos := []ACLInfo{}
+
+	for _, resource := range resp.Resources {
+		for _, acl := range resource.ACLs {
+			aclinfos = append(aclinfos, ACLInfo{
+				ResourceType:   ResourceType(resource.ResourceType),
+				ResourceName:   resource.ResourceName,
+				PatternType:    PatternType(resource.PatternType),
+				Principal:      acl.Principal,
+				Host:           acl.Host,
+				Operation:      ACLOperationType(acl.Operation),
+				PermissionType: ACLPermissionType(acl.PermissionType),
+			})
+		}
+	}
+
+	return aclinfos, nil
+}
+
+// CreateACLs creates an ACL in the cluster.
+func (c *BrokerAdminClient) CreateACLs(
+	ctx context.Context,
+	acls []kafka.ACLEntry,
+) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot create ACL in read-only mode")
+	}
+
+	req := kafka.CreateACLsRequest{
+		ACLs: acls,
+	}
+	log.Debugf("CreateACLs request: %+v", req)
+
+	resp, err := c.client.CreateACLs(ctx, &req)
+	log.Debugf("CreateACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+	var errors []error
+	for _, err := range resp.Errors {
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("%+v", errors)
+	}
+	return nil
+}
+
+func (c *BrokerAdminClient) GetAllTopicsMetadata(
+	ctx context.Context,
+) (*kafka.MetadataResponse, error) {
+	client := c.GetConnector().KafkaClient
+	req := kafka.MetadataRequest{
+		Topics: nil,
+	}
+
+	log.Debugf("Metadata request: %+v", req)
+	metadata, err := client.Metadata(ctx, &req)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching all topics metadata: %+v", err)
+	}
+
+	return metadata, nil
 }

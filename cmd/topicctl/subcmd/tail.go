@@ -25,6 +25,7 @@ type tailCmdConfig struct {
 	offset     int64
 	partitions []int
 	raw        bool
+	headers    bool
 
 	shared sharedOptions
 }
@@ -49,6 +50,12 @@ func init() {
 		"raw",
 		false,
 		"Output raw values only",
+	)
+	tailCmd.Flags().BoolVar(
+		&tailConfig.headers,
+		"headers",
+		true,
+		"Output message headers",
 	)
 
 	addSharedFlags(tailCmd, &tailConfig.shared)
@@ -89,6 +96,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		-1,
 		"",
 		tailConfig.raw,
+		tailConfig.headers,
 	)
 }
 

@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/fatih/color"
+	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
@@ -91,11 +93,13 @@ func (c *CLIRunner) ApplyTopic(
 		return err
 	}
 
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
+
 	c.printer(
 		"Starting apply for topic %s in environment %s, cluster %s",
-		applierConfig.TopicConfig.Meta.Name,
-		applierConfig.TopicConfig.Meta.Environment,
-		applierConfig.TopicConfig.Meta.Cluster,
+		highlighter(applierConfig.TopicConfig.Meta.Name),
+		highlighter(applierConfig.TopicConfig.Meta.Environment),
+		highlighter(applierConfig.TopicConfig.Meta.Cluster),
 	)
 
 	err = applier.Apply(ctx)
@@ -397,25 +401,57 @@ func (c *CLIRunner) GetMemberLags(
 
 // GetPartitions fetches the details of each partition in a topic and prints out a summary for
 // user inspection.
-func (c *CLIRunner) GetPartitions(ctx context.Context, topic string) error {
+func (c *CLIRunner) GetPartitions(
+	ctx context.Context,
+	topics []string,
+	status admin.PartitionStatus,
+	summary bool,
+) error {
 	c.startSpinner()
 
-	topicInfo, err := c.adminClient.GetTopic(ctx, topic, true)
+	metadata, err := c.adminClient.GetAllTopicsMetadata(ctx)
 	if err != nil {
 		c.stopSpinner()
 		return err
 	}
 
 	brokers, err := c.adminClient.GetBrokers(ctx, nil)
-	c.stopSpinner()
 	if err != nil {
+		c.stopSpinner()
 		return err
 	}
 
+	if !summary {
+		topicsPartitionsStatusInfo := admin.GetTopicsPartitionsStatusInfo(metadata, topics, status)
+		c.stopSpinner()
+
+		c.printer(
+			"Partitions:\n%s",
+			admin.FormatTopicsPartitions(topicsPartitionsStatusInfo, brokers),
+		)
+
+		return nil
+	}
+
+	statusSummary, okCount, offlineCount, underReplicatedCount := admin.GetTopicsPartitionsStatusSummary(metadata,
+		topics,
+		status,
+	)
+	c.stopSpinner()
+
 	c.printer(
-		"Partitions for topic %s:\n%s",
-		topic,
-		admin.FormatTopicPartitions(topicInfo.Partitions, brokers),
+		"Partitions Summary:\n%s",
+		admin.FormatTopicsPartitionsSummary(statusSummary),
+	)
+
+	c.printer(
+		"%d %v partitions, %d %v partitions, %d %v partitions are found",
+		okCount,
+		admin.Ok,
+		underReplicatedCount,
+		admin.UnderReplicated,
+		offlineCount,
+		admin.Offline,
 	)
 
 	return nil
@@ -501,7 +537,23 @@ func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
 	if err != nil {
 		return err
 	}
+
 	c.printer("Success")
+
+	return nil
+}
+
+// GerUsers fetches the details of each user in the cluster and prints out a table of them.
+func (c *CLIRunner) GetUsers(ctx context.Context, names []string) error {
+	c.startSpinner()
+
+	users, err := c.adminClient.GetUsers(ctx, names)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Users:\n%s", admin.FormatUsers(users))
 
 	return nil
 }
@@ -540,6 +592,7 @@ func (c *CLIRunner) Tail(
 	maxMessages int,
 	filterRegexp string,
 	raw bool,
+	headers bool,
 ) error {
 	var err error
 	if len(partitions) == 0 {
@@ -560,7 +613,7 @@ func (c *CLIRunner) Tail(
 		10e3,
 		10e6,
 	)
-	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw)
+	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw, headers)
 	filtered := filterRegexp != ""
 
 	if !raw {
@@ -568,6 +621,24 @@ func (c *CLIRunner) Tail(
 	}
 
 	return err
+}
+
+// GetACLs fetches the details of each acl in the cluster and prints out a summary.
+func (c *CLIRunner) GetACLs(
+	ctx context.Context,
+	filter kafka.ACLFilter,
+) error {
+	c.startSpinner()
+
+	acls, err := c.adminClient.GetACLs(ctx, filter)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("ACLs:\n%s", admin.FormatACLs(acls))
+
+	return nil
 }
 
 func (c *CLIRunner) startSpinner() {

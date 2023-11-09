@@ -156,6 +156,57 @@ func TestTopicValidate(t *testing.T) {
 			expError: true,
 		},
 		{
+			description: "all good double-setting local retention",
+			topicConfig: TopicConfig{
+				Meta: TopicMeta{
+					Name:        "test-topic",
+					Cluster:     "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+					Description: "Bootstrapped via topicctl bootstrap",
+				},
+				Spec: TopicSpec{
+					Partitions:        2,
+					ReplicationFactor: 3,
+					RetentionMinutes:  120,
+					Settings: TopicSettings{
+						"local.retention.ms":    "1234",
+						"local.retention.bytes": "4567",
+						"remote.storage.enable": "true",
+					},
+					PlacementConfig: TopicPlacementConfig{
+						Strategy: PlacementStrategyAny,
+					},
+				},
+			},
+			expError: false,
+		},
+		{
+			description: "setting local retention without enabling remote storage",
+			topicConfig: TopicConfig{
+				Meta: TopicMeta{
+					Name:        "test-topic",
+					Cluster:     "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+					Description: "Bootstrapped via topicctl bootstrap",
+				},
+				Spec: TopicSpec{
+					Partitions:        2,
+					ReplicationFactor: 3,
+					RetentionMinutes:  120,
+					Settings: TopicSettings{
+						"local.retention.ms":    "1234",
+						"local.retention.bytes": "4567",
+					},
+					PlacementConfig: TopicPlacementConfig{
+						Strategy: PlacementStrategyAny,
+					},
+				},
+			},
+			expError: true,
+		},
+		{
 			description: "balanced leaders invalid rack count",
 			topicConfig: TopicConfig{
 				Meta: TopicMeta{
