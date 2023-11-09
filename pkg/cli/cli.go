@@ -522,6 +522,17 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 
 // DeleteTopic deletes a single topic.
 func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
+	c.printer("Checking if topic %s exists...", topic)
+	c.startSpinner()
+	// First check that topic exists
+	_, err := c.adminClient.GetTopic(ctx, topic, false)
+	if err != nil {
+		c.stopSpinner()
+		return fmt.Errorf("Error fetching topic info: %+v", err)
+	}
+	c.stopSpinner()
+	c.printer("Topic %s exists in the cluster!", topic)
+
 	confirm, err := apply.Confirm(fmt.Sprintf("Delete topic \"%s\"", topic), false)
 	if err != nil {
 		return err
