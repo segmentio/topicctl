@@ -549,7 +549,7 @@ func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
 		return err
 	}
 
-	c.printer("Success")
+	c.printer("Topic %s successfully deleted", topic)
 
 	return nil
 }
