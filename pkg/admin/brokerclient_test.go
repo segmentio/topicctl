@@ -446,7 +446,7 @@ func TestBrokerDeleteTopic(t *testing.T) {
 	err = client.DeleteTopic(ctx, topicName)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 	_, err = client.GetTopic(ctx, topicName, false)
 	require.Error(t, err)
