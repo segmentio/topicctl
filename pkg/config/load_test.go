@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,72 +106,62 @@ func TestLoadTopicsFile(t *testing.T) {
 	assert.Equal(t, "topic-test2", topicConfigs[1].Meta.Name)
 }
 
-func TestLoadUsersFile(t *testing.T) {
-	userConfigs, err := LoadUsersFile("testdata/test-cluster/users/user-test.yaml")
+// TODO: write this test
+func TestLoadACLsFile(t *testing.T) {
+	aclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test.yaml")
 	require.NoError(t, err)
-	fmt.Println(userConfigs)
-	assert.Equal(t, 1, len(userConfigs))
-	userConfig := userConfigs[0]
+	fmt.Println(aclConfigs)
+	assert.Equal(t, 1, len(aclConfigs))
+	aclConfig := aclConfigs[0]
 
 	assert.Equal(
 		t,
-		UserConfig{
-			Meta: UserMeta{
-				Name:        "user-test",
+		ACLConfig{
+			Meta: ACLMeta{
+				Name:        "acl-test",
 				Cluster:     "test-cluster",
 				Region:      "test-region",
 				Environment: "test-env",
-				Description: "Test user\n",
+				Description: "Test acl\n",
 			},
-			Spec: UserSpec{
-				Authentication: AuthenticationConfig{
-					Type:     "scram-sha-512",
-					Password: "test-password",
-				},
-				Authorization: AuthorizationConfig{
-					Type: "simple",
-					ACLs: []ACL{
-						{
-							Resource: ACLResource{
-								Type:        "topic",
-								Name:        "test-topic",
-								PatternType: "literal",
-							},
-							Operations: []string{
-								"read",
-								"describe",
-							},
+			Spec: ACLSpec{
+				ACLs: []ACL{
+					{
+						Resource: ACLResource{
+							Type:        kafka.ResourceTypeTopic,
+							Name:        "test-topic",
+							PatternType: kafka.PatternTypeLiteral,
 						},
-						{
-							Resource: ACLResource{
-								Type:        "group",
-								Name:        "test-group",
-								PatternType: "prefixed",
-							},
-							Operations: []string{
-								"read",
-							},
+						Operations: []kafka.ACLOperationType{
+							kafka.ACLOperationTypeRead,
+							kafka.ACLOperationTypeDescribe,
+						},
+					},
+					{
+						Resource: ACLResource{
+							Type:        kafka.ResourceTypeGroup,
+							Name:        "test-group",
+							PatternType: kafka.PatternTypePrefixed,
+						},
+						Operations: []kafka.ACLOperationType{
+							kafka.ACLOperationTypeRead,
 						},
 					},
 				},
 			},
 		},
-		userConfig,
+		aclConfig,
 	)
-	assert.NoError(t, userConfig.Validate())
 
-	invalidUserConfigs, err := LoadUsersFile("testdata/test-cluster/users/user-test-invalid.yaml")
-	assert.Equal(t, 1, len(invalidUserConfigs))
-	invalidUserConfig := invalidUserConfigs[0]
-	require.NoError(t, err)
-	assert.Error(t, invalidUserConfig.Validate())
+	invalidAclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-invalid.yaml")
+	assert.Equal(t, 0, len(invalidAclConfigs))
+	// TODO: improve this error checking and make sure the error is informative enough
+	require.Error(t, err)
 
-	multiUserConfigs, err := LoadUsersFile("testdata/test-cluster/users/user-test-multi.yaml")
-	assert.Equal(t, 2, len(multiUserConfigs))
-	assert.Equal(t, "user-test1", multiUserConfigs[0].Meta.Name)
-	assert.Equal(t, "user-test2", multiUserConfigs[1].Meta.Name)
-	assert.NoError(t, multiUserConfigs[0].Validate())
-	assert.NoError(t, multiUserConfigs[1].Validate())
+	multiAclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-multi.yaml")
+	assert.Equal(t, 2, len(multiAclConfigs))
+	assert.Equal(t, "acl-test1", multiAclConfigs[0].Meta.Name)
+	assert.Equal(t, "acl-test2", multiAclConfigs[1].Meta.Name)
 }
 
 func TestCheckConsistency(t *testing.T) {

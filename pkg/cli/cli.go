@@ -19,6 +19,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/segmentio/topicctl/pkg/create"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
 	log "github.com/sirupsen/logrus"
@@ -111,15 +112,15 @@ func (c *CLIRunner) ApplyTopic(
 	return nil
 }
 
-// ApplyUser does an apply run according to the spec in the argument config.
-func (c *CLIRunner) ApplyUser(
+// CreateACL does an apply run according to the spec in the argument config.
+func (c *CLIRunner) CreateACL(
 	ctx context.Context,
-	applierConfig apply.UserApplierConfig,
+	creatorConfig create.ACLCreatorConfig,
 ) error {
-	applier, err := apply.NewUserApplier(
+	creator, err := create.NewACLCreator(
 		ctx,
 		c.adminClient,
-		applierConfig,
+		creatorConfig,
 	)
 	if err != nil {
 		return err
@@ -128,18 +129,18 @@ func (c *CLIRunner) ApplyUser(
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 
 	c.printer(
-		"Starting apply for user %s in environment %s, cluster %s",
-		highlighter(applierConfig.UserConfig.Meta.Name),
-		highlighter(applierConfig.UserConfig.Meta.Environment),
-		highlighter(applierConfig.UserConfig.Meta.Cluster),
+		"Starting creation for ACLs %s in environment %s, cluster %s",
+		highlighter(creatorConfig.ACLConfig.Meta.Name),
+		highlighter(creatorConfig.ACLConfig.Meta.Environment),
+		highlighter(creatorConfig.ACLConfig.Meta.Cluster),
 	)
 
-	err = applier.Apply(ctx)
+	err = creator.Create(ctx)
 	if err != nil {
 		return err
 	}
 
-	c.printer("Apply completed successfully!")
+	c.printer("Create completed successfully!")
 	return nil
 }
 

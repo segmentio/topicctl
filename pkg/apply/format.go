@@ -37,18 +37,6 @@ func FormatNewUserConfig(config kafka.UserScramCredentialsUpsertion) string {
 	return string(content)
 }
 
-// FormatNewACLsConfig generates a pretty string representation of kafka-go
-// ACL configurations.
-func FormatNewACLsConfig(config []kafka.ACLEntry) string {
-	content, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		log.Warnf("Error marshalling ACLs config: %+v", err)
-		return "Error"
-	}
-
-	return string(content)
-}
-
 // FormatSettingsDiff generates a table that summarizes the differences between
 // the topic settings from a topic config and the settings from ZK.
 func FormatSettingsDiff(
