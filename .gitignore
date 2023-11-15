@@ -17,3 +17,6 @@ vendor/
 build/
 
 .vscode
+
+# Emacs backups
+*~
