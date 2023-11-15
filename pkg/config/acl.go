@@ -5,17 +5,8 @@ import (
 )
 
 type ACLConfig struct {
-	Meta ACLMeta `json:"meta"`
-	Spec ACLSpec `json:"spec"`
-}
-
-type ACLMeta struct {
-	Name        string            `json:"name"`
-	Cluster     string            `json:"cluster"`
-	Region      string            `json:"region"`
-	Environment string            `json:"environment"`
-	Description string            `json:"description"`
-	Labels      map[string]string `json:"labels"`
+	Meta ResourceMeta `json:"meta"`
+	Spec ACLSpec      `json:"spec"`
 }
 
 type ACLSpec struct {

@@ -128,22 +128,22 @@ func LoadACLBytes(contents []byte) (ACLConfig, error) {
 
 // CheckConsistency verifies that the argument topic config is consistent with the argument
 // cluster, e.g. has the same environment and region, etc.
-func CheckConsistency(topicConfig TopicConfig, clusterConfig ClusterConfig) error {
+func CheckConsistency(resourceMeta ResourceMeta, clusterConfig ClusterConfig) error {
 	var err error
 
-	if topicConfig.Meta.Cluster != clusterConfig.Meta.Name {
+	if resourceMeta.Cluster != clusterConfig.Meta.Name {
 		err = multierror.Append(
 			err,
 			errors.New("Topic cluster name does not match name in cluster config"),
 		)
 	}
-	if topicConfig.Meta.Environment != clusterConfig.Meta.Environment {
+	if resourceMeta.Environment != clusterConfig.Meta.Environment {
 		err = multierror.Append(
 			err,
 			errors.New("Topic environment does not match cluster environment"),
 		)
 	}
-	if topicConfig.Meta.Region != clusterConfig.Meta.Region {
+	if resourceMeta.Region != clusterConfig.Meta.Region {
 		err = multierror.Append(
 			err,
 			errors.New("Topic region does not match cluster region"),

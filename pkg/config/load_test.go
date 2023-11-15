@@ -62,7 +62,7 @@ func TestLoadTopicsFile(t *testing.T) {
 	assert.Equal(
 		t,
 		TopicConfig{
-			Meta: TopicMeta{
+			Meta: ResourceMeta{
 				Name:        "topic-test",
 				Cluster:     "test-cluster",
 				Region:      "test-region",
@@ -188,6 +188,6 @@ func TestCheckConsistency(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, topicConfig.Validate(3))
 
-	assert.NoError(t, CheckConsistency(topicConfig, clusterConfig))
-	assert.Error(t, CheckConsistency(topicConfigNoMatch, clusterConfig))
+	assert.NoError(t, CheckConsistency(topicConfig.Meta, clusterConfig))
+	assert.Error(t, CheckConsistency(topicConfigNoMatch.Meta, clusterConfig))
 }

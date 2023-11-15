@@ -19,7 +19,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "all good any placement",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -43,7 +43,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "all good balanced-leaders placement",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -65,7 +65,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "all good static placement",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -90,7 +90,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "all good static-in-rack placement",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -115,7 +115,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "missing meta fields",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Environment: "test-environment",
 					Description: "Bootstrapped via topicctl bootstrap",
@@ -134,7 +134,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "double-setting retention",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -158,7 +158,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "all good double-setting local retention",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -184,7 +184,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "setting local retention without enabling remote storage",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -209,7 +209,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "balanced leaders invalid rack count",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -230,7 +230,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "static placement invalid num partitions",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -254,7 +254,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "static placement invalid replication",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -278,7 +278,7 @@ func TestTopicValidate(t *testing.T) {
 		{
 			description: "static-in-rack placement invalid partition count",
 			topicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -355,7 +355,7 @@ func TestTopicConfigFromTopicInfo(t *testing.T) {
 				Version: 1,
 			},
 			expTopicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -408,7 +408,7 @@ func TestTopicConfigFromTopicInfo(t *testing.T) {
 				Version: 1,
 			},
 			expTopicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -458,7 +458,7 @@ func TestTopicConfigFromTopicInfo(t *testing.T) {
 				Version: 1,
 			},
 			expTopicConfig: TopicConfig{
-				Meta: TopicMeta{
+				Meta: ResourceMeta{
 					Name:        "test-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",

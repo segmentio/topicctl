@@ -130,7 +130,7 @@ func (t *TopicApplier) Apply(ctx context.Context) error {
 	if err := t.topicConfig.Validate(len(brokerRacks)); err != nil {
 		return err
 	}
-	if err := config.CheckConsistency(t.topicConfig, t.clusterConfig); err != nil {
+	if err := config.CheckConsistency(t.topicConfig.Meta, t.clusterConfig); err != nil {
 		return err
 	}
 

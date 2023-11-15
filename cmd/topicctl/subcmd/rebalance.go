@@ -3,13 +3,14 @@ package subcmd
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
@@ -159,7 +160,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 
 		for _, topicConfig := range topicConfigs {
 			// topic config should be consistent with the cluster config
-			if err := config.CheckConsistency(topicConfig, clusterConfig); err != nil {
+			if err := config.CheckConsistency(topicConfig.Meta, clusterConfig); err != nil {
 				log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
 				continue
 			}
