@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -110,7 +109,6 @@ func TestLoadTopicsFile(t *testing.T) {
 func TestLoadACLsFile(t *testing.T) {
 	aclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test.yaml")
 	require.NoError(t, err)
-	fmt.Println(aclConfigs)
 	assert.Equal(t, 1, len(aclConfigs))
 	aclConfig := aclConfigs[0]
 
@@ -131,6 +129,9 @@ func TestLoadACLsFile(t *testing.T) {
 							Type:        kafka.ResourceTypeTopic,
 							Name:        "test-topic",
 							PatternType: kafka.PatternTypeLiteral,
+							Principal:   "User:Alice",
+							Host:        "*",
+							Permission:  kafka.ACLPermissionTypeAllow,
 						},
 						Operations: []kafka.ACLOperationType{
 							kafka.ACLOperationTypeRead,
@@ -142,6 +143,9 @@ func TestLoadACLsFile(t *testing.T) {
 							Type:        kafka.ResourceTypeGroup,
 							Name:        "test-group",
 							PatternType: kafka.PatternTypePrefixed,
+							Principal:   "User:Alice",
+							Host:        "*",
+							Permission:  kafka.ACLPermissionTypeAllow,
 						},
 						Operations: []kafka.ACLOperationType{
 							kafka.ACLOperationTypeRead,
