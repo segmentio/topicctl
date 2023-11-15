@@ -770,4 +770,5 @@ func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 
 	err = client.CreateACLs(ctx, []kafka.ACLEntry{})
 	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
+
 }

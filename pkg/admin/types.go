@@ -94,7 +94,7 @@ type ACLInfo struct {
 // as a Cobra flag.
 type ResourceType kafka.ResourceType
 
-var ResourceTypeMap = map[string]kafka.ResourceType{
+var resourceTypeMap = map[string]kafka.ResourceType{
 	"any":             kafka.ResourceTypeAny,
 	"topic":           kafka.ResourceTypeTopic,
 	"group":           kafka.ResourceTypeGroup,
@@ -125,7 +125,7 @@ func (r *ResourceType) String() string {
 
 // Set is used by Cobra to set the value of a variable from a Cobra flag.
 func (r *ResourceType) Set(v string) error {
-	rt, ok := ResourceTypeMap[strings.ToLower(v)]
+	rt, ok := resourceTypeMap[strings.ToLower(v)]
 	if !ok {
 		return errors.New(`must be one of "any", "topic", "group", "cluster", "transactionalid", or "delegationtoken"`)
 	}
@@ -144,7 +144,7 @@ func (r *ResourceType) Type() string {
 // as a Cobra flag.
 type PatternType kafka.PatternType
 
-var PatternTypeMap = map[string]kafka.PatternType{
+var patternTypeMap = map[string]kafka.PatternType{
 	"any":      kafka.PatternTypeAny,
 	"match":    kafka.PatternTypeMatch,
 	"literal":  kafka.PatternTypeLiteral,
@@ -169,7 +169,7 @@ func (p *PatternType) String() string {
 
 // Set is used by Cobra to set the value of a variable from a Cobra flag.
 func (p *PatternType) Set(v string) error {
-	pt, ok := PatternTypeMap[strings.ToLower(v)]
+	pt, ok := patternTypeMap[strings.ToLower(v)]
 	if !ok {
 		return errors.New(`must be one of "any", "match", "literal", or "prefixed"`)
 	}
@@ -188,7 +188,7 @@ func (r *PatternType) Type() string {
 // as a Cobra flag.
 type ACLOperationType kafka.ACLOperationType
 
-var AclOperationTypeMap = map[string]kafka.ACLOperationType{
+var aclOperationTypeMap = map[string]kafka.ACLOperationType{
 	"any":             kafka.ACLOperationTypeAny,
 	"all":             kafka.ACLOperationTypeAll,
 	"read":            kafka.ACLOperationTypeRead,
@@ -237,7 +237,7 @@ func (o *ACLOperationType) String() string {
 
 // Set is used by Cobra to set the value of a variable from a Cobra flag.
 func (o *ACLOperationType) Set(v string) error {
-	ot, ok := AclOperationTypeMap[strings.ToLower(v)]
+	ot, ok := aclOperationTypeMap[strings.ToLower(v)]
 	if !ok {
 		return errors.New(`must be one of "any", "all", "read", "write", "create", "delete", "alter", "describe", "clusteraction", "describeconfigs", "alterconfigs" or "idempotentwrite"`)
 	}
@@ -256,7 +256,7 @@ func (o *ACLOperationType) Type() string {
 // as a Cobra flag.
 type ACLPermissionType kafka.ACLPermissionType
 
-var AclPermissionTypeMap = map[string]kafka.ACLPermissionType{
+var aclPermissionTypeMap = map[string]kafka.ACLPermissionType{
 	"any":   kafka.ACLPermissionTypeAny,
 	"allow": kafka.ACLPermissionTypeAllow,
 	"deny":  kafka.ACLPermissionTypeDeny,
@@ -278,7 +278,7 @@ func (p *ACLPermissionType) String() string {
 
 // Set is used by Cobra to set the value of a variable from a Cobra flag.
 func (p *ACLPermissionType) Set(v string) error {
-	pt, ok := AclPermissionTypeMap[strings.ToLower(v)]
+	pt, ok := aclPermissionTypeMap[strings.ToLower(v)]
 	if !ok {
 		return errors.New(`must be one of "any", "allow", or "deny"`)
 	}
