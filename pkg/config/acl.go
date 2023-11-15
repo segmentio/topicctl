@@ -45,3 +45,7 @@ func (a ACLConfig) ToNewACLEntries() []kafka.ACLEntry {
 	}
 	return acls
 }
+
+// TODO: Set defaults for missing values
+
+// TODO: Validate fields cannot be empty
