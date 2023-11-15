@@ -49,18 +49,3 @@ func AlterPartitionReassignmentsRequestAssignmentError(results []kafka.AlterPart
 	}
 	return nil
 }
-
-func DescribeUserScramCredentialsResponseResultsError(results []kafka.DescribeUserScramCredentialsResponseResult) error {
-	errors := map[string]error{}
-	var hasErrors bool
-	for _, result := range results {
-		if result.Error != nil {
-			hasErrors = true
-			errors[result.User] = result.Error
-		}
-	}
-	if hasErrors {
-		return fmt.Errorf("%+v", errors)
-	}
-	return nil
-}
