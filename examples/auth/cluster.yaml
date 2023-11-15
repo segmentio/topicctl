@@ -19,6 +19,7 @@ spec:
     skipVerify: true
   sasl:
     enabled: true
+    mechanism: SCRAM-SHA-512
 
     # As an alternative to storing these in plain text in the config (probably not super-secure),
     # these can also be set via:
