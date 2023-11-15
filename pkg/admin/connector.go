@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -132,7 +132,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		if config.TLS.CACertPath != "" {
 			log.Debugf("Adding CA certs from %s", config.TLS.CACertPath)
 			caCertPool = x509.NewCertPool()
-			caCertContents, err := ioutil.ReadFile(config.TLS.CACertPath)
+			caCertContents, err := os.ReadFile(config.TLS.CACertPath)
 			if err != nil {
 				return nil, err
 			}

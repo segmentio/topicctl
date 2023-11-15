@@ -19,7 +19,7 @@ var sep = regexp.MustCompile("(?:^|\\s*\n)---\\s*")
 
 // LoadClusterFile loads a ClusterConfig from a path to a YAML file.
 func LoadClusterFile(path string, expandEnv bool) (ClusterConfig, error) {
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		return ClusterConfig{}, err
 	}
@@ -51,7 +51,7 @@ func LoadClusterBytes(contents []byte) (ClusterConfig, error) {
 
 // LoadTopicsFile loads one or more TopicConfigs from a path to a YAML file.
 func LoadTopicsFile(path string) ([]TopicConfig, error) {
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
