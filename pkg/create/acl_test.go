@@ -199,7 +199,6 @@ func TestCreateExistingACLs(t *testing.T) {
 	}, acl)
 }
 
-// TODO: write this test
 func TestCreateACLsDryRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -270,11 +269,6 @@ func TestCreateACLsDryRun(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, []admin.ACLInfo{}, acl)
-}
-
-// TODO: write this test
-func TestConsistency(t *testing.T) {
-	t.Fatal("not implemented")
 }
 
 func testCreator(
