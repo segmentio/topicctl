@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -177,7 +176,7 @@ func (c *CLIRunner) BootstrapTopics(
 
 			if isNew || overwrite {
 				log.Infof("Writing config to %s", outputPath)
-				err = ioutil.WriteFile(outputPath, []byte(yamlStr), 0644)
+				err = os.WriteFile(outputPath, []byte(yamlStr), 0644)
 				if err != nil {
 					return err
 				}
