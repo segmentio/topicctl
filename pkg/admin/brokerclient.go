@@ -412,7 +412,6 @@ func (c *BrokerAdminClient) GetUsers(
 
 	for _, result := range resp.Results {
 		if result.Error != nil {
-			log.Debugf("got here")
 			if errors.Is(result.Error, kafka.ResourceNotFound) {
 				log.Debugf("Skipping over user %s because it does not exist", result.User)
 				continue
