@@ -130,7 +130,6 @@ func createACL(
 	aclConfigPath string,
 	adminClients map[string]admin.Client,
 ) error {
-	// TODO: check consistency of cluster config and ACL config
 	clusterConfigPath, err := clusterConfigForACLCreate(aclConfigPath)
 	if err != nil {
 		return err

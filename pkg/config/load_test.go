@@ -117,7 +117,7 @@ func TestLoadACLsFile(t *testing.T) {
 	assert.Equal(
 		t,
 		ACLConfig{
-			Meta: ACLMeta{
+			Meta: ResourceMeta{
 				Name:        "acl-test",
 				Cluster:     "test-cluster",
 				Region:      "test-region",
@@ -190,4 +190,15 @@ func TestCheckConsistency(t *testing.T) {
 
 	assert.NoError(t, CheckConsistency(topicConfig.Meta, clusterConfig))
 	assert.Error(t, CheckConsistency(topicConfigNoMatch.Meta, clusterConfig))
+
+	aclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test.yaml")
+	assert.Equal(t, 1, len(aclConfigs))
+	assert.NoError(t, err)
+
+	aclConfigsNoMatches, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-no-match.yaml")
+	assert.Equal(t, 1, len(aclConfigsNoMatches))
+	assert.NoError(t, err)
+
+	assert.NoError(t, CheckConsistency(aclConfigs[0].Meta, clusterConfig))
+	assert.Error(t, CheckConsistency(aclConfigsNoMatches[0].Meta, clusterConfig))
 }
