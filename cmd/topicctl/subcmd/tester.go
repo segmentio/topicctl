@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/topicctl/pkg/apply"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -104,7 +104,7 @@ func runTestReader(ctx context.Context) error {
 		testerConfig.readConsumer,
 	)
 
-	ok, _ := apply.Confirm("OK to continue?", false)
+	ok, _ := util.Confirm("OK to continue?", false)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}
@@ -153,7 +153,7 @@ func runTestWriter(ctx context.Context) error {
 		testerConfig.writeRate,
 	)
 
-	ok, _ := apply.Confirm("OK to continue?", false)
+	ok, _ := util.Confirm("OK to continue?", false)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}

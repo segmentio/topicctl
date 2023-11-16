@@ -8,8 +8,8 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
-	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -105,8 +105,7 @@ func (a *ACLCreator) Create(ctx context.Context) error {
 		formatNewACLsConfig(newACLs),
 	)
 
-	// TODO: move confirm away from apply package
-	ok, _ := apply.Confirm("OK to continue?", a.config.SkipConfirm)
+	ok, _ := util.Confirm("OK to continue?", a.config.SkipConfirm)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}

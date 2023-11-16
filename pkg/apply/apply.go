@@ -163,7 +163,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 		FormatNewTopicConfig(newTopicConfig),
 	)
 
-	ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
+	ok, _ := util.Confirm("OK to continue?", t.config.SkipConfirm)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}
@@ -283,7 +283,7 @@ func (t *TopicApplier) checkExistingState(
 			if t.config.DryRun {
 				log.Infof("Skipping update because dryRun is set to true")
 			} else {
-				ok, err := Confirm("OK to remove these?", t.config.SkipConfirm)
+				ok, err := util.Confirm("OK to remove these?", t.config.SkipConfirm)
 				if err != nil {
 					return err
 				} else if !ok {
@@ -326,7 +326,7 @@ func (t *TopicApplier) checkExistingState(
 				if t.config.DryRun {
 					log.Infof("Skipping update because dryRun is set to true")
 				} else {
-					ok, err := Confirm("OK to remove broker throttles?", t.config.SkipConfirm)
+					ok, err := util.Confirm("OK to remove broker throttles?", t.config.SkipConfirm)
 					if err != nil {
 						return err
 					} else if !ok {
@@ -413,7 +413,7 @@ func (t *TopicApplier) updateSettings(
 			return nil
 		}
 
-		ok, _ := Confirm(
+		ok, _ := util.Confirm(
 			"OK to update to the new values in the topic config?",
 			t.config.SkipConfirm,
 		)
@@ -576,7 +576,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 		return nil
 	}
 
-	ok, _ := Confirm("OK to apply?", t.config.SkipConfirm)
+	ok, _ := util.Confirm("OK to apply?", t.config.SkipConfirm)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}
@@ -678,7 +678,7 @@ func (t *TopicApplier) updatePlacement(
 				desiredPlacement,
 			)
 
-			ok, _ := Confirm(
+			ok, _ := util.Confirm(
 				fmt.Sprintf("OK to apply %s despite having unbalanced leaders?", desiredPlacement),
 				t.config.SkipConfirm || t.config.DryRun,
 			)
@@ -841,7 +841,7 @@ func (t *TopicApplier) updatePlacementRunner(
 		log.Warnf("Autocontinue flag detected, user will not be prompted each round")
 	}
 
-	ok, _ := Confirm("OK to apply?", t.config.SkipConfirm)
+	ok, _ := util.Confirm("OK to apply?", t.config.SkipConfirm)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}
@@ -917,7 +917,7 @@ func (t *TopicApplier) updatePlacementRunner(
 		if t.config.AutoContinueRebalance {
 			log.Infof("Autocontinuing to next round")
 		} else {
-			ok, _ := Confirm("OK to continue?", t.config.SkipConfirm)
+			ok, _ := util.Confirm("OK to continue?", t.config.SkipConfirm)
 			if !ok {
 				return errors.New("Stopping because of user response")
 			}
@@ -1249,7 +1249,7 @@ func (t *TopicApplier) updateLeaders(
 			batchSize = len(wrongLeaders)
 		}
 
-		ok, _ := Confirm(
+		ok, _ := util.Confirm(
 			fmt.Sprintf(
 				"OK to run leader elections (in batches of %d partitions each) ?",
 				batchSize,

@@ -105,7 +105,6 @@ func TestLoadTopicsFile(t *testing.T) {
 	assert.Equal(t, "topic-test2", topicConfigs[1].Meta.Name)
 }
 
-// TODO: write this test
 func TestLoadACLsFile(t *testing.T) {
 	aclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test.yaml")
 	require.NoError(t, err)
@@ -159,7 +158,6 @@ func TestLoadACLsFile(t *testing.T) {
 
 	invalidAclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-invalid.yaml")
 	assert.Equal(t, 0, len(invalidAclConfigs))
-	// TODO: improve this error checking and make sure the error is informative enough
 	require.Error(t, err)
 
 	multiAclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-multi.yaml")
