@@ -163,6 +163,7 @@ func createACL(
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 
 	for _, aclConfig := range aclConfigs {
+		aclConfig.SetDefaults()
 		log.Infof(
 			"Processing ACL %s in config %s with cluster config %s",
 			aclConfig.Meta.Name,

@@ -48,6 +48,15 @@ func NewACLCreator(
 
 func (a *ACLCreator) Create(ctx context.Context) error {
 	log.Info("Validating configs...")
+
+	if err := a.clusterConfig.Validate(); err != nil {
+		return err
+	}
+
+	if err := a.aclConfig.Validate(); err != nil {
+		return err
+	}
+
 	if err := config.CheckConsistency(a.aclConfig.Meta, a.clusterConfig); err != nil {
 		return err
 	}
