@@ -11,13 +11,12 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.4.45-0.20231030174323-c6378c391a97
+	github.com/segmentio/kafka-go v0.4.45
 	github.com/segmentio/kafka-go/sasl/aws_msk_iam v0.0.0-20220211180808-78889264d070
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	github.com/xdg-go/pbkdf2 v1.0.0
 	golang.org/x/crypto v0.14.0
 )
 
@@ -38,6 +37,7 @@ require (
 	github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	golang.org/x/sys v0.13.0 // indirect
