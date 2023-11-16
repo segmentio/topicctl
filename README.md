@@ -448,15 +448,15 @@ meta:
 spec:
   acls:
     - resource:
-	    type: topic                     # Type of resource (topic, group, cluster, etc.)
-		name: test-topic                # Name of the resource to apply an ACL to
-		patternType: literal            # Type of pattern (literal, prefixed, etc.)
-		principal: User:my-user         # Principal to apply the ACL to
-		host: *                         # Host to apply the ACL to
-		permission: allow			    # Permission to apply (allow, deny)
+        type: topic                     # Type of resource (topic, group, cluster, etc.)
+        name: test-topic                # Name of the resource to apply an ACL to
+        patternType: literal            # Type of pattern (literal, prefixed, etc.)
+        principal: User:my-user         # Principal to apply the ACL to
+        host: *                         # Host to apply the ACL to
+        permission: allow			    # Permission to apply (allow, deny)
       operations:                       # List of operations to use for the ACLs
-	    - read
-	    - describe
+        - read
+        - describe
 ```
 
 The `cluster`, `environment`, and `region` fields are used for matching
