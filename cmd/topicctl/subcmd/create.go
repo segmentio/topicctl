@@ -33,19 +33,19 @@ type createCmdConfig struct {
 var createConfig createCmdConfig
 
 func init() {
-	createCmd.Flags().BoolVar(
+	createCmd.PersistentFlags().BoolVar(
 		&createConfig.dryRun,
 		"dry-run",
 		false,
 		"Do a dry-run",
 	)
-	createCmd.Flags().StringVar(
+	createCmd.PersistentFlags().StringVar(
 		&createConfig.pathPrefix,
 		"path-prefix",
 		os.Getenv("TOPICCTL_ACL_PATH_PREFIX"),
 		"Prefix for ACL config paths",
 	)
-	createCmd.Flags().BoolVar(
+	createCmd.PersistentFlags().BoolVar(
 		&createConfig.skipConfirm,
 		"skip-confirm",
 		false,
@@ -150,9 +150,9 @@ func createACL(
 		adminClient, err = clusterConfig.NewAdminClient(
 			ctx,
 			nil,
-			applyConfig.dryRun,
-			applyConfig.shared.saslUsername,
-			applyConfig.shared.saslPassword,
+			createConfig.dryRun,
+			createConfig.shared.saslUsername,
+			createConfig.shared.saslPassword,
 		)
 		if err != nil {
 			return err
@@ -172,8 +172,8 @@ func createACL(
 		)
 
 		creatorConfig := create.ACLCreatorConfig{
-			DryRun:        applyConfig.dryRun,
-			SkipConfirm:   applyConfig.skipConfirm,
+			DryRun:        createConfig.dryRun,
+			SkipConfirm:   createConfig.skipConfirm,
 			ACLConfig:     aclConfig,
 			ClusterConfig: clusterConfig,
 		}
