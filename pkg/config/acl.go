@@ -1,6 +1,9 @@
 package config
 
 import (
+	"errors"
+
+	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -46,6 +49,45 @@ func (a ACLConfig) ToNewACLEntries() []kafka.ACLEntry {
 	return acls
 }
 
-// TODO: Set defaults for missing values
+// SetDeaults sets the default host and permission for each ACL in an ACL config
+// if these aren't set
+func (a *ACLConfig) SetDefaults() {
+	for i, acl := range a.Spec.ACLs {
+		if acl.Resource.Host == "" {
+			a.Spec.ACLs[i].Resource.Host = "*"
+		}
+		if acl.Resource.Permission == kafka.ACLPermissionTypeUnknown {
+			a.Spec.ACLs[i].Resource.Permission = kafka.ACLPermissionTypeAllow
+		}
+	}
+}
 
-// TODO: Validate fields cannot be empty
+// Validate evaluates whether the ACL config is valid.
+func (a *ACLConfig) Validate() error {
+	var err error
+
+	err = a.Meta.Validate()
+
+	for _, acl := range a.Spec.ACLs {
+		if acl.Resource.Type == kafka.ResourceTypeUnknown {
+			err = multierror.Append(err, errors.New("ACL resource type cannot be unknown"))
+		}
+		if acl.Resource.Name == "" {
+			err = multierror.Append(err, errors.New("ACL resource name cannot be empty"))
+		}
+		if acl.Resource.PatternType == kafka.PatternTypeUnknown {
+			err = multierror.Append(err, errors.New("ACL resource pattern type cannot be unknown"))
+		}
+		if acl.Resource.Principal == "" {
+			err = multierror.Append(err, errors.New("ACL resource principal cannot be empty"))
+		}
+
+		for _, operation := range acl.Operations {
+			if operation == kafka.ACLOperationTypeUnknown {
+				err = multierror.Append(err, errors.New("ACL operation cannot be unknown"))
+			}
+		}
+	}
+
+	return err
+}

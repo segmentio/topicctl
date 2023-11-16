@@ -166,18 +166,7 @@ func (t *TopicConfig) SetDefaults() {
 func (t TopicConfig) Validate(numRacks int) error {
 	var err error
 
-	if t.Meta.Name == "" {
-		err = multierror.Append(err, errors.New("Name must be set"))
-	}
-	if t.Meta.Cluster == "" {
-		err = multierror.Append(err, errors.New("Cluster must be set"))
-	}
-	if t.Meta.Region == "" {
-		err = multierror.Append(err, errors.New("Region must be set"))
-	}
-	if t.Meta.Environment == "" {
-		err = multierror.Append(err, errors.New("Environment must be set"))
-	}
+	err = t.Meta.Validate()
 
 	if t.Spec.Partitions <= 0 {
 		err = multierror.Append(err, errors.New("Partitions must be a positive number"))
