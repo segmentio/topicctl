@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -90,7 +89,7 @@ func LoadTopicBytes(contents []byte) (TopicConfig, error) {
 
 // LoadACLsFile loads one or more ACLConfigs from a path to a YAML file.
 func LoadACLsFile(path string) ([]ACLConfig, error) {
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
