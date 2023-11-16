@@ -49,7 +49,7 @@ func (a ACLConfig) ToNewACLEntries() []kafka.ACLEntry {
 	return acls
 }
 
-// SetDeaults sets the default host and permission for each ACL in an ACL config
+// SetDefaults sets the default host and permission for each ACL in an ACL config
 // if these aren't set
 func (a *ACLConfig) SetDefaults() {
 	for i, acl := range a.Spec.ACLs {
