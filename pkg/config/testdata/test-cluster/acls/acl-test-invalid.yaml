@@ -18,6 +18,6 @@ spec:
     - resource:
         type: group
         name: test-group
-        patternType: prefix
+        patternType: invalid
       operations:
         - read
