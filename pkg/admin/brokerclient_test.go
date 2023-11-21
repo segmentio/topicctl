@@ -664,6 +664,102 @@ func TestBrokerClientCreateGetACL(t *testing.T) {
 	assert.Equal(t, expected, aclsInfo)
 }
 
+func TestBrokerClientDeleteACL(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	principal := util.RandomString("User:user-create-", 6)
+	topicName := util.RandomString("topic-create-", 6)
+
+	err = client.CreateACLs(
+		ctx,
+		[]kafka.ACLEntry{
+			{
+				Principal:           principal,
+				PermissionType:      kafka.ACLPermissionTypeAllow,
+				Operation:           kafka.ACLOperationTypeRead,
+				ResourceType:        kafka.ResourceTypeTopic,
+				ResourcePatternType: kafka.PatternTypeLiteral,
+				ResourceName:        topicName,
+				Host:                "*",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	filter := kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		Operation:                 kafka.ACLOperationTypeRead,
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+	}
+
+	aclsInfo, err := client.GetACLs(ctx, filter)
+	require.NoError(t, err)
+	expected := []ACLInfo{
+		{
+			ResourceType:   ResourceType(kafka.ResourceTypeTopic),
+			ResourceName:   topicName,
+			PatternType:    PatternType(kafka.PatternTypeLiteral),
+			Principal:      principal,
+			Host:           "*",
+			Operation:      ACLOperationType(kafka.ACLOperationTypeRead),
+			PermissionType: ACLPermissionType(kafka.ACLPermissionTypeAllow),
+		},
+	}
+	assert.Equal(t, expected, aclsInfo)
+
+	deleteFilters := []kafka.DeleteACLsFilter{
+		{
+			ResourceTypeFilter:        kafka.ResourceTypeTopic,
+			ResourceNameFilter:        topicName,
+			ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+			Operation:                 kafka.ACLOperationTypeRead,
+			PermissionType:            kafka.ACLPermissionTypeAllow,
+		},
+	}
+
+	resp, err := client.DeleteACLs(ctx, deleteFilters)
+	require.NoError(t, err)
+	expectedDeleteResults := []kafka.DeleteACLsResult{
+		{
+			Error: nil,
+			MatchingACLs: []kafka.DeleteACLsMatchingACLs{
+				{
+					Error:               nil,
+					ResourceType:        kafka.ResourceTypeTopic,
+					ResourceName:        topicName,
+					ResourcePatternType: kafka.PatternTypeLiteral,
+					Principal:           principal,
+					Host:                "*",
+					Operation:           kafka.ACLOperationTypeRead,
+					PermissionType:      kafka.ACLPermissionTypeAllow,
+				},
+			},
+		},
+	}
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedDeleteResults, resp.Results)
+
+	aclsInfo, err = client.GetACLs(ctx, filter)
+	require.NoError(t, err)
+	assert.Equal(t, []ACLInfo{}, aclsInfo)
+}
+
 func TestBrokerClientCreateGetUsers(t *testing.T) {
 	if !util.CanTestBrokerAdminSecurity() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
