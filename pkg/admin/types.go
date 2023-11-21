@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -86,6 +87,35 @@ type ACLInfo struct {
 	Host           string            `json:"host"`
 	Operation      ACLOperationType  `json:"operation"`
 	PermissionType ACLPermissionType `json:"permissionType"`
+}
+
+// String is used both by fmt.Print and by Cobra in help text.
+func FormatACLInfo(a ACLInfo) string {
+	alias := struct {
+		ResourceType   string
+		ResourceName   string
+		PatternType    string
+		Principal      string
+		Host           string
+		Operation      string
+		PermissionType string
+	}{
+		ResourceType:   a.ResourceType.String(),
+		ResourceName:   a.ResourceName,
+		PatternType:    a.PatternType.String(),
+		Principal:      a.Principal,
+		Host:           a.Host,
+		Operation:      a.Operation.String(),
+		PermissionType: a.PermissionType.String(),
+	}
+
+	content, err := json.MarshalIndent(alias, "", "  ")
+	if err != nil {
+		log.Warnf("Error marshalling acls: %+v", err)
+		return "Error"
+	}
+
+	return string(content)
 }
 
 // ResourceType presents the Kafka resource type.
