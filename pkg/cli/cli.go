@@ -21,6 +21,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/create"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -140,6 +141,59 @@ func (c *CLIRunner) CreateACL(
 	}
 
 	c.printer("Create completed successfully!")
+	return nil
+}
+
+// DeleteACL deletes a single ACL.
+func (c *CLIRunner) DeleteACL(ctx context.Context, filter kafka.DeleteACLsFilter) error {
+	c.printer("Checking if ACL %v exists...", filter)
+	c.startSpinner()
+	// First check that ACL exists
+	getFilter := kafka.ACLFilter{
+		ResourceTypeFilter:        filter.ResourceTypeFilter,
+		ResourceNameFilter:        filter.ResourceNameFilter,
+		ResourcePatternTypeFilter: filter.ResourcePatternTypeFilter,
+		PrincipalFilter:           filter.PrincipalFilter,
+		HostFilter:                filter.HostFilter,
+		Operation:                 filter.Operation,
+		PermissionType:            filter.PermissionType,
+	}
+	clusterACLs, err := c.adminClient.GetACLs(ctx, getFilter)
+	c.stopSpinner()
+	if err != nil {
+		return fmt.Errorf("Error fetching ACL info: %+v", err)
+	}
+
+	if len(clusterACLs) == 0 {
+		return fmt.Errorf("ACL %v does not exist", filter)
+	}
+
+	if len(clusterACLs) > 1 {
+		return fmt.Errorf("Delete filter should only match a single ACL, got: %v ", clusterACLs)
+	}
+
+	clusterACL := clusterACLs[0]
+
+	c.printer("ACL %v exists in the cluster!", clusterACL)
+
+	confirm, err := util.Confirm(fmt.Sprintf("Delete ACL \"%v\"", clusterACL), false)
+	if err != nil {
+		return err
+	}
+
+	if !confirm {
+		return nil
+	}
+
+	c.startSpinner()
+	_, err = c.adminClient.DeleteACLs(ctx, []kafka.DeleteACLsFilter{filter})
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("ACL %v successfully deleted", filter)
+
 	return nil
 }
 

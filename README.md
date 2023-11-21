@@ -164,6 +164,18 @@ The `create` command creates resources in the cluster from a configuration file.
 Currently, only ACLs are supported. The create command is separate from the apply
 command as it is intended for usage with immutable resources managed by topicctl.
 
+#### delete
+
+```
+topicctl delete [flags] [operation]
+```
+
+The `delete` subcommand deletes a particular resource type in the cluster.
+Currently, the following operations are supported:
+| Subcommand      | Description |
+| --------- | ----------- |
+| `delete acl [flags]` | Deletes a single ACL in the cluster matching the provided flags |
+
 #### get
 
 ```
