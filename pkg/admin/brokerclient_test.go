@@ -868,3 +868,24 @@ func TestBrokerClientCreateACLReadOnly(t *testing.T) {
 	assert.Equal(t, err, errors.New("Cannot create ACL in read-only mode"))
 
 }
+
+func TestBrokerClientDeleteACLReadOnly(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+			ReadOnly: true,
+		},
+	)
+	require.NoError(t, err)
+	_, err = client.DeleteACLs(ctx, []kafka.DeleteACLsFilter{})
+
+	assert.Equal(t, errors.New("Cannot delete ACL in read-only mode"), err)
+}
