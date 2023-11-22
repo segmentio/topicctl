@@ -89,7 +89,8 @@ type ACLInfo struct {
 	PermissionType ACLPermissionType `json:"permissionType"`
 }
 
-// String is used both by fmt.Print and by Cobra in help text.
+// FormatACLInfo formats an ACLInfo struct as a string, using the
+// string version of all the fields.
 func FormatACLInfo(a ACLInfo) string {
 	alias := struct {
 		ResourceType   string

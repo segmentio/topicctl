@@ -181,7 +181,11 @@ func (c *CLIRunner) DeleteACL(ctx context.Context, filter kafka.DeleteACLsFilter
 	}
 
 	if len(clusterACLs) > 1 {
-		return fmt.Errorf("Delete filter should only match a single ACL, got: \n%+v ", formatACLs(clusterACLs))
+		var formattedClusterACLs []string
+		for _, clusterACL := range clusterACLs {
+			formattedClusterACLs = append(formattedClusterACLs, admin.FormatACLInfo(clusterACL))
+		}
+		return fmt.Errorf("Delete filter should only match a single ACL. Use more specific filter flags to narrow down on a single ACL. ACLs matching filter: \n%+v", strings.Join(formattedClusterACLs, "\n"))
 	}
 
 	clusterACL := clusterACLs[0]
