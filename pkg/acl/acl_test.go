@@ -1,4 +1,4 @@
-package create
+package acl
 
 import (
 	"context"
@@ -49,11 +49,11 @@ func TestCreateNewACLs(t *testing.T) {
 			},
 		},
 	}
-	creator := testCreator(ctx, t, aclConfig)
-	defer creator.adminClient.Close()
+	aclAdmin := testACLAdmin(ctx, t, aclConfig)
+	defer aclAdmin.adminClient.Close()
 
 	defer func() {
-		_, err := creator.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
+		_, err := aclAdmin.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
 			&kafka.DeleteACLsRequest{
 				Filters: []kafka.DeleteACLsFilter{
 					{
@@ -73,9 +73,9 @@ func TestCreateNewACLs(t *testing.T) {
 			t.Fatal(fmt.Errorf("failed to clean up ACL, err: %v", err))
 		}
 	}()
-	err := creator.Create(ctx)
+	err := aclAdmin.Create(ctx)
 	require.NoError(t, err)
-	acl, err := creator.adminClient.GetACLs(ctx, kafka.ACLFilter{
+	acl, err := aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
 		ResourceTypeFilter:        kafka.ResourceTypeTopic,
 		ResourceNameFilter:        topicName,
 		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
@@ -134,11 +134,11 @@ func TestCreateExistingACLs(t *testing.T) {
 			},
 		},
 	}
-	creator := testCreator(ctx, t, aclConfig)
-	defer creator.adminClient.Close()
+	aclAdmin := testACLAdmin(ctx, t, aclConfig)
+	defer aclAdmin.adminClient.Close()
 
 	defer func() {
-		_, err := creator.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
+		_, err := aclAdmin.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
 			&kafka.DeleteACLsRequest{
 				Filters: []kafka.DeleteACLsFilter{
 					{
@@ -158,9 +158,9 @@ func TestCreateExistingACLs(t *testing.T) {
 			t.Fatal(fmt.Errorf("failed to clean up ACL, err: %v", err))
 		}
 	}()
-	err := creator.Create(ctx)
+	err := aclAdmin.Create(ctx)
 	require.NoError(t, err)
-	acl, err := creator.adminClient.GetACLs(ctx, kafka.ACLFilter{
+	acl, err := aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
 		ResourceTypeFilter:        kafka.ResourceTypeTopic,
 		ResourceNameFilter:        topicName,
 		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
@@ -182,9 +182,9 @@ func TestCreateExistingACLs(t *testing.T) {
 		},
 	}, acl)
 	// Run create again and make sure it is idempotent
-	err = creator.Create(ctx)
+	err = aclAdmin.Create(ctx)
 	require.NoError(t, err)
-	acl, err = creator.adminClient.GetACLs(ctx, kafka.ACLFilter{
+	acl, err = aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
 		ResourceTypeFilter:        kafka.ResourceTypeTopic,
 		ResourceNameFilter:        topicName,
 		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
@@ -243,12 +243,12 @@ func TestCreateACLsDryRun(t *testing.T) {
 			},
 		},
 	}
-	creator := testCreator(ctx, t, aclConfig)
-	defer creator.adminClient.Close()
-	creator.config.DryRun = true
+	aclAdmin := testACLAdmin(ctx, t, aclConfig)
+	defer aclAdmin.adminClient.Close()
+	aclAdmin.config.DryRun = true
 
 	defer func() {
-		_, err := creator.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
+		_, err := aclAdmin.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
 			&kafka.DeleteACLsRequest{
 				Filters: []kafka.DeleteACLsFilter{
 					{
@@ -268,9 +268,9 @@ func TestCreateACLsDryRun(t *testing.T) {
 			t.Fatal(fmt.Errorf("failed to clean up ACL, err: %v", err))
 		}
 	}()
-	err := creator.Create(ctx)
+	err := aclAdmin.Create(ctx)
 	require.NoError(t, err)
-	acl, err := creator.adminClient.GetACLs(ctx, kafka.ACLFilter{
+	acl, err := aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
 		ResourceTypeFilter:        kafka.ResourceTypeTopic,
 		ResourceNameFilter:        topicName,
 		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
@@ -283,11 +283,11 @@ func TestCreateACLsDryRun(t *testing.T) {
 	require.Equal(t, []admin.ACLInfo{}, acl)
 }
 
-func testCreator(
+func testACLAdmin(
 	ctx context.Context,
 	t *testing.T,
 	aclConfig config.ACLConfig,
-) *ACLCreator {
+) *ACLAdmin {
 	clusterConfig := config.ClusterConfig{
 		Meta: config.ClusterMeta{
 			Name:        "test-cluster",
@@ -303,10 +303,10 @@ func testCreator(
 	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
 	require.NoError(t, err)
 
-	applier, err := NewACLCreator(
+	aclAdmin, err := NewACLAdmin(
 		ctx,
 		adminClient,
-		ACLCreatorConfig{
+		ACLAdminConfig{
 			ClusterConfig: clusterConfig,
 			ACLConfig:     aclConfig,
 			DryRun:        false,
@@ -314,5 +314,5 @@ func testCreator(
 		},
 	)
 	require.NoError(t, err)
-	return applier
+	return aclAdmin
 }

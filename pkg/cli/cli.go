@@ -16,11 +16,11 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/acl"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/config"
-	"github.com/segmentio/topicctl/pkg/create"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
 	"github.com/segmentio/topicctl/pkg/util"
@@ -117,12 +117,12 @@ func (c *CLIRunner) ApplyTopic(
 // CreateACL does an apply run according to the spec in the argument config.
 func (c *CLIRunner) CreateACL(
 	ctx context.Context,
-	creatorConfig create.ACLCreatorConfig,
+	aclAdminConfig acl.ACLAdminConfig,
 ) error {
-	creator, err := create.NewACLCreator(
+	aclAdmin, err := acl.NewACLAdmin(
 		ctx,
 		c.adminClient,
-		creatorConfig,
+		aclAdminConfig,
 	)
 	if err != nil {
 		return err
@@ -132,12 +132,12 @@ func (c *CLIRunner) CreateACL(
 
 	c.printer(
 		"Starting creation for ACLs %s in environment %s, cluster %s",
-		highlighter(creatorConfig.ACLConfig.Meta.Name),
-		highlighter(creatorConfig.ACLConfig.Meta.Environment),
-		highlighter(creatorConfig.ACLConfig.Meta.Cluster),
+		highlighter(aclAdminConfig.ACLConfig.Meta.Name),
+		highlighter(aclAdminConfig.ACLConfig.Meta.Environment),
+		highlighter(aclAdminConfig.ACLConfig.Meta.Cluster),
 	)
 
-	err = creator.Create(ctx)
+	err = aclAdmin.Create(ctx)
 	if err != nil {
 		return err
 	}

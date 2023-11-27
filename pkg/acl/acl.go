@@ -1,4 +1,4 @@
-package create
+package acl
 
 import (
 	"context"
@@ -13,40 +13,42 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ACLCreatorConfig contains the configuration for an ACL creator.
-type ACLCreatorConfig struct {
+// ACLCreatorConfig contains the configuration for an ACL admin.
+type ACLAdminConfig struct {
 	ClusterConfig config.ClusterConfig
 	DryRun        bool
 	SkipConfirm   bool
 	ACLConfig     config.ACLConfig
 }
 
-type ACLCreator struct {
-	config      ACLCreatorConfig
+// ACLAdmin executes operations on ACLs by comparing the current ACLs with the desired ACLs.
+type ACLAdmin struct {
+	config      ACLAdminConfig
 	adminClient admin.Client
 
 	clusterConfig config.ClusterConfig
 	aclConfig     config.ACLConfig
 }
 
-func NewACLCreator(
+func NewACLAdmin(
 	ctx context.Context,
 	adminClient admin.Client,
-	creatorConfig ACLCreatorConfig,
-) (*ACLCreator, error) {
+	aclAdminConfig ACLAdminConfig,
+) (*ACLAdmin, error) {
 	if !adminClient.GetSupportedFeatures().ACLs {
 		return nil, fmt.Errorf("ACLs are not supported by this cluster")
 	}
 
-	return &ACLCreator{
-		config:        creatorConfig,
+	return &ACLAdmin{
+		config:        aclAdminConfig,
 		adminClient:   adminClient,
-		clusterConfig: creatorConfig.ClusterConfig,
-		aclConfig:     creatorConfig.ACLConfig,
+		clusterConfig: aclAdminConfig.ClusterConfig,
+		aclConfig:     aclAdminConfig.ACLConfig,
 	}, nil
 }
 
-func (a *ACLCreator) Create(ctx context.Context) error {
+// Create creates ACLs that do not already exist based on the ACL config.
+func (a *ACLAdmin) Create(ctx context.Context) error {
 	log.Info("Validating configs...")
 
 	if err := a.clusterConfig.Validate(); err != nil {

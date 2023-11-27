@@ -24,12 +24,21 @@ var deleteCmd = &cobra.Command{
 }
 
 type deleteCmdConfig struct {
+	dryRun bool
+
 	shared sharedOptions
 }
 
 var deleteConfig deleteCmdConfig
 
 func init() {
+	deleteCmd.PersistentFlags().BoolVar(
+		&deleteConfig.dryRun,
+		"dry-run",
+		false,
+		"Do a dry-run",
+	)
+
 	addSharedFlags(deleteCmd, &deleteConfig.shared)
 	deleteCmd.AddCommand(
 		deleteACLCmd(),
@@ -55,7 +64,7 @@ $ topicctl delete acl --resource-type topic --resource-pattern-type literal --re
 			ctx := context.Background()
 			sess := session.Must(session.NewSession())
 
-			adminClient, err := deleteConfig.shared.getAdminClient(ctx, sess, false)
+			adminClient, err := deleteConfig.shared.getAdminClient(ctx, sess, deleteConfig.dryRun)
 			if err != nil {
 				return err
 			}
