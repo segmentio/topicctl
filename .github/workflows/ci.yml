@@ -61,72 +61,72 @@ jobs:
         ports:
           - "9092:9092"
         env:
-          KAFKA_CFG_BROKER_ID: 1
-          KAFKA_CFG_BROKER_RACK: zone1
+          KAFKA_BROKER_ID: 1
+          KAFKA_BROKER_RACK: zone1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka1
-          KAFKA_CFG_ADVERTISED_PORT: 9092
+          KAFKA_ADVERTISED_HOST_NAME: kafka1
+          KAFKA_ADVERTISED_PORT: 9092
 
       kafka2:
         image: bitnami/kafka:0.10.2.1
         ports:
           - "9093:9092"
         env:
-          KAFKA_CFG_BROKER_ID: 2
-          KAFKA_CFG_BROKER_RACK: zone1
+          KAFKA_BROKER_ID: 2
+          KAFKA_BROKER_RACK: zone1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka2
-          KAFKA_CFG_ADVERTISED_PORT: 9092
+          KAFKA_ADVERTISED_HOST_NAME: kafka2
+          KAFKA_ADVERTISED_PORT: 9092
 
       kafka3:
         image: bitnami/kafka:0.10.2.1
         ports:
           - "9094:9092"
         env:
-          KAFKA_CFG_BROKER_ID: 3
-          KAFKA_CFG_BROKER_RACK: zone2
+          KAFKA_BROKER_ID: 3
+          KAFKA_BROKER_RACK: zone2
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka3
-          KAFKA_CFG_ADVERTISED_PORT: 9092
+          KAFKA_ADVERTISED_HOST_NAME: kafka3
+          KAFKA_ADVERTISED_PORT: 9092
 
       kafka4:
         image: bitnami/kafka:0.10.2.1
         ports:
           - "9095:9092"
         env:
-          KAFKA_CFG_BROKER_ID: 4
-          KAFKA_CFG_BROKER_RACK: zone2
+          KAFKA_BROKER_ID: 4
+          KAFKA_BROKER_RACK: zone2
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka4
-          KAFKA_CFG_ADVERTISED_PORT: 9092
+          KAFKA_ADVERTISED_HOST_NAME: kafka4
+          KAFKA_ADVERTISED_PORT: 9092
 
       kafka5:
         image: bitnami/kafka:0.10.2.1
         ports:
           - "9096:9092"
         env:
-          KAFKA_CFG_BROKER_ID: 5
-          KAFKA_CFG_BROKER_RACK: zone3
+          KAFKA_BROKER_ID: 5
+          KAFKA_BROKER_RACK: zone3
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka5
-          KAFKA_CFG_ADVERTISED_PORT: 9092
+          KAFKA_ADVERTISED_HOST_NAME: kafka5
+          KAFKA_ADVERTISED_PORT: 9092
 
       kafka6:
         image: bitnami/kafka:0.10.2.1
         ports:
           - "9097:9092"
         env:
-          KAFKA_CFG_BROKER_ID: 6
-          KAFKA_CFG_BROKER_RACK: zone3
+          KAFKA_BROKER_ID: 6
+          KAFKA_BROKER_RACK: zone3
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka6
-          KAFKA_CFG_ADVERTISED_PORT: 9092
+          KAFKA_ADVERTISED_HOST_NAME: kafka6
+          KAFKA_ADVERTISED_PORT: 9092
 
 
   test270:
