@@ -57,7 +57,7 @@ jobs:
           ALLOW_ANONYMOUS_LOGIN: yes
 
       kafka1:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9092:9092"
         env:
@@ -69,7 +69,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
 
       kafka2:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9093:9092"
         env:
@@ -81,7 +81,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
 
       kafka3:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9094:9092"
         env:
@@ -93,7 +93,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092
 
       kafka4:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9095:9092"
         env:
@@ -105,7 +105,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:9092
 
       kafka5:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9096:9092"
         env:
@@ -117,7 +117,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:9092
 
       kafka6:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9097:9092"
         env:
@@ -162,7 +162,7 @@ jobs:
           ALLOW_ANONYMOUS_LOGIN: yes
 
       kafka1:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9092:9092"
         env:
@@ -176,7 +176,7 @@ jobs:
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka2:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9093:9092"
         env:
@@ -190,7 +190,7 @@ jobs:
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka3:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9094:9092"
         env:
@@ -204,7 +204,7 @@ jobs:
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka4:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9095:9092"
         env:
@@ -218,7 +218,7 @@ jobs:
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka5:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9096:9092"
         env:
@@ -232,7 +232,7 @@ jobs:
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
 
       kafka6:
-        image: bitnami/kafka:2.5.0
+        image: bitnami/kafka:2.7.0
         ports:
           - "9097:9092"
         env:
