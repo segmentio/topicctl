@@ -54,7 +54,7 @@ jobs:
         ports:
           - "2181:2181"
         env:
-          - ALLOW_ANONYMOUS_LOGIN=yes
+          ALLOW_ANONYMOUS_LOGIN: yes
 
       kafka1:
         image: bitnami/kafka:2.5.0
@@ -159,7 +159,7 @@ jobs:
         ports:
           - "2181:2181"
         env:
-          - ALLOW_ANONYMOUS_LOGIN=yes
+          ALLOW_ANONYMOUS_LOGIN: yes
 
       kafka1:
         image: bitnami/kafka:2.5.0
