@@ -1,4 +1,4 @@
-# By default, this docker-compose setup uses Kafka 2.5.0
+# By default, this docker-compose setup uses Kafka 2.7.0
 #
 # See https://hub.docker.com/r/bitnami/kafka/tags for the complete list.
 version: '3'

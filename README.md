@@ -556,7 +556,7 @@ You can change the Kafka version in docker-compose.yml and docker-compose-auth.y
 [`bitnami/kafka` dockerhub page](https://hub.docker.com/r/bitnami/kafka/tags) for more
 details on the available versions.
 
-All `bitnami/kafka` images in topicctl should start using kafka:2.7.0+ version. Currently, we perform SCRAM Config API calls. This has been implemented since Kafka:2.7.0. See the [`KIP-554` page](Add Broker-side SCRAM Config API) for more details.
+For SCRAM Config API calls, All `bitnami/kafka` images in topicctl should start using kafka:2.7.0+ version. SCRAM Config API calls have been implemented since `Kafka:2.7.0`. See the [`KIP-554` page](Add Broker-side SCRAM Config API) for more details.
 
 #### Run against local cluster
 
