@@ -174,6 +174,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka2:
         image: bitnami/kafka:2.5.0
@@ -188,6 +189,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka3:
         image: bitnami/kafka:2.5.0
@@ -202,6 +204,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka4:
         image: bitnami/kafka:2.5.0
@@ -216,6 +219,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka5:
         image: bitnami/kafka:2.5.0
@@ -230,6 +234,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka6:
         image: bitnami/kafka:2.5.0
@@ -244,6 +249,7 @@ jobs:
           KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka6:9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
   
   snyk:
     runs-on: ubuntu-latest
