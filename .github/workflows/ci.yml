@@ -170,11 +170,10 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka1
+          KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka2:
         image: bitnami/kafka:2.5.0
@@ -185,11 +184,10 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka2
+          KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka3:
         image: bitnami/kafka:2.5.0
@@ -200,11 +198,10 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone2
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka3
+          KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka4:
         image: bitnami/kafka:2.5.0
@@ -215,11 +212,10 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone2
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka4
+          KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka5:
         image: bitnami/kafka:2.5.0
@@ -230,11 +226,10 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone3
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka5
+          KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
 
       kafka6:
         image: bitnami/kafka:2.5.0
@@ -245,11 +240,10 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone3
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka6:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka6
+          KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-          KAFKA_CFG_SASL_ENABLED_MECHANISMS: "PLAIN,SCRAM-SHA-256,SCRAM-SHA-512"
   
   snyk:
     runs-on: ubuntu-latest
