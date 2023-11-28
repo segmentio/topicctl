@@ -65,8 +65,8 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka1
+          KAFKA_CFG_ADVERTISED_PORT: 9092
 
       kafka2:
         image: bitnami/kafka:0.10.2.1
@@ -77,8 +77,8 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka2
+          KAFKA_CFG_ADVERTISED_PORT: 9092
 
       kafka3:
         image: bitnami/kafka:0.10.2.1
@@ -89,8 +89,8 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone2
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka3
+          KAFKA_CFG_ADVERTISED_PORT: 9092
 
       kafka4:
         image: bitnami/kafka:0.10.2.1
@@ -101,8 +101,8 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone2
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka4
+          KAFKA_CFG_ADVERTISED_PORT: 9092
 
       kafka5:
         image: bitnami/kafka:0.10.2.1
@@ -113,8 +113,8 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone3
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka5
+          KAFKA_CFG_ADVERTISED_PORT: 9092
 
       kafka6:
         image: bitnami/kafka:0.10.2.1
@@ -125,8 +125,8 @@ jobs:
           KAFKA_CFG_BROKER_RACK: zone3
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           ALLOW_PLAINTEXT_LISTENER: yes
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka6:9092
+          KAFKA_CFG_ADVERTISED_HOST_NAME: kafka6
+          KAFKA_CFG_ADVERTISED_PORT: 9092
 
 
   test270:

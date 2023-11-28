@@ -1,3 +1,8 @@
+# By default, this docker-compose setup uses Kafka 2.7.0. This version can
+# be overwritten by setting the KAFKA_IMAGE_TAG environment variable.
+#
+# See https://hub.docker.com/r/bitnami/kafka/tags for the complete list.
+#
 # This config sets up a simple, single-node cluster that's equipped to use SSL/TLS and/or SASL.
 # It exposes access on four separate ports:
 #
@@ -22,7 +27,7 @@ services:
   kafka:
     container_name: kafka
     hostname: kafka
-    image: bitnami/kafka:2.7.0
+    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     depends_on:
       - zookeeper
     restart: on-failure:3
