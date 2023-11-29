@@ -557,8 +557,6 @@ You can change the Kafka version of the local cluster by setting the
 [`bitnami/kafka` dockerhub page](https://hub.docker.com/r/bitnami/kafka/tags) for more
 details on the available versions.
 
-Note that SCRAM Config API has been implemented since `Kafka:2.7.0`. See the [`KIP-554` page](Add Broker-side SCRAM Config API) for more details.
-
 #### Run against local cluster
 
 To run the `get`, `repl`, and `tail` subcommands against the local cluster,
