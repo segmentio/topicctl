@@ -166,25 +166,17 @@ func (a *ACLAdmin) Delete(ctx context.Context, filter kafka.DeleteACLsFilter) er
 		return fmt.Errorf("No ACL matches filter:\n%+v", formatACLs(filter))
 	}
 
-	if len(clusterACLs) > 1 {
-		var formattedClusterACLs []string
-		for _, clusterACL := range clusterACLs {
-			formattedClusterACLs = append(formattedClusterACLs, admin.FormatACLInfo(clusterACL))
-		}
-		return fmt.Errorf("Delete filter should only match a single ACL. Use more specific filter flags to narrow down on a single ACL. ACLs matching filter: \n%+v", strings.Join(formattedClusterACLs, "\n"))
-	}
-
-	clusterACL := clusterACLs[0]
-
-	log.Infof("ACL exists in the cluster:\n%+v", admin.FormatACLInfo(clusterACL))
+	log.Infof("ACLs exists in the cluster:\n%+v", formatACLInfos(clusterACLs))
 
 	if a.config.DryRun {
-		log.Infof("Would delete ACLs:\n%+v", admin.FormatACLInfo(clusterACL))
+		log.Infof("Would delete ACLs:\n%+v", formatACLInfos(clusterACLs))
 		return nil
 	}
 
+	// TODO: step through each ACL and prompt for deletion
+
 	// This isn't settable by the CLI for safety measures but allows for testability
-	confirm, err := util.Confirm("Delete ACL?", a.config.SkipConfirm)
+	confirm, err := util.Confirm("Delete ACLs?", a.config.SkipConfirm)
 	if err != nil {
 		return err
 	}
@@ -218,11 +210,7 @@ func (a *ACLAdmin) Delete(ctx context.Context, filter kafka.DeleteACLsFilter) er
 		return fmt.Errorf("Got errors while deleting ACLs: \n%+v", respErrors)
 	}
 
-	if len(deletedACLs) != 1 {
-		return fmt.Errorf("Expected to delete one ACL, got: \n%+v", deletedACLs)
-	}
-
-	log.Infof("ACL successfully deleted: %+v", formatACLs(deletedACLs[0]))
+	log.Infof("ACLs successfully deleted: %+v", formatACLs(deletedACLs))
 
 	return nil
 }
@@ -235,4 +223,14 @@ func formatACLs(acls interface{}) string {
 	}
 
 	return string(content)
+}
+
+func formatACLInfos(acls []admin.ACLInfo) string {
+	aclsString := []string{}
+
+	for _, acl := range acls {
+		aclsString = append(aclsString, admin.FormatACLInfo(acl))
+	}
+
+	return strings.Join(aclsString, "\n")
 }
