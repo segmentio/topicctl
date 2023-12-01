@@ -2,8 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,7 +21,6 @@ import (
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
-	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -124,6 +121,7 @@ func (c *CLIRunner) CreateACL(
 		c.adminClient,
 		aclAdminConfig,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -146,93 +144,36 @@ func (c *CLIRunner) CreateACL(
 	return nil
 }
 
-func formatACLs(acls interface{}) string {
-	content, err := json.MarshalIndent(acls, "", "  ")
-	if err != nil {
-		log.Warnf("Error marshalling acls: %+v", err)
-		return "Error"
-	}
-
-	return string(content)
-}
-
 // DeleteACL deletes a single ACL.
-func (c *CLIRunner) DeleteACL(ctx context.Context, filter kafka.DeleteACLsFilter) error {
-	c.printer("Checking if ACL exists for filter:\n%+v", formatACLs(filter))
-	c.startSpinner()
-	// First check that ACL exists
-	getFilter := kafka.ACLFilter{
-		ResourceTypeFilter:        filter.ResourceTypeFilter,
-		ResourceNameFilter:        filter.ResourceNameFilter,
-		ResourcePatternTypeFilter: filter.ResourcePatternTypeFilter,
-		PrincipalFilter:           filter.PrincipalFilter,
-		HostFilter:                filter.HostFilter,
-		Operation:                 filter.Operation,
-		PermissionType:            filter.PermissionType,
-	}
-	clusterACLs, err := c.adminClient.GetACLs(ctx, getFilter)
-	c.stopSpinner()
-	if err != nil {
-		return fmt.Errorf("Error fetching ACL info: \n%+v", err)
-	}
+func (c *CLIRunner) DeleteACL(
+	ctx context.Context,
+	aclAdminConfig acl.ACLAdminConfig,
+	filter kafka.DeleteACLsFilter,
+) error {
+	aclAdmin, err := acl.NewACLAdmin(
+		ctx,
+		c.adminClient,
+		aclAdminConfig,
+	)
 
-	if len(clusterACLs) == 0 {
-		return fmt.Errorf("No ACL matches filter:\n%+v", formatACLs(filter))
-	}
-
-	if len(clusterACLs) > 1 {
-		var formattedClusterACLs []string
-		for _, clusterACL := range clusterACLs {
-			formattedClusterACLs = append(formattedClusterACLs, admin.FormatACLInfo(clusterACL))
-		}
-		return fmt.Errorf("Delete filter should only match a single ACL. Use more specific filter flags to narrow down on a single ACL. ACLs matching filter: \n%+v", strings.Join(formattedClusterACLs, "\n"))
-	}
-
-	clusterACL := clusterACLs[0]
-
-	c.printer("ACL exists in the cluster:\n%+v", admin.FormatACLInfo(clusterACL))
-
-	confirm, err := util.Confirm("Delete ACL?", false)
 	if err != nil {
 		return err
 	}
 
-	if !confirm {
-		return errors.New("Stopping because of user response")
-	}
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 
-	c.startSpinner()
-	resp, err := c.adminClient.DeleteACLs(ctx, []kafka.DeleteACLsFilter{filter})
-	c.stopSpinner()
+	c.printer(
+		"Starting deletion for ACLs in environment %s, cluster %s",
+		highlighter(aclAdminConfig.ACLConfig.Meta.Environment),
+		highlighter(aclAdminConfig.ACLConfig.Meta.Cluster),
+	)
+
+	err = aclAdmin.Delete(ctx, filter)
 	if err != nil {
 		return err
 	}
 
-	var respErrors = []error{}
-	var deletedACLs = []kafka.DeleteACLsMatchingACLs{}
-
-	for _, result := range resp.Results {
-		if result.Error != nil {
-			respErrors = append(respErrors, result.Error)
-		}
-		for _, matchingACL := range result.MatchingACLs {
-			if matchingACL.Error != nil {
-				respErrors = append(respErrors, result.Error)
-			}
-			deletedACLs = append(deletedACLs, matchingACL)
-		}
-	}
-
-	if len(respErrors) > 0 {
-		return fmt.Errorf("Got errors while deleting ACLs: \n%+v", respErrors)
-	}
-
-	if len(deletedACLs) != 1 {
-		return fmt.Errorf("Expected to delete one ACL, got: \n%+v", deletedACLs)
-	}
-
-	c.printer("ACL successfully deleted: %+v", formatACLs(deletedACLs[0]))
-
+	c.printer("Delete completed successfully!")
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/topicctl/pkg/acl"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -82,7 +83,14 @@ $ topicctl delete acl --resource-type topic --resource-pattern-type literal --re
 				PermissionType:            kafka.ACLPermissionType(deleteACLsConfig.permissionType),
 			}
 
-			return cliRunner.DeleteACL(ctx, filter)
+			aclAdminConfig := acl.ACLAdminConfig{
+				// Omit fields we don't need for deletes
+				DryRun: deleteConfig.dryRun,
+				// Deletes cannot be skipped
+				SkipConfirm: false,
+			}
+
+			return cliRunner.DeleteACL(ctx, aclAdminConfig, filter)
 		},
 	}
 	cmd.Flags().StringVar(

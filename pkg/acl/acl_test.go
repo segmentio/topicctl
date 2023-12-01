@@ -247,13 +247,153 @@ func TestCreateACLsDryRun(t *testing.T) {
 	defer aclAdmin.adminClient.Close()
 	aclAdmin.config.DryRun = true
 
+	err := aclAdmin.Create(ctx)
+	require.NoError(t, err)
+	acl, err := aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		PrincipalFilter:           principal,
+		HostFilter:                "*",
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+		Operation:                 kafka.ACLOperationTypeRead,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []admin.ACLInfo{}, acl)
+}
+
+func TestDeleteACLs(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	principal := util.RandomString("User:acl-delete-", 6)
+	topicName := util.RandomString("acl-delete-", 6)
+
+	aclConfig := config.ACLConfig{
+		Meta: config.ResourceMeta{
+			Name:        "test-acl",
+			Cluster:     "test-cluster",
+			Region:      "test-region",
+			Environment: "test-environment",
+		},
+		Spec: config.ACLSpec{
+			ACLs: []config.ACL{
+				{
+					Resource: config.ACLResource{
+						Type:        kafka.ResourceTypeTopic,
+						Name:        topicName,
+						PatternType: kafka.PatternTypeLiteral,
+						Principal:   principal,
+						Host:        "*",
+						Permission:  kafka.ACLPermissionTypeAllow,
+					},
+					Operations: []kafka.ACLOperationType{
+						kafka.ACLOperationTypeRead,
+					},
+				},
+			},
+		},
+	}
+	aclAdmin := testACLAdmin(ctx, t, aclConfig)
+	defer aclAdmin.adminClient.Close()
+
+	err := aclAdmin.Create(ctx)
+	require.NoError(t, err)
+	acl, err := aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		PrincipalFilter:           principal,
+		HostFilter:                "*",
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+		Operation:                 kafka.ACLOperationTypeRead,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []admin.ACLInfo{
+		{
+			ResourceType:   admin.ResourceType(kafka.ResourceTypeTopic),
+			ResourceName:   topicName,
+			PatternType:    admin.PatternType(kafka.PatternTypeLiteral),
+			Principal:      principal,
+			Host:           "*",
+			Operation:      admin.ACLOperationType(kafka.ACLOperationTypeRead),
+			PermissionType: admin.ACLPermissionType(kafka.ACLPermissionTypeAllow),
+		},
+	}, acl)
+
+	err = aclAdmin.Delete(ctx, kafka.DeleteACLsFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		PrincipalFilter:           principal,
+		HostFilter:                "*",
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+		Operation:                 kafka.ACLOperationTypeRead,
+	})
+	require.NoError(t, err)
+	acl, err = aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		PrincipalFilter:           principal,
+		HostFilter:                "*",
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+		Operation:                 kafka.ACLOperationTypeRead,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []admin.ACLInfo{}, acl)
+}
+
+func TestDeleteACLDoesNotExist(t *testing.T) {
+	if !util.CanTestBrokerAdminSecurity() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN_SECURITY is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	principal := util.RandomString("User:acl-delete-", 6)
+	topicName := util.RandomString("acl-delete-", 6)
+
+	aclConfig := config.ACLConfig{
+		Meta: config.ResourceMeta{
+			Name:        "test-acl",
+			Cluster:     "test-cluster",
+			Region:      "test-region",
+			Environment: "test-environment",
+		},
+		Spec: config.ACLSpec{
+			ACLs: []config.ACL{
+				{
+					Resource: config.ACLResource{
+						Type:        kafka.ResourceTypeTopic,
+						Name:        topicName,
+						PatternType: kafka.PatternTypeLiteral,
+						Principal:   principal,
+						Host:        "*",
+						Permission:  kafka.ACLPermissionTypeAllow,
+					},
+					Operations: []kafka.ACLOperationType{
+						kafka.ACLOperationTypeRead,
+					},
+				},
+			},
+		},
+	}
+	aclAdmin := testACLAdmin(ctx, t, aclConfig)
+	defer aclAdmin.adminClient.Close()
+
 	defer func() {
 		_, err := aclAdmin.adminClient.GetConnector().KafkaClient.DeleteACLs(ctx,
 			&kafka.DeleteACLsRequest{
 				Filters: []kafka.DeleteACLsFilter{
 					{
 						ResourceTypeFilter:        kafka.ResourceTypeTopic,
-						ResourceNameFilter:        topicName,
+						ResourceNameFilter:        "does-not-exist",
 						ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
 						PrincipalFilter:           principal,
 						HostFilter:                "*",
@@ -280,7 +420,50 @@ func TestCreateACLsDryRun(t *testing.T) {
 		Operation:                 kafka.ACLOperationTypeRead,
 	})
 	require.NoError(t, err)
-	require.Equal(t, []admin.ACLInfo{}, acl)
+	require.Equal(t, []admin.ACLInfo{
+		{
+			ResourceType:   admin.ResourceType(kafka.ResourceTypeTopic),
+			ResourceName:   topicName,
+			PatternType:    admin.PatternType(kafka.PatternTypeLiteral),
+			Principal:      principal,
+			Host:           "*",
+			Operation:      admin.ACLOperationType(kafka.ACLOperationTypeRead),
+			PermissionType: admin.ACLPermissionType(kafka.ACLPermissionTypeAllow),
+		},
+	}, acl)
+
+	err = aclAdmin.Delete(ctx, kafka.DeleteACLsFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        "does-not-exist",
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		PrincipalFilter:           principal,
+		HostFilter:                "*",
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+		Operation:                 kafka.ACLOperationTypeRead,
+	})
+	require.Error(t, err)
+	// ACL still exists
+	acl, err = aclAdmin.adminClient.GetACLs(ctx, kafka.ACLFilter{
+		ResourceTypeFilter:        kafka.ResourceTypeTopic,
+		ResourceNameFilter:        topicName,
+		ResourcePatternTypeFilter: kafka.PatternTypeLiteral,
+		PrincipalFilter:           principal,
+		HostFilter:                "*",
+		PermissionType:            kafka.ACLPermissionTypeAllow,
+		Operation:                 kafka.ACLOperationTypeRead,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []admin.ACLInfo{
+		{
+			ResourceType:   admin.ResourceType(kafka.ResourceTypeTopic),
+			ResourceName:   topicName,
+			PatternType:    admin.PatternType(kafka.PatternTypeLiteral),
+			Principal:      principal,
+			Host:           "*",
+			Operation:      admin.ACLOperationType(kafka.ACLOperationTypeRead),
+			PermissionType: admin.ACLPermissionType(kafka.ACLPermissionTypeAllow),
+		},
+	}, acl)
 }
 
 func testACLAdmin(
