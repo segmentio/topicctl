@@ -191,6 +191,40 @@ func GetMemberLags(
 	return partitionLags, nil
 }
 
+// DeleteOffsetsInput configures a call to [DeleteOffsets].
+type DeleteOffsetsInput struct {
+	GroupID    string
+	Topic      string
+	Partitions []int
+}
+
+// DeleteOffsets removes a consumer group's offsets
+// on the given topic-partition combinations.
+func DeleteOffsets(ctx context.Context, connector *admin.Connector, input *DeleteOffsetsInput) error {
+	req := kafka.OffsetDeleteRequest{
+		Addr:    connector.KafkaClient.Addr,
+		GroupID: input.GroupID,
+		Topics:  map[string][]int{input.Topic: input.Partitions},
+	}
+
+	resp, err := connector.KafkaClient.OffsetDelete(ctx, &req)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+
+	for _, results := range resp.Topics {
+		for _, result := range results {
+			if result.Error != nil {
+				errs = append(errs, result.Error)
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 // ResetOffsets updates the offsets for a given topic / group combination.
 func ResetOffsets(
 	ctx context.Context,

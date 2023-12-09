@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"strconv"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/util"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var resetOffsetsCmd = &cobra.Command{
-	Use:     "reset-offsets [topic name] [group name]",
+	Use:     "reset-offsets <topic-name> <group-name>",
 	Short:   "reset consumer group offsets",
-	Args:    cobra.MinimumNArgs(2),
+	Args:    cobra.ExactArgs(2),
 	PreRunE: resetOffsetsPreRun,
 	RunE:    resetOffsetsRun,
 }
@@ -27,6 +29,7 @@ type resetOffsetsCmdConfig struct {
 	partitionOffsetMap map[string]int64
 	toEarliest         bool
 	toLatest           bool
+	delete             bool
 
 	shared sharedOptions
 }
@@ -62,39 +65,57 @@ func init() {
 		"to-latest",
 		false,
 		"Resets offsets of consumer group members to latest offsets of partitions")
+	resetOffsetsCmd.Flags().BoolVar(
+		&resetOffsetsConfig.delete,
+		"delete",
+		false,
+		"Deletes offsets for the given consumer group")
 
 	addSharedFlags(resetOffsetsCmd, &resetOffsetsConfig.shared)
 	RootCmd.AddCommand(resetOffsetsCmd)
 }
 
 func resetOffsetsPreRun(cmd *cobra.Command, args []string) error {
-	resetOffsetSpecification := "You must choose only one of the following reset-offset specifications: --to-earliest, --to-latest, --offset."
-	offsetMapSpecification := "--partition-offset-map option cannot be coupled with any of the following options: --partitions, --to-earliest, --to-latest, --offset."
+	resetOffsetSpec := "You must choose only one of the following " +
+		"reset-offset specifications: --delete, --to-earliest, --to-latest, " +
+		"--offset, or --partition-offset-map."
+	offsetMapSpec := "--partition-offset-map option cannot be used with --partitions."
 
-	if len(resetOffsetsConfig.partitionOffsetMap) > 0 && (cmd.Flags().Changed("offset") ||
-		len(resetOffsetsConfig.partitions) > 0 ||
-		resetOffsetsConfig.toEarliest ||
-		resetOffsetsConfig.toLatest) {
-		return errors.New(offsetMapSpecification)
+	cfg := resetOffsetsConfig
 
-	} else if resetOffsetsConfig.toEarliest && resetOffsetsConfig.toLatest {
-		return errors.New(resetOffsetSpecification)
+	numOffsetSpecs := numTrue(
+		cfg.toEarliest,
+		cfg.toLatest,
+		cfg.delete,
+		cmd.Flags().Changed("offset"),
+		len(cfg.partitionOffsetMap) > 0,
+	)
 
-	} else if cmd.Flags().Changed("offset") && (resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest) {
-		return errors.New(resetOffsetSpecification)
+	if numOffsetSpecs > 1 {
+		return errors.New(resetOffsetSpec)
 	}
-	return resetOffsetsConfig.shared.validate()
+
+	if len(cfg.partitionOffsetMap) > 0 && len(cfg.partitions) > 0 {
+		return errors.New(offsetMapSpec)
+	}
+
+	return cfg.shared.validate()
 }
 
 func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	adminClient, err := resetOffsetsConfig.shared.getAdminClient(ctx, nil, true)
+	cfg := resetOffsetsConfig
+
+	adminClient, err := cfg.shared.getAdminClient(ctx, nil, true)
 	if err != nil {
 		return err
 	}
+
 	defer adminClient.Close()
+
+	connector := adminClient.GetConnector()
 
 	topic := args[0]
 	group := args[1]
@@ -103,69 +124,66 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	partitionIDsMap := map[int]struct{}{}
+
+	partitionIDsMap := make(map[int]struct{}, len(topicInfo.Partitions))
 	for _, partitionInfo := range topicInfo.Partitions {
 		partitionIDsMap[partitionInfo.ID] = struct{}{}
 	}
-	var resetOffsetsStrategy string
-	if resetOffsetsConfig.toLatest {
-		resetOffsetsStrategy = groups.LatestResetOffsetsStrategy
-	} else if resetOffsetsConfig.toEarliest {
-		resetOffsetsStrategy = groups.EarliestResetOffsetsStrategy
+
+	var strategy string
+
+	switch {
+	case resetOffsetsConfig.toLatest:
+		strategy = groups.LatestResetOffsetsStrategy
+	case resetOffsetsConfig.toEarliest:
+		strategy = groups.EarliestResetOffsetsStrategy
 	}
-	partitionOffsets := map[int]int64{}
 
-	if len(resetOffsetsConfig.partitionOffsetMap) > 0 {
-		for partition, offset := range resetOffsetsConfig.partitionOffsetMap {
-			var partitionID int
-			if partitionID, err = strconv.Atoi(partition); err != nil {
-				return fmt.Errorf("Partition value %s must be a number", partition)
-			}
-			if _, ok := partitionIDsMap[partitionID]; !ok {
-				return fmt.Errorf("Partition %d not found in topic %s", partitionID, topic)
-			}
+	// If explicit per-partition offsets were specified, set them now.
+	partitionOffsets, err := parsePartitionOffsetMap(partitionIDsMap, cfg.partitionOffsetMap)
+	if err != nil {
+		return err
+	}
 
-			partitionOffsets[partitionID] = offset
+	// Set explicit partitions (without offsets) if specified,
+	// otherwise operate on fetched partition info;
+	// these will only take effect of per-partition offsets were not specified.
+	partitions := cfg.partitions
+	if len(partitions) == 0 && len(partitionOffsets) == 0 {
+		convert := func(info admin.PartitionInfo) int { return info.ID }
+		partitions = convertSlice(topicInfo.Partitions, convert)
+	}
 
+	for _, partition := range partitions {
+		_, ok := partitionIDsMap[partition]
+		if !ok {
+			format := "Partition %d not found in topic %s"
+			return fmt.Errorf(format, partition, topic)
 		}
 
-	} else if len(resetOffsetsConfig.partitions) > 0 {
-		for _, partition := range resetOffsetsConfig.partitions {
-			if _, ok := partitionIDsMap[partition]; !ok {
-				return fmt.Errorf("Partition %d not found in topic %s", partition, topic)
-			}
-			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
-				partitionOffsets[partition], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partition)
-				if err != nil {
-					return err
-				}
-			} else {
-				partitionOffsets[partition] = resetOffsetsConfig.offset
-			}
+		if strategy == "" {
+			partitionOffsets[partition] = cfg.offset
+			return nil
+		}
 
+		offset, err := groups.GetEarliestOrLatestOffset(ctx, connector, topic, strategy, partition)
+		if err != nil {
+			return err
 		}
-	} else {
-		for _, partitionInfo := range topicInfo.Partitions {
-			if resetOffsetsConfig.toEarliest || resetOffsetsConfig.toLatest {
-				partitionOffsets[partitionInfo.ID], err = groups.GetEarliestOrLatestOffset(ctx, adminClient.GetConnector(), topic, resetOffsetsStrategy, partitionInfo.ID)
-				if err != nil {
-					return err
-				}
-			} else {
-				partitionOffsets[partitionInfo.ID] = resetOffsetsConfig.offset
-			}
-		}
+
+		partitionOffsets[partition] = offset
 	}
 
 	log.Infof(
-		"This will reset the offsets for the following partitions in topic %s for group %s:\n%s",
+		"This will reset the offsets for the following partitions "+
+			"in topic %s for group %s:\n%s",
 		topic,
 		group,
 		groups.FormatPartitionOffsets(partitionOffsets),
 	)
-	log.Info(
-		"Please ensure that all other consumers are stopped, otherwise the reset might be overridden.",
-	)
+
+	log.Info("Please ensure that all other consumers are stopped, " +
+		"otherwise the reset might be overridden.")
 
 	ok, _ := util.Confirm("OK to continue?", false)
 	if !ok {
@@ -173,10 +191,59 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
-	return cliRunner.ResetOffsets(
-		ctx,
-		topic,
-		group,
-		partitionOffsets,
-	)
+
+	if resetOffsetsConfig.delete {
+		input := groups.DeleteOffsetsInput{
+			GroupID:    group,
+			Topic:      topic,
+			Partitions: partitions,
+		}
+
+		return cliRunner.DeleteOffsets(ctx, &input)
+	}
+
+	return cliRunner.ResetOffsets(ctx, topic, group, partitionOffsets)
+}
+
+func numTrue(bools ...bool) int {
+	var n int
+	for _, b := range bools {
+		if b {
+			n++
+		}
+	}
+
+	return n
+}
+
+func convertSlice[T1, T2 any](input []T1, fn func(T1) T2) []T2 {
+	out := make([]T2, len(input))
+
+	for i, v := range input {
+		out[i] = fn(v)
+	}
+
+	return out
+}
+
+func parsePartitionOffsetMap(partitionIDsMap map[int]struct{}, input map[string]int64) (map[int]int64, error) {
+	out := make(map[int]int64, len(input))
+
+	for partition, offset := range input {
+		partitionID, err := strconv.Atoi(partition)
+		if err != nil {
+			format := "Partition value %s must be an integer"
+			return nil, fmt.Errorf(format, partition)
+		}
+
+		_, ok := partitionIDsMap[partitionID]
+		if !ok {
+			format := "Partition %d not found"
+			return nil, fmt.Errorf(format, partitionID)
+		}
+
+		out[partitionID] = offset
+	}
+
+	return out, nil
 }

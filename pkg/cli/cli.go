@@ -594,6 +594,11 @@ func (c *CLIRunner) GetUsers(ctx context.Context, names []string) error {
 	return nil
 }
 
+// DeleteOffsets removes offsets for a single consumer group / topic combination.
+func (c *CLIRunner) DeleteOffsets(ctx context.Context, input *groups.DeleteOffsetsInput) error {
+	return invoke(ctx, c, input, groups.DeleteOffsets)
+}
+
 // ResetOffsets resets the offsets for a single consumer group / topic combination.
 func (c *CLIRunner) ResetOffsets(
 	ctx context.Context,
@@ -649,6 +654,7 @@ func (c *CLIRunner) Tail(
 		10e3,
 		10e6,
 	)
+
 	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw, headers)
 	filtered := filterRegexp != ""
 
@@ -687,6 +693,22 @@ func (c *CLIRunner) stopSpinner() {
 	if c.spinnerObj != nil && c.spinnerObj.Active() {
 		c.spinnerObj.Stop()
 	}
+}
+
+type invokeFunc[T any] func(context.Context, *admin.Connector, T) error
+
+func invoke[T any](ctx context.Context, c *CLIRunner, v T, fn invokeFunc[T]) error {
+	c.startSpinner()
+
+	err := fn(ctx, c.adminClient.GetConnector(), v)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Success")
+
+	return nil
 }
 
 func stringsToInts(strs []string) ([]int, error) {
