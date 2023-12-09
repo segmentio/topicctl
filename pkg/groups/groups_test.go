@@ -331,11 +331,19 @@ func TestGetEarliestOrLatestOffset(t *testing.T) {
 	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
 
 	for _, partition := range groupPartitions {
-		offset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
+		input := GetEarliestOrLatestOffsetInput{
+			Connector: connector,
+			Topic:     topicName,
+			Partition: partition,
+		}
+
+		input.Strategy = LatestResetOffsetsStrategy
+		offset, err := GetEarliestOrLatestOffset(ctx, &input)
 		require.NoError(t, err)
 		assert.Equal(t, int64(4), offset)
 
-		offset, err = GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
+		input.Strategy = EarliestResetOffsetsStrategy
+		offset, err = GetEarliestOrLatestOffset(ctx, &input)
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), offset)
 	}
@@ -370,17 +378,16 @@ func TestResetOffsets(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	require.NoError(t, err)
-	err = ResetOffsets(
-		ctx,
-		connector,
-		topicName,
-		groupID,
-		map[int]int64{
+	input := ResetOffsetsInput{
+		Topic:   topicName,
+		GroupID: groupID,
+		PartitionOffsets: map[int]int64{
 			0: 2,
 			1: 1,
 		},
-	)
+	}
+
+	err = ResetOffsets(ctx, connector, &input)
 	require.NoError(t, err)
 
 	lags, err := GetMemberLags(ctx, connector, topicName, groupID)
@@ -391,22 +398,37 @@ func TestResetOffsets(t *testing.T) {
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
 
 	// latest offset of partition 0
-	latestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
-	require.NoError(t, err)
-	// earliest offset of partition 1
-	earliestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
+	getInput := GetEarliestOrLatestOffsetInput{
+		Connector: connector,
+		Topic:     topicName,
+		Strategy:  LatestResetOffsetsStrategy,
+		Partition: 0,
+	}
+
+	latestOffset, err := GetEarliestOrLatestOffset(ctx, &getInput)
 	require.NoError(t, err)
 
-	err = ResetOffsets(
-		ctx,
-		connector,
-		topicName,
-		groupID,
-		map[int]int64{
+	// earliest offset of partition 1
+	getInput = GetEarliestOrLatestOffsetInput{
+		Connector: connector,
+		Topic:     topicName,
+		Strategy:  EarliestResetOffsetsStrategy,
+		Partition: 1,
+	}
+
+	earliestOffset, err := GetEarliestOrLatestOffset(ctx, &getInput)
+	require.NoError(t, err)
+
+	resetInput := ResetOffsetsInput{
+		Topic:   topicName,
+		GroupID: groupID,
+		PartitionOffsets: map[int]int64{
 			0: latestOffset,
 			1: earliestOffset,
 		},
-	)
+	}
+
+	err = ResetOffsets(ctx, connector, &resetInput)
 	require.NoError(t, err)
 
 	lags, err = GetMemberLags(ctx, connector, topicName, groupID)

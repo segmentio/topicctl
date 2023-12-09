@@ -191,22 +191,57 @@ func GetMemberLags(
 	return partitionLags, nil
 }
 
+// DeleteOffsetsInput configures a call to [DeleteOffsets].
+type DeleteOffsetsInput struct {
+	GroupID    string
+	Topic      string
+	Partitions []int
+}
+
+// DeleteOffsets removes a consumer group's offsets
+// on the given topic-partition combinations.
+func DeleteOffsets(ctx context.Context, connector *admin.Connector, input *DeleteOffsetsInput) error {
+	req := kafka.OffsetDeleteRequest{
+		Addr:    connector.KafkaClient.Addr,
+		GroupID: input.GroupID,
+		Topics:  map[string][]int{input.Topic: input.Partitions},
+	}
+
+	resp, err := connector.KafkaClient.OffsetDelete(ctx, &req)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+
+	for _, results := range resp.Topics {
+		for _, result := range results {
+			if result.Error != nil {
+				errs = append(errs, result.Error)
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// ResetOffsetsInput configures a call to [ResetOffsets].
+type ResetOffsetsInput struct {
+	GroupID          string
+	Topic            string
+	PartitionOffsets map[int]int64
+}
+
 // ResetOffsets updates the offsets for a given topic / group combination.
-func ResetOffsets(
-	ctx context.Context,
-	connector *admin.Connector,
-	topic string,
-	groupID string,
-	partitionOffsets map[int]int64,
-) error {
-	consumerGroup, err := kafka.NewConsumerGroup(
-		kafka.ConsumerGroupConfig{
-			ID:      groupID,
-			Brokers: []string{connector.Config.BrokerAddr},
-			Topics:  []string{topic},
-			Dialer:  connector.Dialer,
-		},
-	)
+func ResetOffsets(ctx context.Context, connector *admin.Connector, input *ResetOffsetsInput) error {
+	cfg := kafka.ConsumerGroupConfig{
+		ID:      input.GroupID,
+		Brokers: []string{connector.Config.BrokerAddr},
+		Topics:  []string{input.Topic},
+		Dialer:  connector.Dialer,
+	}
+
+	consumerGroup, err := kafka.NewConsumerGroup(cfg)
 	if err != nil {
 		return err
 	}
@@ -216,33 +251,44 @@ func ResetOffsets(
 		return err
 	}
 
-	return generation.CommitOffsets(
-		map[string]map[int]int64{
-			topic: partitionOffsets,
-		},
-	)
+	offsets := map[string]map[int]int64{
+		input.Topic: input.PartitionOffsets,
+	}
+
+	return generation.CommitOffsets(offsets)
 }
 
-// GetEarliestorLatestOffset gets earliest/latest offset for a given topic partition for resetting offsets of consumer group
-func GetEarliestOrLatestOffset(
-	ctx context.Context,
-	connector *admin.Connector,
-	topic string,
-	strategy string,
-	partition int,
-) (int64, error) {
-	if strategy == EarliestResetOffsetsStrategy {
-		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
-		if err != nil {
-			return 0, err
-		}
+// GetEarliestOrLatestOffsetInput configures a call to [GetEarliestOrLatestOffset].
+type GetEarliestOrLatestOffsetInput struct {
+	Connector *admin.Connector
+	Strategy  string
+	Topic     string
+	Partition int
+}
+
+// GetEarliestorLatestOffset gets earliest/latest offset
+// for a given topic partition for resetting offsets of consumer group.
+func GetEarliestOrLatestOffset(ctx context.Context, input *GetEarliestOrLatestOffsetInput) (int64, error) {
+	if !isValidOffsetStrategy(input.Strategy) {
+		return 0, errors.New("Invalid reset offset strategy provided.")
+	}
+
+	partitionBound, err := messages.GetPartitionBounds(ctx, input.Connector, input.Topic, input.Partition, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	switch input.Strategy {
+	case EarliestResetOffsetsStrategy:
 		return partitionBound.FirstOffset, nil
-	} else if strategy == LatestResetOffsetsStrategy {
-		partitionBound, err := messages.GetPartitionBounds(ctx, connector, topic, partition, 0)
-		if err != nil {
-			return 0, err
-		}
+	case LatestResetOffsetsStrategy:
 		return partitionBound.LastOffset, nil
 	}
-	return 0, errors.New("Invalid reset offset strategy provided.")
+
+	panic("impossible")
+}
+
+func isValidOffsetStrategy(strategy string) bool {
+	return strategy == EarliestResetOffsetsStrategy ||
+		strategy == LatestResetOffsetsStrategy
 }

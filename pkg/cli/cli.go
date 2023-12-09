@@ -534,29 +534,14 @@ func (c *CLIRunner) GetUsers(ctx context.Context, names []string) error {
 	return nil
 }
 
+// DeleteOffsets removes offsets for a single consumer group / topic combination.
+func (c *CLIRunner) DeleteOffsets(ctx context.Context, input *groups.DeleteOffsetsInput) error {
+	return invoke(ctx, c, input, groups.DeleteOffsets)
+}
+
 // ResetOffsets resets the offsets for a single consumer group / topic combination.
-func (c *CLIRunner) ResetOffsets(
-	ctx context.Context,
-	topic string,
-	groupID string,
-	partitionOffsets map[int]int64,
-) error {
-	c.startSpinner()
-	err := groups.ResetOffsets(
-		ctx,
-		c.adminClient.GetConnector(),
-		topic,
-		groupID,
-		partitionOffsets,
-	)
-	c.stopSpinner()
-	if err != nil {
-		return err
-	}
-
-	c.printer("Success")
-
-	return nil
+func (c *CLIRunner) ResetOffsets(ctx context.Context, input *groups.ResetOffsetsInput) error {
+	return invoke(ctx, c, input, groups.ResetOffsets)
 }
 
 // Tail prints out a stream of the latest messages in a topic.
@@ -589,6 +574,7 @@ func (c *CLIRunner) Tail(
 		10e3,
 		10e6,
 	)
+
 	stats, err := tailer.LogMessages(ctx, maxMessages, filterRegexp, raw, headers)
 	filtered := filterRegexp != ""
 
@@ -600,10 +586,7 @@ func (c *CLIRunner) Tail(
 }
 
 // GetACLs fetches the details of each acl in the cluster and prints out a summary.
-func (c *CLIRunner) GetACLs(
-	ctx context.Context,
-	filter kafka.ACLFilter,
-) error {
+func (c *CLIRunner) GetACLs(ctx context.Context, filter kafka.ACLFilter) error {
 	c.startSpinner()
 
 	acls, err := c.adminClient.GetACLs(ctx, filter)
@@ -629,8 +612,24 @@ func (c *CLIRunner) stopSpinner() {
 	}
 }
 
+type invokeFunc[T any] func(context.Context, *admin.Connector, T) error
+
+func invoke[T any](ctx context.Context, c *CLIRunner, v T, fn invokeFunc[T]) error {
+	c.startSpinner()
+
+	err := fn(ctx, c.adminClient.GetConnector(), v)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Success")
+
+	return nil
+}
+
 func stringsToInts(strs []string) ([]int, error) {
-	ints := []int{}
+	ints := make([]int, 0, len(strs))
 
 	for _, str := range strs {
 		nextInt, err := strconv.ParseInt(str, 10, 32)
