@@ -229,7 +229,7 @@ func partitionsCmd() *cobra.Command {
 		Use:   "partitions [optional: topics]",
 		Short: "Get all partitions information for topics",
 		Args:  cobra.MinimumNArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, topics []string) error {
 			ctx := context.Background()
 			sess := session.Must(session.NewSession())
 
@@ -238,11 +238,6 @@ func partitionsCmd() *cobra.Command {
 				return err
 			}
 			defer adminClient.Close()
-
-			topics := []string{}
-			for _, arg := range args {
-				topics = append(topics, arg)
-			}
 
 			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetPartitions(
@@ -264,7 +259,7 @@ func partitionsCmd() *cobra.Command {
 		&partitionsConfig.summary,
 		"summary",
 		false,
-		fmt.Sprintf("Display summary of partitions"),
+		"Display summary of partitions",
 	)
 
 	return partitionsCommand

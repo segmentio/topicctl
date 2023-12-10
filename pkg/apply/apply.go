@@ -863,14 +863,9 @@ func (t *TopicApplier) updatePlacementRunner(
 	numRounds := (len(assignmentsToUpdate) + batchSize - 1) / batchSize // Ceil() with integer math
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 	for i, round := 0, 1; i < len(assignmentsToUpdate); i, round = i+batchSize, round+1 {
-		end := i + batchSize
+		end := min(i+batchSize, len(assignmentsToUpdate))
+		roundLabel := highlighter("%d of %d", round, numRounds)
 
-		if end > len(assignmentsToUpdate) {
-			end = len(assignmentsToUpdate)
-		}
-
-		var roundLabel string // "x of y" used to mark progress in balancing rounds
-		roundLabel = highlighter("%d of %d", round, numRounds)
 		log.Infof(
 			"Balancing round %s",
 			roundLabel,
@@ -994,6 +989,9 @@ func (t *TopicApplier) updatePartitionsIteration(
 outerLoop:
 	for {
 		select {
+		case <-ctx.Done():
+			return ctx.Err()
+
 		case <-checkTimer.C:
 			log.Infof("Checking if all partitions in topic %s are properly replicated...", highlighter(t.topicName))
 
@@ -1035,7 +1033,7 @@ outerLoop:
 			}
 
 			if len(notReady) == 0 {
-				elapsed := time.Now().Sub(roundStartTime)
+				elapsed := time.Since(roundStartTime)
 				log.Infof("Partition(s) %+v looks good, continuing (last round duration: %s)",
 					idsToUpdate,
 					highlighter("%.1fs", float64(elapsed)/1000000000), // time.Duration is int64 nanoseconds
@@ -1053,13 +1051,11 @@ outerLoop:
 
 			var roundString string // convert to " (round x of y)" if roundLabel is present
 			if roundLabel != "" {
-				roundString = fmt.Sprintf(" (current round %s, %+v elapsed)", roundLabel, time.Now().Sub(roundStartTime))
+				roundString = fmt.Sprintf(" (current round %s, %+v elapsed)", roundLabel, time.Since(roundStartTime))
 			} else {
 				roundString = roundLabel
 			}
 			log.Infof("Sleeping for %s%s", t.config.SleepLoopDuration.String(), roundString)
-		case <-ctx.Done():
-			return ctx.Err()
 		}
 	}
 

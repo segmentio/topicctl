@@ -2,9 +2,11 @@ package admin
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -537,27 +539,25 @@ func FormatTopicsPartitionsSummary(
 		},
 	)
 
-	topicNames := []string{}
-	tableData := make(map[string][][]string)
+	topicNames := make([]string, 0, len(topicsPartitionsStatusSummary))
+	tableData := make(map[string][][]string, len(topicsPartitionsStatusSummary))
+
 	for topicName, partitionsStatusSummary := range topicsPartitionsStatusSummary {
-		topicTableRows := [][]string{}
+		topicTableRows := make([][]string, 0, len(partitionsStatusSummary))
 
 		for partitionStatus, partitionStatusIDs := range partitionsStatusSummary {
 			topicTableRows = append(topicTableRows, []string{
-				fmt.Sprintf("%s", topicName),
-				fmt.Sprintf("%s", partitionStatus),
-				fmt.Sprintf("%d", len(partitionStatusIDs)),
+				topicName,
+				string(partitionStatus),
+				fmt.Sprint(len(partitionStatusIDs)),
 				fmt.Sprintf("%+v", partitionStatusIDs),
 			})
 		}
 
-		// sort the topicTableRows by partitionStatus
-		statusSort := func(i, j int) bool {
-			// second element in the row is of type PartitionStatus
-			return string(topicTableRows[i][1]) < string(topicTableRows[j][1])
-		}
-
-		sort.Slice(topicTableRows, statusSort)
+		// sort the topicTableRows by partitionStatus:
+		// second element in the row is PartitionStatus
+		statusSort := func(x, y []string) int { return cmp.Compare(x[1], y[1]) }
+		slices.SortFunc(topicTableRows, statusSort)
 
 		tableData[topicName] = topicTableRows
 		topicNames = append(topicNames, topicName)
@@ -619,27 +619,29 @@ func FormatTopicsPartitions(
 		},
 	)
 
-	topicNames := []string{}
+	inTerminal := util.InTerminal()
+	topicNames := make([]string, 0, len(topicsPartitionsStatusInfo))
 	brokerRacks := BrokerRacks(brokers)
 	tableData := make(map[string][][]string)
+
 	for topicName, partitionsStatusInfo := range topicsPartitionsStatusInfo {
 		topicTableRows := [][]string{}
 		for _, partitionStatusInfo := range partitionsStatusInfo {
 			racks := partitionStatusInfo.Racks(brokerRacks)
 
-			distinctRacks := make(map[string]int)
+			distinctRacks := make(map[string]int, len(racks))
 			for _, rack := range racks {
 				distinctRacks[rack] += 1
 			}
 
-			partitionIsrs := []int{}
-			for _, partitionStatusIsr := range partitionStatusInfo.Partition.Isr {
-				partitionIsrs = append(partitionIsrs, partitionStatusIsr.ID)
+			partitionISRs := make([]int, len(partitionStatusInfo.Partition.Isr))
+			for i, isr := range partitionStatusInfo.Partition.Isr {
+				partitionISRs[i] = isr.ID
 			}
 
-			partitionReplicas := []int{}
-			for _, partitionReplica := range partitionStatusInfo.Partition.Replicas {
-				partitionReplicas = append(partitionReplicas, partitionReplica.ID)
+			partitionReplicas := make([]int, len(partitionStatusInfo.Partition.Replicas))
+			for i, replica := range partitionStatusInfo.Partition.Replicas {
+				partitionReplicas[i] = replica.ID
 			}
 
 			inSync := true
@@ -652,36 +654,30 @@ func FormatTopicsPartitions(
 				correctLeader = false
 			}
 
-			var statusPrinter func(f string, a ...interface{}) string
-			if !util.InTerminal() || inSync {
-				statusPrinter = fmt.Sprintf
-			} else if !inSync {
-				statusPrinter = color.New(color.FgRed).SprintfFunc()
+			statusPrinter := fmt.Sprint
+			if inTerminal && !inSync {
+				statusPrinter = color.New(color.FgRed).Sprint
 			}
 
-			var statePrinter func(f string, a ...interface{}) string
-			if !util.InTerminal() || correctLeader {
-				statePrinter = fmt.Sprintf
-			} else if !correctLeader {
-				statePrinter = color.New(color.FgCyan).SprintfFunc()
+			statePrinter := fmt.Sprintf
+			if inTerminal && !correctLeader {
+				statePrinter = color.New(color.FgCyan).Sprintf
 			}
 
-			leaderStateString := fmt.Sprintf("%d", partitionStatusInfo.Partition.Leader.ID)
+			leaderStateString := fmt.Sprint(partitionStatusInfo.Partition.Leader.ID)
 			if !correctLeader {
-				leaderStateString = fmt.Sprintf("%d %+v", partitionStatusInfo.Partition.Leader.ID,
-					statePrinter("(%s)", string(partitionStatusInfo.LeaderState)),
-				)
+				leaderStateString += " " + statePrinter("(%s)", partitionStatusInfo.LeaderState)
 			}
 
 			topicTableRows = append(topicTableRows, []string{
-				fmt.Sprintf("%s", topicName),
-				fmt.Sprintf("%d", partitionStatusInfo.Partition.ID),
+				topicName,
+				fmt.Sprint(partitionStatusInfo.Partition.ID),
 				leaderStateString,
-				fmt.Sprintf("%+v", partitionIsrs),
+				fmt.Sprintf("%+v", partitionISRs),
 				fmt.Sprintf("%+v", partitionReplicas),
-				fmt.Sprintf("%d", len(distinctRacks)),
+				fmt.Sprint(len(distinctRacks)),
 				fmt.Sprintf("%+v", racks),
-				fmt.Sprintf("%v", statusPrinter("%s", string(partitionStatusInfo.Status))),
+				statusPrinter(partitionStatusInfo.Status),
 			})
 		}
 
@@ -907,11 +903,12 @@ func FormatBrokerMaxPartitions(
 	maxPartitionsPerBroker := MaxPartitionsPerBroker(curr, desired)
 	finalPartitionsPerBroker := MaxPartitionsPerBroker(desired)
 
-	maxCount := maxInts(
+	maxCount := max(
 		maxMapValues(startPartitionsPerBroker),
 		maxMapValues(maxPartitionsPerBroker),
 		maxMapValues(finalPartitionsPerBroker),
 	)
+
 	maxCountWidth := maxValueToMaxWidth(maxCount)
 
 	for _, broker := range brokers {
@@ -1150,25 +1147,6 @@ func intSliceString(values []int, maxWidth int) string {
 
 func maxValueToMaxWidth(maxValue int) int {
 	return int(math.Log10(float64(maxValue))) + 1
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func maxInts(values ...int) int {
-	var maxValue int
-
-	for v, value := range values {
-		if v == 0 || value > maxValue {
-			maxValue = value
-		}
-	}
-
-	return maxValue
 }
 
 func maxMapValues(inputMap map[int]int) int {

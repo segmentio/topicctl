@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/segmentio/kafka-go"
@@ -98,18 +97,4 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		tailConfig.raw,
 		tailConfig.headers,
 	)
-}
-
-func stringsToInts(strs []string) ([]int, error) {
-	ints := []int{}
-
-	for _, str := range strs {
-		nextInt, err := strconv.ParseInt(str, 10, 32)
-		if err != nil {
-			return nil, err
-		}
-		ints = append(ints, int(nextInt))
-	}
-
-	return ints, nil
 }

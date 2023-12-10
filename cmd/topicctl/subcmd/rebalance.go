@@ -3,13 +3,14 @@ package subcmd
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
@@ -102,6 +103,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	ctx = context.WithValue(ctx, "progress", rebalanceCtxStruct)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -147,11 +149,10 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// iterate through each topic config and initiate rebalance
-	topicConfigs := []config.TopicConfig{}
 	topicErrorDict := make(map[string]error)
 	for _, topicFile := range topicFiles {
 		// do not consider invalid topic yaml files for rebalance
-		topicConfigs, err = config.LoadTopicsFile(topicFile)
+		topicConfigs, err := config.LoadTopicsFile(topicFile)
 		if err != nil {
 			log.Errorf("Invalid topic yaml file: %s", topicFile)
 			continue
@@ -205,8 +206,8 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			errorTopics += 1
 			log.Errorf("topic: %s rebalance failed with error: %v", thisTopicName, thisTopicError)
 		} else {
-			log.Infof("topic: %s rebalance is successful", thisTopicName)
 			successTopics += 1
+			log.Infof("topic: %s rebalance is successful", thisTopicName)
 		}
 	}
 

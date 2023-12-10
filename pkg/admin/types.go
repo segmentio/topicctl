@@ -1166,13 +1166,13 @@ func GetTopicsPartitionsStatusInfo(
 						partition.Leader.ID = -1
 					}
 
-					for i, _ := range partition.Isr {
+					for i := range partition.Isr {
 						if partition.Isr[i].Host == "" && partition.Isr[i].Port == 0 {
 							partition.Isr[i].ID = -1
 						}
 					}
 
-					for i, _ := range partition.Replicas {
+					for i := range partition.Replicas {
 						if partition.Replicas[i].Host == "" && partition.Replicas[i].Port == 0 {
 							partition.Replicas[i].ID = -1
 						}

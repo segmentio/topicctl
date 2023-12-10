@@ -57,49 +57,47 @@ func TestLoadTopicsFile(t *testing.T) {
 	require.NoError(t, err)
 	topicConfig.SetDefaults()
 
-	assert.Equal(
-		t,
-		TopicConfig{
-			Meta: TopicMeta{
-				Name:        "topic-test",
-				Cluster:     "test-cluster",
-				Region:      "test-region",
-				Environment: "test-env",
-				Description: "Test topic\n",
+	want := TopicConfig{
+		Meta: TopicMeta{
+			Name:        "topic-test",
+			Cluster:     "test-cluster",
+			Region:      "test-region",
+			Environment: "test-env",
+			Description: "Test topic\n",
+		},
+		Spec: TopicSpec{
+			Partitions:        9,
+			ReplicationFactor: 2,
+			RetentionMinutes:  100,
+			PlacementConfig: TopicPlacementConfig{
+				Strategy: PlacementStrategyInRack,
+				Picker:   PickerMethodRandomized,
 			},
-			Spec: TopicSpec{
-				Partitions:        9,
-				ReplicationFactor: 2,
-				RetentionMinutes:  100,
-				PlacementConfig: TopicPlacementConfig{
-					Strategy: PlacementStrategyInRack,
-					Picker:   PickerMethodRandomized,
+			MigrationConfig: &TopicMigrationConfig{
+				PartitionBatchSize: 1,
+			},
+			Settings: TopicSettings{
+				"cleanup.policy": "compact",
+				"follower.replication.throttled.replicas": []interface{}{
+					"1:3",
+					"4:5",
 				},
-				MigrationConfig: &TopicMigrationConfig{
-					PartitionBatchSize: 1,
-				},
-				Settings: TopicSettings{
-					"cleanup.policy": "compact",
-					"follower.replication.throttled.replicas": []interface{}{
-						"1:3",
-						"4:5",
-					},
-					"max.compaction.lag.ms": 12345.0,
-				},
+				"max.compaction.lag.ms": 12345.0,
 			},
 		},
-		topicConfig,
-	)
+	}
+
+	assert.Equal(t, want, topicConfig)
 	assert.NoError(t, topicConfig.Validate(3))
 
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-invalid.yaml")
-	assert.Equal(t, 1, len(topicConfigs))
-	topicConfig = topicConfigs[0]
 	require.NoError(t, err)
-	assert.Error(t, topicConfig.Validate(3))
+	require.Equal(t, 1, len(topicConfigs))
+	assert.Error(t, topicConfigs[0].Validate(3))
 
 	topicConfigs, err = LoadTopicsFile("testdata/test-cluster/topics/topic-test-multi.yaml")
-	assert.Equal(t, 2, len(topicConfigs))
+	require.NoError(t, err)
+	require.Equal(t, 2, len(topicConfigs))
 	assert.Equal(t, "topic-test1", topicConfigs[0].Meta.Name)
 	assert.Equal(t, "topic-test2", topicConfigs[1].Meta.Name)
 }

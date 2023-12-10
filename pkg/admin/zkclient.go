@@ -65,10 +65,7 @@ type ZKAdminClientConfig struct {
 }
 
 // NewZKAdminClient creates and returns a new Client instance.
-func NewZKAdminClient(
-	ctx context.Context,
-	config ZKAdminClientConfig,
-) (*ZKAdminClient, error) {
+func NewZKAdminClient(ctx context.Context, config ZKAdminClientConfig) (*ZKAdminClient, error) {
 	zkClient, err := zk.NewPooledClient(
 		config.ZKAddrs,
 		time.Minute,
@@ -87,9 +84,8 @@ func NewZKAdminClient(
 		if !strings.HasPrefix(zkPrefix, "/") {
 			zkPrefix = fmt.Sprintf("/%s", zkPrefix)
 		}
-		if strings.HasSuffix(zkPrefix, "/") {
-			zkPrefix = zkPrefix[:len(zkPrefix)-1]
-		}
+
+		zkPrefix = strings.TrimSuffix(zkPrefix, "/")
 	}
 
 	client := &ZKAdminClient{
@@ -133,20 +129,17 @@ func NewZKAdminClient(
 	}
 
 	client.bootstrapAddrs = bootstrapAddrs
-	client.Connector, err = NewConnector(
-		ConnectorConfig{
-			BrokerAddr: bootstrapAddrs[0],
-		},
-	)
+	client.Connector, err = NewConnector(ConnectorConfig{BrokerAddr: bootstrapAddrs[0]})
+	if err != nil {
+		return nil, err
+	}
 
 	return client, nil
 }
 
 // GetClusterID gets the cluster ID from zookeeper. This ID is generated when the cluster is
 // created and should be stable over the life of the cluster.
-func (c *ZKAdminClient) GetClusterID(
-	ctx context.Context,
-) (string, error) {
+func (c *ZKAdminClient) GetClusterID(ctx context.Context) (string, error) {
 	zkClusterIDPath := c.zNode(clusterIDPath)
 
 	zkClusterIDObj := zkClusterID{}
@@ -160,10 +153,7 @@ func (c *ZKAdminClient) GetClusterID(
 
 // GetBrokers gets information on one or more cluster brokers from zookeeper.
 // If the argument ids is unset, then it fetches all brokers.
-func (c *ZKAdminClient) GetBrokers(
-	ctx context.Context,
-	ids []int,
-) ([]BrokerInfo, error) {
+func (c *ZKAdminClient) GetBrokers(ctx context.Context, ids []int) ([]BrokerInfo, error) {
 	// TODO (maybe): Use Kafka API instead of ZK to get broker info
 	var brokerIDs []int
 	var err error
@@ -302,11 +292,7 @@ func (c *ZKAdminClient) GetConnector() *Connector {
 // If the argument names is unset, then it fetches all topics. The detailed
 // parameter determines whether the ISRs and leaders are fetched for each
 // partition.
-func (c *ZKAdminClient) GetTopics(
-	ctx context.Context,
-	names []string,
-	detailed bool,
-) ([]TopicInfo, error) {
+func (c *ZKAdminClient) GetTopics(ctx context.Context, names []string, detailed bool) ([]TopicInfo, error) {
 	var topicNames []string
 	var err error
 
@@ -349,7 +335,7 @@ func (c *ZKAdminClient) GetTopics(
 		}
 	}
 
-	poolSize := minInt(len(topicNames), maxPoolSize)
+	poolSize := min(len(topicNames), maxPoolSize)
 
 	for i := 0; i < poolSize; i++ {
 		go func() {
@@ -422,17 +408,11 @@ func (c *ZKAdminClient) GetTopic(
 	return topics[0], nil
 }
 
-func (c *ZKAdminClient) GetACLs(
-	ctx context.Context,
-	filter kafka.ACLFilter,
-) ([]ACLInfo, error) {
+func (c *ZKAdminClient) GetACLs(ctx context.Context, filter kafka.ACLFilter) ([]ACLInfo, error) {
 	return nil, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
-func (c *ZKAdminClient) CreateACLs(
-	ctx context.Context,
-	acls []kafka.ACLEntry,
-) error {
+func (c *ZKAdminClient) CreateACLs(ctx context.Context, acls []kafka.ACLEntry) error {
 	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
@@ -443,10 +423,7 @@ func (c *ZKAdminClient) GetUsers(
 	return nil, errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
-func (c *ZKAdminClient) UpsertUser(
-	ctx context.Context,
-	user kafka.UserScramCredentialsUpsertion,
-) error {
+func (c *ZKAdminClient) UpsertUser(ctx context.Context, user kafka.UserScramCredentialsUpsertion) error {
 	return errors.New("Users not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
@@ -589,10 +566,7 @@ func (c *ZKAdminClient) UpdateBrokerConfig(
 
 // CreateTopic creates a new topic with the argument config. It uses
 // the topic creation API exposed on the controller broker.
-func (c *ZKAdminClient) CreateTopic(
-	ctx context.Context,
-	config kafka.TopicConfig,
-) error {
+func (c *ZKAdminClient) CreateTopic(ctx context.Context, config kafka.TopicConfig) error {
 	if c.readOnly {
 		return errors.New("Cannot create topic in read-only mode")
 	}
@@ -616,11 +590,7 @@ func (c *ZKAdminClient) CreateTopic(
 // AssignPartitions notifies the cluster to begin a partition reassignment.
 // This should only be used for existing partitions; to create new partitions,
 // use the AddPartitions method.
-func (c *ZKAdminClient) AssignPartitions(
-	ctx context.Context,
-	topic string,
-	assignments []PartitionAssignment,
-) error {
+func (c *ZKAdminClient) AssignPartitions(ctx context.Context, topic string, assignments []PartitionAssignment) error {
 	if c.readOnly {
 		return errors.New("Cannot assign partitions in read-only mode")
 	}
@@ -658,11 +628,7 @@ func (c *ZKAdminClient) AssignPartitions(
 // AddPartitions adds one or more partitions to an existing topic. Unlike
 // AssignPartitions, this directly updates the topic's partition config in
 // zookeeper.
-func (c *ZKAdminClient) AddPartitions(
-	ctx context.Context,
-	topic string,
-	newAssignments []PartitionAssignment,
-) error {
+func (c *ZKAdminClient) AddPartitions(ctx context.Context, topic string, newAssignments []PartitionAssignment) error {
 	if c.readOnly {
 		return errors.New("Cannot add partitions in read-only mode")
 	}
@@ -714,11 +680,7 @@ func (c *ZKAdminClient) AddPartitions(
 
 // RunLeaderElection triggers a leader election for the argument
 // topic and partitions.
-func (c *ZKAdminClient) RunLeaderElection(
-	ctx context.Context,
-	topic string,
-	partitions []int,
-) error {
+func (c *ZKAdminClient) RunLeaderElection(ctx context.Context, topic string, partitions []int) error {
 	if c.readOnly {
 		return errors.New("Cannot run leader election in read-only mode")
 	}
@@ -755,18 +717,12 @@ func (c *ZKAdminClient) RunLeaderElection(
 
 // AcquireLock acquires and returns a lock from the underlying zookeeper client.
 // The Unlock method should be called on the lock when it's safe to release.
-func (c *ZKAdminClient) AcquireLock(
-	ctx context.Context,
-	path string,
-) (zk.Lock, error) {
+func (c *ZKAdminClient) AcquireLock(ctx context.Context, path string) (zk.Lock, error) {
 	return c.zkClient.AcquireLock(ctx, path)
 }
 
 // LockHeld determines whether the lock with the provided path is held (i.e., has children).
-func (c *ZKAdminClient) LockHeld(
-	ctx context.Context,
-	path string,
-) (bool, error) {
+func (c *ZKAdminClient) LockHeld(ctx context.Context, path string) (bool, error) {
 	exists, _, err := c.zkClient.Exists(ctx, path)
 	if err != nil {
 		return false, err
@@ -803,9 +759,7 @@ func (c *ZKAdminClient) Close() error {
 
 // getControllerAddr gets the address of the cluster controller. This is needed
 // for creating new topics and other operations.
-func (c *ZKAdminClient) getControllerAddr(
-	ctx context.Context,
-) (string, error) {
+func (c *ZKAdminClient) getControllerAddr(ctx context.Context) (string, error) {
 	conn, err := kafka.DefaultDialer.DialContext(ctx, "tcp", c.bootstrapAddrs[0])
 	if err != nil {
 		return "", err
@@ -820,11 +774,7 @@ func (c *ZKAdminClient) getControllerAddr(
 	return fmt.Sprintf("%s:%d", broker.Host, broker.Port), nil
 }
 
-func (c *ZKAdminClient) getTopic(
-	ctx context.Context,
-	name string,
-	detailed bool,
-) (TopicInfo, error) {
+func (c *ZKAdminClient) getTopic(ctx context.Context, name string, detailed bool) (TopicInfo, error) {
 	log.Debugf("Getting info for topic %s", name)
 
 	topicInfo := TopicInfo{
@@ -884,7 +834,7 @@ func (c *ZKAdminClient) getTopic(
 		}
 	}
 
-	poolSize := minInt(len(zkTopicInfo.Partitions), maxPoolSize)
+	poolSize := min(len(zkTopicInfo.Partitions), maxPoolSize)
 
 	for i := 0; i < poolSize; i++ {
 		go func() {
@@ -969,9 +919,7 @@ func (c *ZKAdminClient) getPartition(
 }
 
 // assignmentInProgress returns whether the zk assignment node exists.
-func (c *ZKAdminClient) assignmentInProgress(
-	ctx context.Context,
-) (bool, error) {
+func (c *ZKAdminClient) assignmentInProgress(ctx context.Context) (bool, error) {
 	exists, _, err := c.zkClient.Exists(
 		ctx,
 		c.zNode(assignmentPath),
@@ -995,10 +943,7 @@ func (c *ZKAdminClient) zNode(elements ...string) string {
 	return filepath.Join("/", c.zkPrefix, joinedElements)
 }
 
-func (c *ZKAdminClient) getInstances(
-	ctx context.Context,
-	ips []string,
-) (map[string]ec2.Instance, error) {
+func (c *ZKAdminClient) getInstances(ctx context.Context, ips []string) (map[string]ec2.Instance, error) {
 	instancesMap := map[string]ec2.Instance{}
 
 	if c.sess == nil {
@@ -1043,13 +988,6 @@ func (c *ZKAdminClient) getInstances(
 	}
 
 	return instancesMap, nil
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func updateConfig(
@@ -1108,9 +1046,7 @@ func updateConfig(
 	return updatedKeys, nil
 }
 
-func (c *ZKAdminClient) GetAllTopicsMetadata(
-	ctx context.Context,
-) (*kafka.MetadataResponse, error) {
+func (c *ZKAdminClient) GetAllTopicsMetadata(ctx context.Context) (*kafka.MetadataResponse, error) {
 	client := c.GetConnector().KafkaClient
 	req := kafka.MetadataRequest{
 		Topics: nil,

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -626,18 +625,4 @@ func invoke[T any](ctx context.Context, c *CLIRunner, v T, fn invokeFunc[T]) err
 	c.printer("Success")
 
 	return nil
-}
-
-func stringsToInts(strs []string) ([]int, error) {
-	ints := make([]int, 0, len(strs))
-
-	for _, str := range strs {
-		nextInt, err := strconv.ParseInt(str, 10, 32)
-		if err != nil {
-			return nil, err
-		}
-		ints = append(ints, int(nextInt))
-	}
-
-	return ints, nil
 }

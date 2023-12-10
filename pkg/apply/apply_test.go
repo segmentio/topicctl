@@ -2,7 +2,6 @@ package apply
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -898,10 +897,6 @@ func TestApplyOverrides(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(50000000), applier.throttleBytes)
 	assert.Equal(t, applier.maxBatchSize, 8)
-}
-
-func testTopicName(name string) string {
-	return util.RandomString(fmt.Sprintf("topic-%s-", name), 6)
 }
 
 func testApplier(

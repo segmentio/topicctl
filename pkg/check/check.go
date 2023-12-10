@@ -3,7 +3,7 @@ package check
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -101,17 +101,10 @@ func CheckTopic(ctx context.Context, config CheckConfig) (TopicCheckResults, err
 	if len(diffKeys) == 0 && len(missingKeys) == 0 {
 		results.UpdateLastResult(true, "")
 	} else {
-		combinedKeys := []string{}
-		for _, diffKey := range diffKeys {
-			combinedKeys = append(combinedKeys, diffKey)
-		}
-		for _, missingKey := range missingKeys {
-			combinedKeys = append(combinedKeys, missingKey)
-		}
-
-		sort.Slice(combinedKeys, func(a, b int) bool {
-			return combinedKeys[a] < combinedKeys[b]
-		})
+		combinedKeys := make([]string, 0, len(diffKeys)+len(missingKeys))
+		combinedKeys = append(combinedKeys, diffKeys...)
+		combinedKeys = append(combinedKeys, missingKeys...)
+		slices.Sort(combinedKeys)
 
 		results.UpdateLastResult(
 			false,
