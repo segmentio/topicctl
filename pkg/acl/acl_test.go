@@ -448,7 +448,7 @@ func TestDeleteMultipleACLs(t *testing.T) {
 		Operation:                 kafka.ACLOperationTypeRead,
 	})
 	require.NoError(t, err)
-	require.Equal(t, []admin.ACLInfo{
+	require.ElementsMatch(t, []admin.ACLInfo{
 		{
 			ResourceType:   admin.ResourceType(kafka.ResourceTypeTopic),
 			ResourceName:   topicName,
