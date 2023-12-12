@@ -166,7 +166,7 @@ func (a *ACLAdmin) Delete(ctx context.Context, filter kafka.DeleteACLsFilter) er
 		return fmt.Errorf("No ACL matches filter:\n%+v", formatACLs(filter))
 	}
 
-	log.Infof("%d ACLs in the cluster match the filter provided", len(clusterACLs))
+	log.Infof("The following ACLs in the cluster are planned for deletion:\n%+v", formatACLInfos(clusterACLs))
 
 	if a.config.DryRun {
 		log.Infof("Would delete ACLs:\n%+v", formatACLInfos(clusterACLs))
@@ -174,7 +174,7 @@ func (a *ACLAdmin) Delete(ctx context.Context, filter kafka.DeleteACLsFilter) er
 	}
 
 	// This isn't settable by the CLI for safety measures but allows for testability
-	confirm, err := util.Confirm(fmt.Sprintf("Delete ACLs?\n%+v", formatACLInfos(clusterACLs)), a.config.SkipConfirm)
+	confirm, err := util.Confirm("Delete ACLs?", a.config.SkipConfirm)
 	if err != nil {
 		return err
 	}
