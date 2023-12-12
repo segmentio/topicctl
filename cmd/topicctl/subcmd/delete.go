@@ -55,11 +55,11 @@ var deleteACLsConfig = aclsCmdConfig{}
 
 func deleteACLCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "acl [flags]",
-		Short: "Delete an ACL. Requires providing flags to only target a single ACL for deletion.",
+		Use:   "acls [flags]",
+		Short: "Delete ACLs. Requires providing flags to target ACLs for deletion.",
 		Args:  cobra.NoArgs,
 		Example: `Delete read acls for topic my-topic, user 'User:default', and host '*'
-$ topicctl delete acl --resource-type topic --resource-pattern-type literal --resource-name my-topic --principal 'User:default' --host '*' --operation read --permission-type allow
+$ topicctl delete acls --resource-type topic --resource-pattern-type literal --resource-name my-topic --principal 'User:default' --host '*' --operation read --permission-type allow
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
