@@ -83,9 +83,11 @@ type MemberPartitionLag struct {
 	Topic        string
 	Partition    int
 	MemberID     string
+	OldestOffset int64
 	NewestOffset int64
-	NewestTime   time.Time
 	MemberOffset int64
+	OldestTime   time.Time
+	NewestTime   time.Time
 	MemberTime   time.Time
 }
 

@@ -1,9 +1,10 @@
 package messages
 
 import (
+	"cmp"
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -119,8 +120,8 @@ func GetAllPartitionBounds(
 		}
 	}
 
-	sort.Slice(allBounds, func(a, b int) bool {
-		return allBounds[a].Partition < allBounds[b].Partition
+	slices.SortFunc(allBounds, func(a, b Bounds) int {
+		return cmp.Compare(a.Partition, b.Partition)
 	})
 
 	return allBounds, nil

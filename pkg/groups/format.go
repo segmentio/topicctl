@@ -3,7 +3,9 @@ package groups
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -270,12 +272,39 @@ func FormatMemberLags(memberLags []MemberPartitionLag, full bool) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatPartitions generates a pretty table that shows a list of partitions.
+func FormatPartitions(partitions []int) string {
+	var buf bytes.Buffer
+
+	table := tablewriter.NewWriter(&buf)
+	table.SetHeader([]string{"Partition"})
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_RIGHT})
+
+	table.SetBorders(tablewriter.Border{
+		Left:   false,
+		Top:    true,
+		Right:  false,
+		Bottom: true,
+	})
+
+	slices.Sort(partitions)
+
+	for _, partition := range partitions {
+		table.Append([]string{strconv.Itoa(partition)})
+	}
+
+	table.Render()
+
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
 // FormatPartitionOffsets generates a pretty table that shows the proposed offsets for each
 // partition in a reset.
 func FormatPartitionOffsets(partitionOffsets map[int]int64) string {
-	buf := &bytes.Buffer{}
+	var buf bytes.Buffer
 
-	table := tablewriter.NewWriter(buf)
+	table := tablewriter.NewWriter(&buf)
 	table.SetHeader(
 		[]string{
 			"Partition",

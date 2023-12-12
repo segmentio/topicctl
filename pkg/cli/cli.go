@@ -372,14 +372,13 @@ func (c *CLIRunner) GetMemberLags(
 		return fmt.Errorf("Error fetching topic info: %+v", err)
 	}
 
-	memberLags, err := groups.GetMemberLags(
-		ctx,
-		c.adminClient.GetConnector(),
-		topic,
-		groupID,
-	)
-	c.stopSpinner()
+	getLagsInput := groups.GetMemberLagsInput{
+		GroupID: groupID,
+		Topic:   topic,
+	}
 
+	memberLags, err := groups.GetMemberLags(ctx, c.adminClient.GetConnector(), &getLagsInput)
+	c.stopSpinner()
 	if err != nil {
 		return err
 	}

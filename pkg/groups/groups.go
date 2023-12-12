@@ -74,11 +74,7 @@ func GetGroups(
 }
 
 // GetGroupDetails returns the details (membership, etc.) for a single consumer group.
-func GetGroupDetails(
-	ctx context.Context,
-	connector *admin.Connector,
-	groupID string,
-) (*GroupDetails, error) {
+func GetGroupDetails(ctx context.Context, connector *admin.Connector, groupID string) (*GroupDetails, error) {
 	req := kafka.DescribeGroupsRequest{
 		GroupIDs: []string{groupID},
 	}
@@ -135,15 +131,21 @@ func GetGroupDetails(
 	return &groupDetails, nil
 }
 
-// GetMemberLags returns the lag for each partition being consumed by the argument group in the
-// argument topic.
-func GetMemberLags(
-	ctx context.Context,
-	connector *admin.Connector,
-	topic string,
-	groupID string,
-) ([]MemberPartitionLag, error) {
-	groupDetails, err := GetGroupDetails(ctx, connector, groupID)
+// GetMemberLagsInput configures a call to [GetMemberLags].
+type GetMemberLagsInput struct {
+	GroupID string
+	Topic   string
+
+	// FullRange will make fetched partition ranges accurate
+	// from the partition's perspective, ignoring consumer group:
+	// this has the downside of potentially making MemberTime inaccurate.
+	FullRange bool
+}
+
+// GetMemberLags returns the lag for each partition on the given topic,
+// being consumed by the given group in the argument topic.
+func GetMemberLags(ctx context.Context, connector *admin.Connector, input *GetMemberLagsInput) ([]MemberPartitionLag, error) {
+	groupDetails, err := GetGroupDetails(ctx, connector, input.GroupID)
 	if err != nil {
 		return nil, err
 	}
@@ -152,40 +154,49 @@ func GetMemberLags(
 		return nil, errors.New("Group state is dead; check that group ID is valid")
 	}
 
-	partitionMembers := groupDetails.PartitionMembers(topic)
+	partitionMembers := groupDetails.PartitionMembers(input.Topic)
 
-	offsets, err := connector.KafkaClient.ConsumerOffsets(
-		ctx, kafka.TopicAndGroup{
-			Topic:   topic,
-			GroupId: groupID,
-		},
-	)
+	offsetInput := kafka.TopicAndGroup{
+		GroupId: input.GroupID,
+		Topic:   input.Topic,
+	}
+
+	offsets, err := connector.KafkaClient.ConsumerOffsets(ctx, offsetInput)
 	if err != nil {
 		return nil, err
 	}
 
-	bounds, err := messages.GetAllPartitionBounds(ctx, connector, topic, offsets)
+	boundsOffsetsInput := offsets
+	if input.FullRange {
+		boundsOffsetsInput = nil
+	}
+
+	bounds, err := messages.GetAllPartitionBounds(ctx, connector, input.Topic, boundsOffsetsInput)
 	if err != nil {
 		return nil, err
 	}
 
-	partitionLags := []MemberPartitionLag{}
+	partitionLags := make([]MemberPartitionLag, len(bounds))
 
-	for _, bound := range bounds {
-		partitionLag := MemberPartitionLag{
-			Topic:        topic,
+	for i, bound := range bounds {
+		lag := &partitionLags[i]
+		*lag = MemberPartitionLag{
+			Topic:        input.Topic,
 			Partition:    bound.Partition,
 			MemberID:     partitionMembers[bound.Partition].MemberID,
-			MemberOffset: offsets[bound.Partition],
+			OldestOffset: bound.FirstOffset,
 			NewestOffset: bound.LastOffset,
+			MemberOffset: offsets[bound.Partition],
+			OldestTime:   bound.FirstTime,
 			NewestTime:   bound.LastTime,
 		}
 
-		if bound.FirstOffset == offsets[bound.Partition] {
-			partitionLag.MemberTime = bound.FirstTime
+		switch lag.MemberOffset {
+		case bound.LastOffset:
+			lag.MemberTime = bound.LastTime
+		case bound.FirstOffset:
+			lag.MemberTime = bound.FirstTime
 		}
-
-		partitionLags = append(partitionLags, partitionLag)
 	}
 
 	return partitionLags, nil
@@ -260,7 +271,6 @@ func ResetOffsets(ctx context.Context, connector *admin.Connector, input *ResetO
 
 // GetEarliestOrLatestOffsetInput configures a call to [GetEarliestOrLatestOffset].
 type GetEarliestOrLatestOffsetInput struct {
-	Connector *admin.Connector
 	Strategy  string
 	Topic     string
 	Partition int
@@ -268,12 +278,12 @@ type GetEarliestOrLatestOffsetInput struct {
 
 // GetEarliestorLatestOffset gets earliest/latest offset
 // for a given topic partition for resetting offsets of consumer group.
-func GetEarliestOrLatestOffset(ctx context.Context, input *GetEarliestOrLatestOffsetInput) (int64, error) {
+func GetEarliestOrLatestOffset(ctx context.Context, connector *admin.Connector, input *GetEarliestOrLatestOffsetInput) (int64, error) {
 	if !isValidOffsetStrategy(input.Strategy) {
 		return 0, errors.New("Invalid reset offset strategy provided.")
 	}
 
-	partitionBound, err := messages.GetPartitionBounds(ctx, input.Connector, input.Topic, input.Partition, 0)
+	partitionBound, err := messages.GetPartitionBounds(ctx, connector, input.Topic, input.Partition, 0)
 	if err != nil {
 		return 0, err
 	}
