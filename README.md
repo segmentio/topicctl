@@ -492,7 +492,7 @@ The `apply` subcommand can make changes, but under the following conditions:
 The `reset-offsets` command can also make changes in the cluster and should be used carefully.
 
 The `create` command can be used to create new resources in the cluster. It cannot be used with
-mutuable resources.
+mutable resources.
 
 ### Idempotency
 

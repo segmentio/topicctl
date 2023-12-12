@@ -61,7 +61,7 @@ func (a *ACLCreator) Create(ctx context.Context) error {
 		return err
 	}
 
-	log.Info("Checking if ACLs already exists...")
+	log.Info("Checking if ACLs already exist...")
 
 	acls := a.aclConfig.ToNewACLEntries()
 
@@ -110,7 +110,7 @@ func (a *ACLCreator) Create(ctx context.Context) error {
 	}
 
 	log.Infof(
-		"It looks like these ACLs doesn't already exists. Will create them with this config:\n%s",
+		"It looks like these ACLs don't already exist. Will create them with this config:\n%s",
 		formatNewACLsConfig(newACLs),
 	)
 
