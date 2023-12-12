@@ -38,6 +38,9 @@ type Client interface {
 		detailed bool,
 	) (TopicInfo, error)
 
+	// DeleteTopic deletes a single topic in the cluster.
+	DeleteTopic(ctx context.Context, topic string) error
+
 	// GetACLs gets full information about each ACL in the cluster.
 	GetACLs(
 		ctx context.Context,
