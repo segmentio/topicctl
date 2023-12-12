@@ -162,12 +162,6 @@ func (c *CLIRunner) DeleteACL(
 
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
 
-	c.printer(
-		"Starting deletion for ACLs in environment %s, cluster %s",
-		highlighter(aclAdminConfig.ACLConfig.Meta.Environment),
-		highlighter(aclAdminConfig.ACLConfig.Meta.Cluster),
-	)
-
 	err = aclAdmin.Delete(ctx, filter)
 	if err != nil {
 		return err
