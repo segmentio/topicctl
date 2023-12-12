@@ -160,8 +160,6 @@ func (c *CLIRunner) DeleteACL(
 		return err
 	}
 
-	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
-
 	err = aclAdmin.Delete(ctx, filter)
 	if err != nil {
 		return err
