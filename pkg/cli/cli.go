@@ -19,7 +19,6 @@ import (
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/config"
-	"github.com/segmentio/topicctl/pkg/create"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
 	log "github.com/sirupsen/logrus"
