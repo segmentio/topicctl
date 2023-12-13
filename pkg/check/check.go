@@ -48,7 +48,7 @@ func CheckTopic(ctx context.Context, config CheckConfig) (TopicCheckResults, err
 			Name: CheckNameConfigsConsistent,
 		},
 	)
-	if err := tconfig.CheckConsistency(config.TopicConfig, config.ClusterConfig); err == nil {
+	if err := tconfig.CheckConsistency(config.TopicConfig.Meta, config.ClusterConfig); err == nil {
 		results.UpdateLastResult(true, "")
 	} else {
 		results.UpdateLastResult(

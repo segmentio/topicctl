@@ -155,6 +155,15 @@ The `check` command validates that each topic config has the correct fields set 
 consistent with the associated cluster config. Unless `--validate-only` is set, it then
 checks the topic config against the state of the topic in the corresponding cluster.
 
+#### create
+```
+topicctl create [flags] [command]
+```
+
+The `create` command creates resources in the cluster from a configuration file. 
+Currently, only ACLs are supported. The create command is separate from the apply
+command as it is intended for usage with immutable resources managed by topicctl.
+
 #### get
 
 ```
@@ -419,6 +428,47 @@ This subcommand will not rebalance a topic if:
 1. a topic's `retention.ms` in the kafka cluster does not match the topic's `retentionMinutes` setting in the topic config
 1. a topic does not exist in the kafka cluster
 
+### ACLs
+
+Sets of ACLs can be configured in a YAML file. The following is an
+annotated example:
+
+```yaml
+meta:
+  name: acls-test                       # Name of the group of ACLs
+  cluster: my-cluster                   # Name of the cluster
+  environment: stage                    # Environment of the cluster
+  region: us-west-2                     # Region of the cluster
+  description: |                        # Free-text description of the topic (optional)
+    Test topic in my-cluster.
+  labels:                               # Custom key-value pairs purposed for ACL bookkeeping (optional)
+    key1: value1
+    key2: value2
+
+spec:
+  acls:
+    - resource:
+        type: topic                     # Type of resource (topic, group, cluster, etc.)
+        name: test-topic                # Name of the resource to apply an ACL to
+        patternType: literal            # Type of pattern (literal, prefixed, etc.)
+        principal: User:my-user         # Principal to apply the ACL to
+        host: *                         # Host to apply the ACL to
+        permission: allow			    # Permission to apply (allow, deny)
+      operations:                       # List of operations to use for the ACLs
+        - read
+        - describe
+```
+
+The `cluster`, `environment`, and `region` fields are used for matching
+against a cluster config and double-checking that the cluster we're applying
+in is correct; they don't appear in any API calls.
+
+See the [Kafka documentation](https://kafka.apache.org/documentation/#security_authz_primitives)
+for more details on the parameters that can be set in the `acls` field.
+
+Multiple groups of ACLs can be included in the same file, separated by `---` lines, provided
+that they reference the same cluster.
+
 ## Tool safety
 
 The `bootstrap`, `get`, `repl`, and `tail` subcommands are read-only and should never make
@@ -440,6 +490,9 @@ The `apply` subcommand can make changes, but under the following conditions:
   clusters are accessed through the same address, e.g `localhost:2181`.
 
 The `reset-offsets` command can also make changes in the cluster and should be used carefully.
+
+The `create` command can be used to create new resources in the cluster. It cannot be used with
+mutable resources.
 
 ### Idempotency
 

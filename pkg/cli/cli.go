@@ -18,6 +18,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/segmentio/topicctl/pkg/create"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
 	log "github.com/sirupsen/logrus"
@@ -107,6 +108,38 @@ func (c *CLIRunner) ApplyTopic(
 	}
 
 	c.printer("Apply completed successfully!")
+	return nil
+}
+
+// CreateACL does an apply run according to the spec in the argument config.
+func (c *CLIRunner) CreateACL(
+	ctx context.Context,
+	creatorConfig create.ACLCreatorConfig,
+) error {
+	creator, err := create.NewACLCreator(
+		ctx,
+		c.adminClient,
+		creatorConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
+
+	c.printer(
+		"Starting creation for ACLs %s in environment %s, cluster %s",
+		highlighter(creatorConfig.ACLConfig.Meta.Name),
+		highlighter(creatorConfig.ACLConfig.Meta.Environment),
+		highlighter(creatorConfig.ACLConfig.Meta.Cluster),
+	)
+
+	err = creator.Create(ctx)
+	if err != nil {
+		return err
+	}
+
+	c.printer("Create completed successfully!")
 	return nil
 }
 

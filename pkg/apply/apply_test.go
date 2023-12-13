@@ -20,7 +20,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -88,7 +88,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -206,7 +206,7 @@ func TestApplyRebalance(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -285,7 +285,7 @@ func TestApplyExtendPartitions(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-extend-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -376,7 +376,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 	topicName2 := util.RandomString("apply-topic-extend-", 6)
 
 	topicConfig1 := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName1,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -397,7 +397,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 		},
 	}
 	topicConfig2 := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName2,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -555,7 +555,7 @@ func TestApplyDryRun(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-dry-run-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -620,7 +620,7 @@ func TestApplyThrottles(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -858,7 +858,7 @@ func TestApplyOverrides(t *testing.T) {
 
 	topicName := util.RandomString("apply-topic-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",

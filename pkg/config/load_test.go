@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +61,7 @@ func TestLoadTopicsFile(t *testing.T) {
 	assert.Equal(
 		t,
 		TopicConfig{
-			Meta: TopicMeta{
+			Meta: ResourceMeta{
 				Name:        "topic-test",
 				Cluster:     "test-cluster",
 				Region:      "test-region",
@@ -104,6 +105,67 @@ func TestLoadTopicsFile(t *testing.T) {
 	assert.Equal(t, "topic-test2", topicConfigs[1].Meta.Name)
 }
 
+func TestLoadACLsFile(t *testing.T) {
+	aclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test.yaml")
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(aclConfigs))
+	aclConfig := aclConfigs[0]
+
+	assert.Equal(
+		t,
+		ACLConfig{
+			Meta: ResourceMeta{
+				Name:        "acl-test",
+				Cluster:     "test-cluster",
+				Region:      "test-region",
+				Environment: "test-env",
+				Description: "Test acl\n",
+			},
+			Spec: ACLSpec{
+				ACLs: []ACL{
+					{
+						Resource: ACLResource{
+							Type:        kafka.ResourceTypeTopic,
+							Name:        "test-topic",
+							PatternType: kafka.PatternTypeLiteral,
+							Principal:   "User:Alice",
+							Host:        "*",
+							Permission:  kafka.ACLPermissionTypeAllow,
+						},
+						Operations: []kafka.ACLOperationType{
+							kafka.ACLOperationTypeRead,
+							kafka.ACLOperationTypeDescribe,
+						},
+					},
+					{
+						Resource: ACLResource{
+							Type:        kafka.ResourceTypeGroup,
+							Name:        "test-group",
+							PatternType: kafka.PatternTypePrefixed,
+							Principal:   "User:Alice",
+							Host:        "*",
+							Permission:  kafka.ACLPermissionTypeAllow,
+						},
+						Operations: []kafka.ACLOperationType{
+							kafka.ACLOperationTypeRead,
+						},
+					},
+				},
+			},
+		},
+		aclConfig,
+	)
+
+	invalidAclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-invalid.yaml")
+	assert.Equal(t, 0, len(invalidAclConfigs))
+	require.Error(t, err)
+
+	multiAclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-multi.yaml")
+	assert.Equal(t, 2, len(multiAclConfigs))
+	assert.Equal(t, "acl-test1", multiAclConfigs[0].Meta.Name)
+	assert.Equal(t, "acl-test2", multiAclConfigs[1].Meta.Name)
+}
+
 func TestCheckConsistency(t *testing.T) {
 	os.Setenv("K2_TEST_ENV_VAR", "test-region")
 	defer os.Unsetenv("K2_TEST_ENV_VAR")
@@ -128,6 +190,17 @@ func TestCheckConsistency(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, topicConfig.Validate(3))
 
-	assert.NoError(t, CheckConsistency(topicConfig, clusterConfig))
-	assert.Error(t, CheckConsistency(topicConfigNoMatch, clusterConfig))
+	assert.NoError(t, CheckConsistency(topicConfig.Meta, clusterConfig))
+	assert.Error(t, CheckConsistency(topicConfigNoMatch.Meta, clusterConfig))
+
+	aclConfigs, err := LoadACLsFile("testdata/test-cluster/acls/acl-test.yaml")
+	assert.Equal(t, 1, len(aclConfigs))
+	assert.NoError(t, err)
+
+	aclConfigsNoMatches, err := LoadACLsFile("testdata/test-cluster/acls/acl-test-no-match.yaml")
+	assert.Equal(t, 1, len(aclConfigsNoMatches))
+	assert.NoError(t, err)
+
+	assert.NoError(t, CheckConsistency(aclConfigs[0].Meta, clusterConfig))
+	assert.Error(t, CheckConsistency(aclConfigsNoMatches[0].Meta, clusterConfig))
 }

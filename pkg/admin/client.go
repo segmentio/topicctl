@@ -77,7 +77,7 @@ type Client interface {
 		config kafka.TopicConfig,
 	) error
 
-	// Create ACLs creates ACLs in the cluster.
+	// CreateACLs creates ACLs in the cluster.
 	CreateACLs(
 		ctx context.Context,
 		acls []kafka.ACLEntry,

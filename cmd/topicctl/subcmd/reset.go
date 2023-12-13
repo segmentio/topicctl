@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/groups"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -167,7 +167,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 		"Please ensure that all other consumers are stopped, otherwise the reset might be overridden.",
 	)
 
-	ok, _ := apply.Confirm("OK to continue?", false)
+	ok, _ := util.Confirm("OK to continue?", false)
 	if !ok {
 		return errors.New("Stopping because of user response")
 	}

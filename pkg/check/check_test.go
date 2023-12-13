@@ -33,7 +33,7 @@ func TestCheck(t *testing.T) {
 
 	topicName := util.RandomString("check-topic-", 6)
 	topicConfig := config.TopicConfig{
-		Meta: config.TopicMeta{
+		Meta: config.ResourceMeta{
 			Name:        topicName,
 			Cluster:     "test-cluster",
 			Region:      "test-region",
@@ -106,7 +106,7 @@ func TestCheck(t *testing.T) {
 		{
 			description: "topic does not exist",
 			checkTopicConfig: config.TopicConfig{
-				Meta: config.TopicMeta{
+				Meta: config.ResourceMeta{
 					Name:        "non-existent-topic",
 					Cluster:     "non-matching-cluster",
 					Region:      "test-region",
@@ -134,7 +134,7 @@ func TestCheck(t *testing.T) {
 		{
 			description: "topic does not exist",
 			checkTopicConfig: config.TopicConfig{
-				Meta: config.TopicMeta{
+				Meta: config.ResourceMeta{
 					Name:        "non-existent-topic",
 					Cluster:     "test-cluster",
 					Region:      "test-region",
@@ -163,7 +163,7 @@ func TestCheck(t *testing.T) {
 		{
 			description: "wrong configuration",
 			checkTopicConfig: config.TopicConfig{
-				Meta: config.TopicMeta{
+				Meta: config.ResourceMeta{
 					Name:        topicName,
 					Cluster:     "test-cluster",
 					Region:      "test-region",

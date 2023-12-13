@@ -1,0 +1,29 @@
+meta:
+  name: acl-test-no-match
+  cluster: test-cluster
+  environment: bad-env
+  region: test-region
+  description: |
+    Test acl
+
+spec:
+  acls:
+    - resource:
+        type: topic
+        name: test-topic
+        patternType: literal
+        principal: 'User:Alice'
+        host: "*"
+        permission: allow
+      operations:
+        - read
+        - describe
+    - resource:
+        type: group
+        name: test-group
+        patternType: prefixed
+        principal: 'User:Alice'
+        host: "*"
+        permission: allow
+      operations:
+        - read
