@@ -179,7 +179,7 @@ func GetPartitionBounds(
 			"Moving first offset forward to match min offset (%d)",
 			minOffset,
 		)
-		firstOffset = minOffset
+		firstOffset = minOffset - 1
 	}
 
 	var firstMessage kafka.Message
@@ -233,11 +233,18 @@ func GetPartitionBounds(
 		)
 	}
 
+	log.Debugf(
+		"Final offsets for %d: %d->%d",
+		partition,
+		firstMessage.Offset,
+		lastMessage.Offset,
+	)
+
 	return Bounds{
 		Partition:   partition,
 		FirstOffset: firstMessage.Offset,
 		FirstTime:   firstMessage.Time,
-		LastOffset:  lastMessage.Offset,
+		LastOffset:  lastMessage.Offset + 1,
 		LastTime:    lastMessage.Time,
 	}, nil
 }
