@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/segmentio/topicctl/pkg/acl"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/config"
-	"github.com/segmentio/topicctl/pkg/create"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -171,14 +171,14 @@ func createACL(
 			clusterConfigPath,
 		)
 
-		creatorConfig := create.ACLCreatorConfig{
+		aclAdminConfig := acl.ACLAdminConfig{
 			DryRun:        createConfig.dryRun,
 			SkipConfirm:   createConfig.skipConfirm,
 			ACLConfig:     aclConfig,
 			ClusterConfig: clusterConfig,
 		}
 
-		if err := cliRunner.CreateACL(ctx, creatorConfig); err != nil {
+		if err := cliRunner.CreateACL(ctx, aclAdminConfig); err != nil {
 			return err
 		}
 	}

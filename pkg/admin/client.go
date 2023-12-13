@@ -83,6 +83,12 @@ type Client interface {
 		acls []kafka.ACLEntry,
 	) error
 
+	// DeleteACLs deletes ACLs in the cluster.
+	DeleteACLs(
+		ctx context.Context,
+		filters []kafka.DeleteACLsFilter,
+	) (*kafka.DeleteACLsResponse, error)
+
 	// UpsertUser creates or updates an user in zookeeper.
 	UpsertUser(
 		ctx context.Context,

@@ -436,6 +436,13 @@ func (c *ZKAdminClient) CreateACLs(
 	return errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
 }
 
+func (c *ZKAdminClient) DeleteACLs(
+	ctx context.Context,
+	filters []kafka.DeleteACLsFilter,
+) (*kafka.DeleteACLsResponse, error) {
+	return nil, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix.")
+}
+
 func (c *ZKAdminClient) GetUsers(
 	ctx context.Context,
 	names []string,

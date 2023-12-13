@@ -1107,6 +1107,21 @@ func TestZkCreateACL(t *testing.T) {
 	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
 }
 
+func TestZkDeleteACL(t *testing.T) {
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs: []string{util.TestZKAddr()},
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	_, err = adminClient.DeleteACLs(ctx, []kafka.DeleteACLsFilter{})
+	assert.Equal(t, err, errors.New("ACLs not yet supported with zk access mode; omit zk addresses to fix."))
+}
+
 func TestZkGetUsers(t *testing.T) {
 	ctx := context.Background()
 	adminClient, err := NewZKAdminClient(

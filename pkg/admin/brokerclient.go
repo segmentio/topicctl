@@ -843,6 +843,28 @@ func (c *BrokerAdminClient) CreateACLs(
 	return nil
 }
 
+// DeleteACLs deletes ACLs in the cluster.
+func (c *BrokerAdminClient) DeleteACLs(
+	ctx context.Context,
+	filters []kafka.DeleteACLsFilter,
+) (*kafka.DeleteACLsResponse, error) {
+	if c.config.ReadOnly {
+		return nil, errors.New("Cannot delete ACL in read-only mode")
+	}
+
+	req := kafka.DeleteACLsRequest{
+		Filters: filters,
+	}
+	log.Debugf("DeleteACLs request: %+v", req)
+
+	resp, err := c.client.DeleteACLs(ctx, &req)
+	log.Debugf("DeleteACLs response: %+v (%+v)", resp, err)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (c *BrokerAdminClient) GetAllTopicsMetadata(
 	ctx context.Context,
 ) (*kafka.MetadataResponse, error) {
