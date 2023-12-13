@@ -28,7 +28,7 @@ jobs:
   test010:
     runs-on: ubuntu-latest
     container:
-      image: cimg/go:1.19
+      image: cimg/go:1.21
       env:
         GO111MODULE: "on"
         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
@@ -39,7 +39,7 @@ jobs:
     - name: Go setup
       uses: actions/setup-go@v3
       with:
-        go-version: 1.19
+        go-version: 1.21
     - name: Display Go version
       run: go version
     - name: Run tests
@@ -132,7 +132,7 @@ jobs:
   test270:
     runs-on: ubuntu-latest
     container:
-      image: cimg/go:1.19
+      image: cimg/go:1.21
       env:
         GO111MODULE: "on"
         KAFKA_TOPICS_TEST_ZK_ADDR: zookeeper:2181
@@ -143,7 +143,7 @@ jobs:
     - name: Go setup
       uses: actions/setup-go@v3
       with:
-        go-version: 1.19
+        go-version: 1.21
     - name: Display Go version
       run: go version
     - name: Run tests
