@@ -338,6 +338,17 @@ using [`os.ExpandEnv`](https://pkg.go.dev/os#ExpandEnv) at load time. The latter
 references of the form `$ENV_VAR_NAME` or `${ENV_VAR_NAME}` with the associated values from the
 environment.
 
+Additionally, the Amazon Resource Name (ARN) of a secret in AWS Secrets Manager can be provided
+as the secret. Topicctl will then retrieve the secret value from Secrets Manager and use it as
+the password. For example:
+```yaml
+sasl:
+    enabled: true
+    mechanism: SCRAM-SHA-512
+    username: my-username
+    password: arn:aws:secretsmanager:<Region>:<AccountId>:secret:SecretName
+```
+
 ### Topics
 
 Each topic is configured in a YAML file. The following is an

@@ -3,9 +3,14 @@ package subcmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -134,6 +139,25 @@ func (s sharedOptions) getAdminClient(
 			if err != nil {
 				return nil, err
 			}
+		}
+
+		if strings.HasPrefix(s.saslPassword, "arn:aws:secretsmanager:") {
+			log.Debug("Fetching password from AWS secrets manager...")
+			sess := session.Must(session.NewSession())
+
+			svc := secretsmanager.New(sess, aws.NewConfig())
+
+			arn, err := arn.Parse(s.saslPassword)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse ARN from password: %v", err)
+			}
+
+			secretValue, err := svc.GetSecretValue(&secretsmanager.GetSecretValueInput{SecretId: aws.String(arn.Resource)})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get secret value: %v", err)
+			}
+
+			s.saslPassword = *secretValue.SecretString
 		}
 
 		return admin.NewBrokerAdminClient(
