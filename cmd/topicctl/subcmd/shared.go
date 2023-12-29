@@ -221,6 +221,12 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"SASL username if using SASL; will override value set in cluster config",
 	)
 	cmd.PersistentFlags().StringVar(
+		&options.saslSecretsManagerArn,
+		"sasl-secrets-manager-arn",
+		os.Getenv("TOPICCTL_SASL_SECRETS_MANAGER_ARN"),
+		"Secrets Manager ARN to use for credentials if using SASL; will override value set in cluster config",
+	)
+	cmd.PersistentFlags().StringVar(
 		&options.tlsCACert,
 		"tls-ca-cert",
 		"",
