@@ -300,7 +300,7 @@ func testCreator(
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, config.AdminClientOpts{})
 	require.NoError(t, err)
 
 	applier, err := NewACLCreator(
