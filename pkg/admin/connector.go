@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/aws_msk_iam"
@@ -80,7 +81,8 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		saslPassword := config.SASL.Password
 
 		if config.SASL.SecretsManagerArn != "" {
-			creds, err := fetchCredentialsFromSecretsManager(config.SASL.SecretsManagerArn)
+			secretProvider := secretsmanager.New(session.Must(session.NewSession()))
+			creds, err := GetKafkaCredentials(secretProvider, config.SASL.SecretsManagerArn)
 			if err != nil {
 				return nil, err
 			}
@@ -216,12 +218,9 @@ type credentials struct {
 	Password string `json:"password"`
 }
 
-func fetchCredentialsFromSecretsManager(secretArn string) (credentials, error) {
+func GetKafkaCredentials(svc secretsmanageriface.SecretsManagerAPI, secretArn string) (credentials, error) {
 	log.Debugf("Fetching credentials from Secrets Manager for secret: %s", secretArn)
 	var creds credentials
-
-	sess := session.Must(session.NewSession())
-	svc := secretsmanager.New(sess)
 
 	arn, err := arn.Parse(secretArn)
 	if err != nil {
