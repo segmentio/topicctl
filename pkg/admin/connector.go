@@ -3,14 +3,17 @@ package admin
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/aws_msk_iam"
@@ -48,10 +51,11 @@ type TLSConfig struct {
 
 // SASLConfig stores the SASL-related configuration for a connection.
 type SASLConfig struct {
-	Enabled   bool
-	Mechanism SASLMechanism
-	Username  string
-	Password  string
+	Enabled           bool
+	Mechanism         SASLMechanism
+	Username          string
+	Password          string
+	SecretsManagerArn string
 }
 
 // Connector is a wrapper around the low-level, kafka-go dialer and client.
@@ -72,6 +76,19 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 	var err error
 
 	if config.SASL.Enabled {
+		saslUsername := config.SASL.Username
+		saslPassword := config.SASL.Password
+
+		if config.SASL.SecretsManagerArn != "" {
+			creds, err := fetchCredentialsFromSecretsManager(config.SASL.SecretsManagerArn)
+			if err != nil {
+				return nil, err
+			}
+
+			saslUsername = creds.Username
+			saslPassword = creds.Password
+		}
+
 		switch config.SASL.Mechanism {
 		case SASLMechanismAWSMSKIAM:
 			sess := session.Must(session.NewSession())
@@ -84,14 +101,14 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 			}
 		case SASLMechanismPlain:
 			mechanismClient = plain.Mechanism{
-				Username: config.SASL.Username,
-				Password: config.SASL.Password,
+				Username: saslUsername,
+				Password: saslPassword,
 			}
 		case SASLMechanismScramSHA256:
 			mechanismClient, err = scram.Mechanism(
 				scram.SHA256,
-				config.SASL.Username,
-				config.SASL.Password,
+				saslUsername,
+				saslPassword,
 			)
 			if err != nil {
 				return nil, err
@@ -99,8 +116,8 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		case SASLMechanismScramSHA512:
 			mechanismClient, err = scram.Mechanism(
 				scram.SHA512,
-				config.SASL.Username,
-				config.SASL.Password,
+				saslUsername,
+				saslPassword,
 			)
 			if err != nil {
 				return nil, err
@@ -192,4 +209,42 @@ func SASLNameToMechanism(name string) (SASLMechanism, error) {
 			mechanism,
 		)
 	}
+}
+
+type credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func fetchCredentialsFromSecretsManager(secretArn string) (credentials, error) {
+	log.Debugf("Fetching credentials from Secrets Manager for secret: %s", secretArn)
+	var creds credentials
+
+	sess := session.Must(session.NewSession())
+	svc := secretsmanager.New(sess)
+
+	arn, err := arn.Parse(secretArn)
+	if err != nil {
+		return creds, err
+	}
+	// Remove "secret:" from the resource to get the secret name
+	secretName := strings.Split(arn.Resource, ":")[1]
+	// Strip the six random characters at the end of the arn to get the secret name
+	// https://docs.aws.amazon.com/secretsmanager/latest/userguide/getting-started.html
+	secretNameNoSuffix := secretName[:len(secretName)-7]
+
+	log.Debugf("Fetching secret value for secret name: %s", secretNameNoSuffix)
+
+	input := &secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(secretNameNoSuffix),
+	}
+
+	result, err := svc.GetSecretValue(input)
+	if err != nil {
+		return creds, err
+	}
+
+	json.Unmarshal([]byte(*result.SecretString), &creds)
+
+	return creds, nil
 }

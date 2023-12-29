@@ -3,14 +3,9 @@ package subcmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -19,20 +14,21 @@ import (
 )
 
 type sharedOptions struct {
-	brokerAddr    string
-	clusterConfig string
-	expandEnv     bool
-	saslMechanism string
-	saslPassword  string
-	saslUsername  string
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	zkAddr        string
-	zkPrefix      string
+	brokerAddr            string
+	clusterConfig         string
+	expandEnv             bool
+	saslMechanism         string
+	saslPassword          string
+	saslUsername          string
+	saslSecretsManagerArn string
+	tlsCACert             string
+	tlsCert               string
+	tlsEnabled            bool
+	tlsKey                string
+	tlsSkipVerify         bool
+	tlsServerName         string
+	zkAddr                string
+	zkPrefix              string
 }
 
 func (s sharedOptions) validate() error {
@@ -81,7 +77,7 @@ func (s sharedOptions) validate() error {
 	}
 
 	useTLS := s.tlsEnabled || s.tlsCACert != "" || s.tlsCert != "" || s.tlsKey != ""
-	useSASL := s.saslMechanism != "" || s.saslPassword != "" || s.saslUsername != ""
+	useSASL := s.saslMechanism != "" || s.saslPassword != "" || s.saslUsername != "" || s.saslSecretsManagerArn != ""
 
 	if useTLS && s.zkAddr != "" {
 		log.Warn("TLS flags are ignored accessing cluster via zookeeper")
@@ -99,6 +95,10 @@ func (s sharedOptions) validate() error {
 		if saslMechanism == admin.SASLMechanismAWSMSKIAM &&
 			(s.saslUsername != "" || s.saslPassword != "") {
 			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
+		}
+
+		if s.saslUsername != "" || s.saslPassword != "" && s.saslSecretsManagerArn != "" {
+			err = multierror.Append(err, errors.New("Cannot set both sasl-username or sasl-password and sasl-secrets-manager-arn"))
 		}
 	}
 
@@ -118,9 +118,12 @@ func (s sharedOptions) getAdminClient(
 		return clusterConfig.NewAdminClient(
 			ctx,
 			sess,
-			readOnly,
-			s.saslUsername,
-			s.saslPassword,
+			config.AdminClientOpts{
+				ReadOnly:                  readOnly,
+				UsernameOverride:          s.saslUsername,
+				PasswordOverride:          s.saslPassword,
+				SecretsManagerArnOverride: s.saslSecretsManagerArn,
+			},
 		)
 	} else if s.brokerAddr != "" {
 		tlsEnabled := (s.tlsEnabled ||
@@ -141,25 +144,6 @@ func (s sharedOptions) getAdminClient(
 			}
 		}
 
-		if strings.HasPrefix(s.saslPassword, "arn:aws:secretsmanager:") {
-			log.Debug("Fetching password from AWS secrets manager...")
-			sess := session.Must(session.NewSession())
-
-			svc := secretsmanager.New(sess, aws.NewConfig())
-
-			arn, err := arn.Parse(s.saslPassword)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse ARN from password: %v", err)
-			}
-
-			secretValue, err := svc.GetSecretValue(&secretsmanager.GetSecretValueInput{SecretId: aws.String(arn.Resource)})
-			if err != nil {
-				return nil, fmt.Errorf("failed to get secret value: %v", err)
-			}
-
-			s.saslPassword = *secretValue.SecretString
-		}
-
 		return admin.NewBrokerAdminClient(
 			ctx,
 			admin.BrokerAdminClientConfig{
@@ -174,10 +158,11 @@ func (s sharedOptions) getAdminClient(
 						SkipVerify: s.tlsSkipVerify,
 					},
 					SASL: admin.SASLConfig{
-						Enabled:   saslEnabled,
-						Mechanism: saslMechanism,
-						Password:  s.saslPassword,
-						Username:  s.saslUsername,
+						Enabled:           saslEnabled,
+						Mechanism:         saslMechanism,
+						Password:          s.saslPassword,
+						Username:          s.saslUsername,
+						SecretsManagerArn: s.saslSecretsManagerArn,
 					},
 				},
 				ReadOnly: readOnly,

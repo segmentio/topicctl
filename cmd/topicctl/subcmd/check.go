@@ -137,9 +137,12 @@ func checkTopicFile(
 			adminClient, err = clusterConfig.NewAdminClient(
 				ctx,
 				nil,
-				true,
-				checkConfig.shared.saslUsername,
-				checkConfig.shared.saslPassword,
+				config.AdminClientOpts{
+					ReadOnly:                  true,
+					UsernameOverride:          checkConfig.shared.saslUsername,
+					PasswordOverride:          checkConfig.shared.saslPassword,
+					SecretsManagerArnOverride: checkConfig.shared.saslSecretsManagerArn,
+				},
 			)
 			if err != nil {
 				return false, err

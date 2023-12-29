@@ -150,9 +150,12 @@ func createACL(
 		adminClient, err = clusterConfig.NewAdminClient(
 			ctx,
 			nil,
-			createConfig.dryRun,
-			createConfig.shared.saslUsername,
-			createConfig.shared.saslPassword,
+			config.AdminClientOpts{
+				ReadOnly:                  createConfig.dryRun,
+				UsernameOverride:          createConfig.shared.saslUsername,
+				PasswordOverride:          createConfig.shared.saslPassword,
+				SecretsManagerArnOverride: createConfig.shared.saslSecretsManagerArn,
+			},
 		)
 		if err != nil {
 			return err

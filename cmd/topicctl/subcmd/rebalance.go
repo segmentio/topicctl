@@ -125,9 +125,12 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 
 	adminClient, err := clusterConfig.NewAdminClient(ctx,
 		nil,
-		rebalanceConfig.dryRun,
-		rebalanceConfig.shared.saslUsername,
-		rebalanceConfig.shared.saslPassword,
+		config.AdminClientOpts{
+			ReadOnly:                  rebalanceConfig.dryRun,
+			UsernameOverride:          rebalanceConfig.shared.saslUsername,
+			PasswordOverride:          rebalanceConfig.shared.saslPassword,
+			SecretsManagerArnOverride: rebalanceConfig.shared.saslSecretsManagerArn,
+		},
 	)
 	if err != nil {
 		log.Fatal(err)
