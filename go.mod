@@ -3,7 +3,7 @@ module github.com/segmentio/topicctl
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.208
+	github.com/aws/aws-sdk-go v1.49.12
 	github.com/briandowns/spinner v1.19.0
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/fatih/color v1.13.0

@@ -31,3 +31,14 @@ spec:
     #
     username: adminscram
     password: admin-secret-512
+    #
+    # Another alternative is to omit these values and use secretsManagerArn to reference
+    # an AWS Secrets Manager secret containing the username and password. More information
+    # can be found in the README. An example can be seen below.
+    # secretsManagerArn: arn:aws:secretsmanager:us-west-2:1000000000:secret:AmazonMSK_kafka-admin-wEiwjV
+    #
+    # This can also be set via:
+    #
+    #   1. The --sasl-secrets-manager-arn command-line flag,
+    #   2. The TOPICCTL_SASL_SECRETS_MANAGER_ARN environment variable, or
+    #   3. Putting a placeholder string in the config and running with the --expand-env flag as

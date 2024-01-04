@@ -197,9 +197,12 @@ func applyTopic(
 		adminClient, err = clusterConfig.NewAdminClient(
 			ctx,
 			nil,
-			applyConfig.dryRun,
-			applyConfig.shared.saslUsername,
-			applyConfig.shared.saslPassword,
+			config.AdminClientOpts{
+				ReadOnly:                  applyConfig.dryRun,
+				UsernameOverride:          applyConfig.shared.saslUsername,
+				PasswordOverride:          applyConfig.shared.saslPassword,
+				SecretsManagerArnOverride: applyConfig.shared.saslSecretsManagerArn,
+			},
 		)
 		if err != nil {
 			return err

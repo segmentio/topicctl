@@ -72,9 +72,12 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 	adminClient, err := clusterConfig.NewAdminClient(
 		ctx,
 		nil,
-		true,
-		bootstrapConfig.shared.saslUsername,
-		bootstrapConfig.shared.saslPassword,
+		config.AdminClientOpts{
+			ReadOnly:                  true,
+			UsernameOverride:          bootstrapConfig.shared.saslUsername,
+			PasswordOverride:          bootstrapConfig.shared.saslPassword,
+			SecretsManagerArnOverride: bootstrapConfig.shared.saslSecretsManagerArn,
+		},
 	)
 	if err != nil {
 		return err

@@ -14,20 +14,21 @@ import (
 )
 
 type sharedOptions struct {
-	brokerAddr    string
-	clusterConfig string
-	expandEnv     bool
-	saslMechanism string
-	saslPassword  string
-	saslUsername  string
-	tlsCACert     string
-	tlsCert       string
-	tlsEnabled    bool
-	tlsKey        string
-	tlsSkipVerify bool
-	tlsServerName string
-	zkAddr        string
-	zkPrefix      string
+	brokerAddr            string
+	clusterConfig         string
+	expandEnv             bool
+	saslMechanism         string
+	saslPassword          string
+	saslUsername          string
+	saslSecretsManagerArn string
+	tlsCACert             string
+	tlsCert               string
+	tlsEnabled            bool
+	tlsKey                string
+	tlsSkipVerify         bool
+	tlsServerName         string
+	zkAddr                string
+	zkPrefix              string
 }
 
 func (s sharedOptions) validate() error {
@@ -76,7 +77,7 @@ func (s sharedOptions) validate() error {
 	}
 
 	useTLS := s.tlsEnabled || s.tlsCACert != "" || s.tlsCert != "" || s.tlsKey != ""
-	useSASL := s.saslMechanism != "" || s.saslPassword != "" || s.saslUsername != ""
+	useSASL := s.saslMechanism != "" || s.saslPassword != "" || s.saslUsername != "" || s.saslSecretsManagerArn != ""
 
 	if useTLS && s.zkAddr != "" {
 		log.Warn("TLS flags are ignored accessing cluster via zookeeper")
@@ -94,6 +95,10 @@ func (s sharedOptions) validate() error {
 		if saslMechanism == admin.SASLMechanismAWSMSKIAM &&
 			(s.saslUsername != "" || s.saslPassword != "") {
 			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
+		}
+
+		if s.saslUsername != "" || s.saslPassword != "" && s.saslSecretsManagerArn != "" {
+			err = multierror.Append(err, errors.New("Cannot set both sasl-username or sasl-password and sasl-secrets-manager-arn"))
 		}
 	}
 
@@ -113,9 +118,12 @@ func (s sharedOptions) getAdminClient(
 		return clusterConfig.NewAdminClient(
 			ctx,
 			sess,
-			readOnly,
-			s.saslUsername,
-			s.saslPassword,
+			config.AdminClientOpts{
+				ReadOnly:                  readOnly,
+				UsernameOverride:          s.saslUsername,
+				PasswordOverride:          s.saslPassword,
+				SecretsManagerArnOverride: s.saslSecretsManagerArn,
+			},
 		)
 	} else if s.brokerAddr != "" {
 		tlsEnabled := (s.tlsEnabled ||
@@ -150,10 +158,11 @@ func (s sharedOptions) getAdminClient(
 						SkipVerify: s.tlsSkipVerify,
 					},
 					SASL: admin.SASLConfig{
-						Enabled:   saslEnabled,
-						Mechanism: saslMechanism,
-						Password:  s.saslPassword,
-						Username:  s.saslUsername,
+						Enabled:           saslEnabled,
+						Mechanism:         saslMechanism,
+						Password:          s.saslPassword,
+						Username:          s.saslUsername,
+						SecretsManagerArn: s.saslSecretsManagerArn,
 					},
 				},
 				ReadOnly: readOnly,
@@ -210,6 +219,12 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"sasl-username",
 		os.Getenv("TOPICCTL_SASL_USERNAME"),
 		"SASL username if using SASL; will override value set in cluster config",
+	)
+	cmd.PersistentFlags().StringVar(
+		&options.saslSecretsManagerArn,
+		"sasl-secrets-manager-arn",
+		os.Getenv("TOPICCTL_SASL_SECRETS_MANAGER_ARN"),
+		"Secrets Manager ARN to use for credentials if using SASL; will override value set in cluster config",
 	)
 	cmd.PersistentFlags().StringVar(
 		&options.tlsCACert,

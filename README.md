@@ -338,6 +338,26 @@ using [`os.ExpandEnv`](https://pkg.go.dev/os#ExpandEnv) at load time. The latter
 references of the form `$ENV_VAR_NAME` or `${ENV_VAR_NAME}` with the associated values from the
 environment.
 
+Additionally, the Amazon Resource Name (ARN) of a secret in AWS Secrets Manager can be provided
+instead of the username and password. Topicctl will then retrieve the secret value from Secrets 
+Manager and use it as the credentials. The secret in Secrets Manager must have a value in the format 
+shown below, identical to what [AWS MSK requires](https://docs.aws.amazon.com/msk/latest/developerguide/msk-password.html#msk-password-tutorial).
+```json
+{
+  "username": "alice",
+  "password": "alice-secret"
+}
+```
+
+An example of secrets manager being used can be seen below. Be sure to include the [6Random-Characters
+AWS Secrets Manager tacks on to the end of a secrets ARN](https://docs.aws.amazon.com/secretsmanager/latest/userguide/getting-started.html).
+```yaml
+sasl:
+    enabled: true
+    mechanism: SCRAM-SHA-512
+    secretsManagerArn: arn:aws:secretsmanager:<Region>:<AccountId>:secret:SecretName-6RandomCharacters
+```
+
 ### Topics
 
 Each topic is configured in a YAML file. The following is an

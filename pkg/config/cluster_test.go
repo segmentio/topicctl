@@ -92,6 +92,50 @@ func TestClusterValidate(t *testing.T) {
 			},
 			expError: true,
 		},
+		{
+			description: "secrets manager set",
+			clusterConfig: ClusterConfig{
+				Meta: ClusterMeta{
+					Name:        "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+					Description: "test-description",
+				},
+				Spec: ClusterSpec{
+					BootstrapAddrs: []string{"broker-addr"},
+					ZKAddrs:        []string{"zk-addr"},
+					SASL: SASLConfig{
+						Enabled:           true,
+						Mechanism:         "plain",
+						SecretsManagerArn: "arn:aws:secretsmanager:<Region>:<AccountId>:secret:SecretName-xxxxxx",
+					},
+				},
+			},
+			expError: true,
+		},
+		{
+			description: "secrets manager cannot be set with username and password",
+			clusterConfig: ClusterConfig{
+				Meta: ClusterMeta{
+					Name:        "test-cluster",
+					Region:      "test-region",
+					Environment: "test-environment",
+					Description: "test-description",
+				},
+				Spec: ClusterSpec{
+					BootstrapAddrs: []string{"broker-addr"},
+					ZKAddrs:        []string{"zk-addr"},
+					SASL: SASLConfig{
+						Enabled:           true,
+						Mechanism:         "plain",
+						Username:          "user",
+						Password:          "password",
+						SecretsManagerArn: "arn:aws:secretsmanager:<Region>:<AccountId>:secret:SecretName-xxxxxx",
+					},
+				},
+			},
+			expError: true,
+		},
 	}
 
 	for _, testCase := range testCases {

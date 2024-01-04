@@ -673,7 +673,7 @@ func testACLAdmin(
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, false, "", "")
+	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, config.AdminClientOpts{})
 	require.NoError(t, err)
 
 	aclAdmin, err := NewACLAdmin(
