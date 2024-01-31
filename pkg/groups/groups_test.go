@@ -289,10 +289,13 @@ func TestGetLags(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(lags))
 
+	// We create topic with 2 partitions and send 10 messages. first, last offset for all partitions is 0
+	// When we consume 4 messages, 5 is the latest/last/newest offset
+	// We consumer 2 messages for each partition. Hence member_offset(2) <= last_offset(5)
 	for l, lag := range lags {
 		assert.Equal(t, l, lag.Partition)
-		assert.Equal(t, int64(4), lag.NewestOffset)
-		assert.LessOrEqual(t, lag.MemberOffset, int64(4))
+		assert.Equal(t, int64(5), lag.NewestOffset)
+		assert.LessOrEqual(t, lag.MemberOffset, int64(5))
 	}
 }
 
@@ -330,10 +333,12 @@ func TestGetEarliestOrLatestOffset(t *testing.T) {
 
 	groupPartitions := groupDetails.Members[0].TopicPartitions[topicName]
 
+	// A topic with 2 partitions and produced 10 messages. first/earliest offset = 0, last/lastest offset = 5
+	// Consume 8 messages. first/earliest offset = 0, member offset = 4, last/lastest offset = 5
 	for _, partition := range groupPartitions {
 		offset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, partition)
 		require.NoError(t, err)
-		assert.Equal(t, int64(4), offset)
+		assert.Equal(t, int64(5), offset)
 
 		offset, err = GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, partition)
 		require.NoError(t, err)
@@ -390,10 +395,10 @@ func TestResetOffsets(t *testing.T) {
 	assert.Equal(t, int64(2), lags[0].MemberOffset)
 	assert.Equal(t, int64(1), lags[1].MemberOffset)
 
-	// latest offset of partition 0
+	// latest offset of partition 0 -> This should be 5. first offset = 0, last offset = 5 (total 10 messages)
 	latestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, LatestResetOffsetsStrategy, 0)
 	require.NoError(t, err)
-	// earliest offset of partition 1
+	// earliest offset of partition 1 -> This should be 0. first offset = 0, last offset = 5 (total 10 messages)
 	earliestOffset, err := GetEarliestOrLatestOffset(ctx, connector, topicName, EarliestResetOffsetsStrategy, 1)
 	require.NoError(t, err)
 
@@ -413,7 +418,10 @@ func TestResetOffsets(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, 2, len(lags))
-	assert.Equal(t, int64(4), lags[0].MemberOffset)
+	// partiton 0, we reset offset to latestoffset which is 5
+	assert.Equal(t, int64(5), lags[0].MemberOffset)
+
+	// partiton 1, we reset offset to earliestoffset which is 0
 	assert.Equal(t, int64(0), lags[1].MemberOffset)
 
 }
