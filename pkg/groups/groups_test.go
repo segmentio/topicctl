@@ -291,7 +291,7 @@ func TestGetLags(t *testing.T) {
 
 	// We create topic with 2 partitions and send 10 messages. first, last offset for all partitions is 0
 	// When we consume 4 messages, 5 is the latest/last/newest offset
-	// We consumer 2 messages for each partition. Hence member_offset(2) <= last_offset(5)
+	// We consume 2 messages for each partition. Hence member_offset(2) <= last_offset(5)
 	for l, lag := range lags {
 		assert.Equal(t, l, lag.Partition)
 		assert.Equal(t, int64(5), lag.NewestOffset)
