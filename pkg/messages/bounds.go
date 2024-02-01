@@ -174,22 +174,15 @@ func GetPartitionBounds(
 		}, nil
 	}
 
-	if minOffset > firstOffset {
-		// if minOffset is equal to lastOffset
-		// We read message (firstMessage) from minOffset+1 Which can lead to invalid reads
-		// Hence, We will not move first offset to match min offset
-		if minOffset >= lastOffset {
-			log.Debugf(
-				"Not Moving first offset forward to match min offset (%d) since minOffset is equal to lastOffset",
-				minOffset,
-			)
-		} else {
-			log.Debugf(
-				"Moving first offset forward to match min offset (%d)",
-				minOffset,
-			)
-			firstOffset = minOffset
-		}
+	// if minOffset is equal to lastOffset
+	// We read message (firstMessage) from minOffset+1 Which can lead to invalid reads
+	// Hence, We will not move first offset to match min offset if minOffset >= lastOffset
+	if minOffset > firstOffset && minOffset < lastOffset {
+		log.Debugf(
+			"Moving first offset forward to match min offset (%d)",
+			minOffset,
+		)
+		firstOffset = minOffset
 	}
 
 	var firstMessage kafka.Message
