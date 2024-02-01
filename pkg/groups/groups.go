@@ -160,6 +160,8 @@ func GetMemberLags(
 			GroupId: groupID,
 		},
 	)
+	log.Debugf("Received consumerOffsets: %+v", offsets)
+
 	if err != nil {
 		return nil, err
 	}

@@ -174,7 +174,10 @@ func GetPartitionBounds(
 		}, nil
 	}
 
-	if minOffset > firstOffset {
+	// if minOffset is equal to lastOffset
+	// We read message (firstMessage) from minOffset+1 Which can lead to invalid reads
+	// Hence, We will not move first offset to match min offset if minOffset >= lastOffset
+	if minOffset > firstOffset && minOffset < lastOffset {
 		log.Debugf(
 			"Moving first offset forward to match min offset (%d)",
 			minOffset,
@@ -233,11 +236,18 @@ func GetPartitionBounds(
 		)
 	}
 
+	log.Debugf(
+		"Final offsets for %d: %d->%d",
+		partition,
+		firstMessage.Offset,
+		lastMessage.Offset,
+	)
+
 	return Bounds{
 		Partition:   partition,
 		FirstOffset: firstMessage.Offset,
 		FirstTime:   firstMessage.Time,
-		LastOffset:  lastMessage.Offset,
+		LastOffset:  lastMessage.Offset + 1,
 		LastTime:    lastMessage.Time,
 	}, nil
 }
