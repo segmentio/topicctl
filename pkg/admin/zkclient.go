@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -24,6 +25,7 @@ const (
 	assignmentPath    = "/admin/reassign_partitions"
 	electionPath      = "/admin/preferred_replica_election"
 	brokersPath       = "/brokers/ids"
+	controllerPath    = "/controller"
 	topicsPath        = "/brokers/topics"
 	clusterIDPath     = "/cluster/id"
 	brokerConfigsPath = "/config/brokers"
@@ -291,6 +293,38 @@ func (c *ZKAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	}
 
 	return brokerIDs, nil
+}
+
+// GetControllerID gets ID of the active controller broker
+func (c *ZKAdminClient) GetControllerID(
+	ctx context.Context,
+) (int, error) {
+	zkControllerPath := c.zNode(controllerPath)
+	log.Debugf("zookeeper controller path: %s", zkControllerPath)
+
+	var dataMap map[string]interface{}
+	data, _, err := c.zkClient.Get(ctx, zkControllerPath)
+	if err != nil {
+		return -1, fmt.Errorf("Error getting zookeeper path: %s, error: %+v",
+			zkControllerPath,
+			err,
+		)
+	}
+
+	err = json.Unmarshal(data, &dataMap)
+	if err != nil {
+		return -1, fmt.Errorf("Error unmarshaling zookeeper response", err)
+	}
+
+	// even if interface data is of type int, it is recognized as float64
+	if brokerID, ok := dataMap["brokerid"].(float64); ok {
+		return int(brokerID), nil
+	}
+
+	return -1, fmt.Errorf("Broker ID not found in zookeeper controller path: %s, error: %+v",
+		zkControllerPath,
+		err,
+	)
 }
 
 // GetConnector returns the Connector instance associated with this client.

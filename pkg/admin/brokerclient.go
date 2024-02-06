@@ -232,6 +232,19 @@ func (c *BrokerAdminClient) GetBrokers(ctx context.Context, ids []int) (
 	return brokerInfos, nil
 }
 
+// GetControllerID gets ID of the active controller broker
+func (c *BrokerAdminClient) GetControllerID(ctx context.Context) (
+	int,
+	error,
+) {
+	metadataResp, err := c.getMetadata(ctx, nil)
+	if err != nil {
+		return -1, err
+	}
+
+	return metadataResp.Controller.ID, nil
+}
+
 // GetBrokerIDs get the IDs of all brokers in the cluster.
 func (c *BrokerAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	resp, err := c.getMetadata(ctx, nil)

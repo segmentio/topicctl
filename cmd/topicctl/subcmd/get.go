@@ -60,6 +60,7 @@ func init() {
 	getCmd.AddCommand(
 		balanceCmd(),
 		brokersCmd(),
+		controllerCmd(),
 		configCmd(),
 		groupsCmd(),
 		lagsCmd(),
@@ -130,6 +131,27 @@ func brokersCmd() *cobra.Command {
 
 			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
 			return cliRunner.GetBrokers(ctx, getConfig.full)
+		},
+	}
+}
+
+func controllerCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "controller",
+		Short: "Displays active controller broker ID.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.GetControllerID(ctx, getConfig.full)
 		},
 	}
 }

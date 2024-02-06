@@ -79,6 +79,20 @@ func (c *CLIRunner) GetBrokers(ctx context.Context, full bool) error {
 	return nil
 }
 
+// Get active controller broker ID
+func (c *CLIRunner) GetControllerID(ctx context.Context, full bool) error {
+	c.startSpinner()
+
+	brokerID, err := c.adminClient.GetControllerID(ctx)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Broker ID:\n%s", admin.FormatControllerID(brokerID))
+	return nil
+}
+
 // ApplyTopic does an apply run according to the spec in the argument config.
 func (c *CLIRunner) ApplyTopic(
 	ctx context.Context,
