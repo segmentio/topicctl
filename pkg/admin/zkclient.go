@@ -305,7 +305,7 @@ func (c *ZKAdminClient) GetControllerID(
 	var dataMap map[string]interface{}
 	data, _, err := c.zkClient.Get(ctx, zkControllerPath)
 	if err != nil {
-		return -1, fmt.Errorf("Error getting zookeeper path: %s, error: %+v",
+		return -1, fmt.Errorf("Error getting zookeeper path %s: %+v",
 			zkControllerPath,
 			err,
 		)
@@ -313,7 +313,7 @@ func (c *ZKAdminClient) GetControllerID(
 
 	err = json.Unmarshal(data, &dataMap)
 	if err != nil {
-		return -1, fmt.Errorf("Error unmarshaling zookeeper response", err)
+		return -1, fmt.Errorf("Error unmarshaling zookeeper response: %+v", err)
 	}
 
 	// even if interface data is of type int, it is recognized as float64
@@ -321,7 +321,7 @@ func (c *ZKAdminClient) GetControllerID(
 		return int(brokerID), nil
 	}
 
-	return -1, fmt.Errorf("Broker ID not found in zookeeper controller path: %s, error: %+v",
+	return -1, fmt.Errorf("Broker ID not found in zookeeper controller path %s: %+v",
 		zkControllerPath,
 		err,
 	)
