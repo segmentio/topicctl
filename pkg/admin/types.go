@@ -356,6 +356,12 @@ type zkClusterID struct {
 	ID      string `json:"id"`
 }
 
+type zkControllerInfo struct {
+	Version    int    `json:"version"`
+	BrokerID   int    `json:"brokerid"`
+	Timestamp  string `json:"timestamp"`
+}
+
 type zkBrokerInfo struct {
 	Endpoints    []string `json:"endpoints"`
 	Host         string   `json:"host"`
