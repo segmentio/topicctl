@@ -15,6 +15,9 @@ type Client interface {
 	// GetBrokers gets information about all brokers in the cluster.
 	GetBrokers(ctx context.Context, ids []int) ([]BrokerInfo, error)
 
+	// GetControllerID get the active controller broker ID in the cluster.
+	GetControllerID(ctx context.Context) (int, error)
+
 	// GetBrokerIDs get the IDs of all brokers in the cluster.
 	GetBrokerIDs(ctx context.Context) ([]int, error)
 

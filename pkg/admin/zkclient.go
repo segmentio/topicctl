@@ -24,6 +24,7 @@ const (
 	assignmentPath    = "/admin/reassign_partitions"
 	electionPath      = "/admin/preferred_replica_election"
 	brokersPath       = "/brokers/ids"
+	controllerPath    = "/controller"
 	topicsPath        = "/brokers/topics"
 	clusterIDPath     = "/cluster/id"
 	brokerConfigsPath = "/config/brokers"
@@ -291,6 +292,28 @@ func (c *ZKAdminClient) GetBrokerIDs(ctx context.Context) ([]int, error) {
 	}
 
 	return brokerIDs, nil
+}
+
+// GetControllerID gets ID of the active controller broker
+func (c *ZKAdminClient) GetControllerID(
+	ctx context.Context,
+) (int, error) {
+	zkControllerInfo := zkControllerInfo{}
+	zkControllerPath := c.zNode(controllerPath)
+
+	_, err := c.zkClient.GetJSON(
+		ctx,
+		zkControllerPath,
+		&zkControllerInfo,
+	)
+	if err != nil {
+		return -1, fmt.Errorf("Error getting zookeeper path %s: %+v",
+			zkControllerPath,
+			err,
+		)
+	}
+
+	return zkControllerInfo.BrokerID, nil
 }
 
 // GetConnector returns the Connector instance associated with this client.

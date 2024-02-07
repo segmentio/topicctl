@@ -108,6 +108,64 @@ func FormatBrokers(brokers []BrokerInfo, full bool) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
+// FormatControllerID creates a pretty table for controller broker.
+func FormatControllerID(brokerID int) string {
+	buf := &bytes.Buffer{}
+	table := tablewriter.NewWriter(buf)
+	headers := []string{"Active Controller"}
+	table.SetHeader(headers)
+
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	table.Append([]string{
+		fmt.Sprintf("%d", brokerID),
+	})
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatClusterID creates a pretty table for cluster ID.
+func FormatClusterID(clusterID string) string {
+	buf := &bytes.Buffer{}
+	table := tablewriter.NewWriter(buf)
+	headers := []string{"Kafka Cluster ID"}
+	table.SetHeader(headers)
+
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	table.Append([]string{
+		clusterID,
+	})
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
 // FormatBrokerReplicas creates a pretty table that shows how many replicas are in each
 // position (i.e., leader, second, third) by broker across all topics. Useful for showing
 // total-topic balance.
