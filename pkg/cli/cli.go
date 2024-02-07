@@ -93,6 +93,20 @@ func (c *CLIRunner) GetControllerID(ctx context.Context, full bool) error {
 	return nil
 }
 
+// Get cluster ID
+func (c *CLIRunner) GetClusterID(ctx context.Context, full bool) error {
+	c.startSpinner()
+
+	clusterID, err := c.adminClient.GetClusterID(ctx)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Cluster ID:\n%s", admin.FormatClusterID(clusterID))
+	return nil
+}
+
 // ApplyTopic does an apply run according to the spec in the argument config.
 func (c *CLIRunner) ApplyTopic(
 	ctx context.Context,

@@ -13,6 +13,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBrokerClientControllerID(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	brokerIDs, err := client.GetBrokerIDs(ctx)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		[]int{1, 2, 3, 4, 5, 6},
+		brokerIDs,
+	)
+
+	controllerID, err := client.GetControllerID(ctx)
+	require.NoError(t, err)
+	assert.Condition(t, func() bool {
+		return controllerID >= 1 && controllerID <= 6
+	}, fmt.Sprintf("Received %d, Broker Controller ID should be between 1 and 6.", controllerID))
+}
+
 func TestBrokerClientGetClusterID(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")

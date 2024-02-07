@@ -108,7 +108,7 @@ func FormatBrokers(brokers []BrokerInfo, full bool) string {
 	return string(bytes.TrimRight(buf.Bytes(), "\n"))
 }
 
-// FormatControllerID creates a pretty table from a list of brokers.
+// FormatControllerID creates a pretty table for controller broker.
 func FormatControllerID(brokerID int) string {
 	buf := &bytes.Buffer{}
 	table := tablewriter.NewWriter(buf)
@@ -131,6 +131,35 @@ func FormatControllerID(brokerID int) string {
 
 	table.Append([]string{
 		fmt.Sprintf("%d", brokerID),
+	})
+
+	table.Render()
+	return string(bytes.TrimRight(buf.Bytes(), "\n"))
+}
+
+// FormatClusterID creates a pretty table for cluster ID.
+func FormatClusterID(clusterID string) string {
+	buf := &bytes.Buffer{}
+	table := tablewriter.NewWriter(buf)
+	headers := []string{"Kafka Cluster ID"}
+	table.SetHeader(headers)
+
+	table.SetColumnAlignment(
+		[]int{
+			tablewriter.ALIGN_LEFT,
+		},
+	)
+	table.SetBorders(
+		tablewriter.Border{
+			Left:   false,
+			Top:    true,
+			Right:  false,
+			Bottom: true,
+		},
+	)
+
+	table.Append([]string{
+		clusterID,
 	})
 
 	table.Render()

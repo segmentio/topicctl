@@ -15,6 +15,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestZkClientControllerID(t *testing.T) {
+	zkConn, _, err := szk.Connect(
+		[]string{util.TestZKAddr()},
+		5*time.Second,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, zkConn)
+	defer zkConn.Close()
+
+	clusterName := testClusterID("clusterID")
+	zk.CreateNodes(
+		t,
+		zkConn,
+		[]zk.PathTuple{
+			{
+				Path: fmt.Sprintf("/%s", clusterName),
+				Obj:  nil,
+			},
+			{
+				Path: fmt.Sprintf("/%s/controller", clusterName),
+				Obj: map[string]interface{}{
+					"version":   1,
+					"brokerid":  3,
+					"timestamp": "1589603217000",
+				},
+			},
+		},
+	)
+
+	ctx := context.Background()
+	adminClient, err := NewZKAdminClient(
+		ctx,
+		ZKAdminClientConfig{
+			ZKAddrs:        []string{util.TestZKAddr()},
+			ZKPrefix:       clusterName,
+			BootstrapAddrs: []string{util.TestKafkaAddr()},
+			ReadOnly:       true,
+		},
+	)
+	require.NoError(t, err)
+	defer adminClient.Close()
+
+	controllerID, err := adminClient.GetControllerID(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, controllerID)
+}
+
 func TestZkClientGetClusterID(t *testing.T) {
 	zkConn, _, err := szk.Connect(
 		[]string{util.TestZKAddr()},
