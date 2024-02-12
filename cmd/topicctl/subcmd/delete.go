@@ -51,7 +51,11 @@ func deletePreRun(cmd *cobra.Command, args []string) error {
 	return deleteConfig.shared.validate()
 }
 
-var deleteACLsConfig = aclsCmdConfig{}
+var deleteACLsConfig = aclsCmdConfig{
+	// This was added in a later version of Kafka, so we provide a default
+	// value to avoid breaking existing users by making this required.
+	ResourcePatternType: kafka.PatternTypeAny,
+}
 
 func deleteACLCmd() *cobra.Command {
 	cmd := &cobra.Command{
