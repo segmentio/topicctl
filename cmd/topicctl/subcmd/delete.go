@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/acl"
+	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -54,7 +55,7 @@ func deletePreRun(cmd *cobra.Command, args []string) error {
 var deleteACLsConfig = aclsCmdConfig{
 	// This was added in a later version of Kafka, so we provide a default
 	// value to avoid breaking existing users by making this required.
-	ResourcePatternType: kafka.PatternTypeAny,
+	resourcePatternType: admin.PatternType(kafka.PatternTypeAny),
 }
 
 func deleteACLCmd() *cobra.Command {
