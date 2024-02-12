@@ -173,7 +173,7 @@ The `delete` subcommand deletes a particular resource type in the cluster.
 Currently, the following operations are supported:
 | Subcommand      | Description |
 | --------- | ----------- |
-| `delete acl [flags]` | Deletes a single ACL in the cluster matching the provided flags |
+| `delete acls [flags]` | Deletes ACL(s) in the cluster matching the provided flags |
 
 #### get
 
