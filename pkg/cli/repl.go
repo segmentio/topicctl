@@ -387,7 +387,7 @@ func (r *Repl) executor(in string) {
 		if err := command.checkArgs(
 			2,
 			3,
-			map[string]struct{}{"filter": {}, "raw": {}},
+			map[string]struct{}{"filter": {}, "raw": {}, "group-id": {}},
 		); err != nil {
 			log.Errorf("Error: %+v", err)
 			return
@@ -410,7 +410,7 @@ func (r *Repl) executor(in string) {
 			filterRegexp,
 			command.getBoolValue("raw"),
 			command.getBoolValue("headers"),
-			command.flags["group_id"],
+			command.flags["group-id"],
 		)
 		if err != nil {
 			log.Errorf("Error: %+v", err)
