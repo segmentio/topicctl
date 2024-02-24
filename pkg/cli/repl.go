@@ -410,6 +410,7 @@ func (r *Repl) executor(in string) {
 			filterRegexp,
 			command.getBoolValue("raw"),
 			command.getBoolValue("headers"),
+			command.flags["group_id"],
 		)
 		if err != nil {
 			log.Errorf("Error: %+v", err)
