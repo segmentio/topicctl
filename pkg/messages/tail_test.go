@@ -77,6 +77,7 @@ func TestTailerGetMessages(t *testing.T) {
 	tailer := NewTopicTailer(
 		connector,
 		topicName,
+		"",
 		[]int{0, 1, 2, 3},
 		kafka.FirstOffset,
 		1,
