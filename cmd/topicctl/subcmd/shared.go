@@ -97,7 +97,7 @@ func (s sharedOptions) validate() error {
 			log.Warn("Username and password are ignored if using SASL AWS-MSK-IAM")
 		}
 
-		if s.saslUsername != "" || s.saslPassword != "" && s.saslSecretsManagerArn != "" {
+		if (s.saslUsername != "" || s.saslPassword != "") && s.saslSecretsManagerArn != "" {
 			err = multierror.Append(err, errors.New("Cannot set both sasl-username or sasl-password and sasl-secrets-manager-arn"))
 		}
 	}
