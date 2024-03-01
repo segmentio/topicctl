@@ -77,7 +77,7 @@ docker-compose up -d
 3. Apply the topic configs in [`examples/local-cluster/topics`](/examples/local-cluster/topics):
 
 ```
-topicctl apply --skip-confirm examples/local-cluster/topics/*yaml
+topicctl apply --skip-confirm examples/local-cluster/topics/*.yaml
 ```
 
 4. Send some test messages to the `topic-default` topic:
@@ -225,13 +225,49 @@ subcommands interactively.
 topicctl reset-offsets [topic] [group] [flags]
 ```
 
-The `reset-offsets` subcommand allows resetting the offsets for a consumer group in a topic. There are 2 main approaches for setting the offsets:
+The `reset-offsets` subcommand allows resetting the offsets
+for a consumer group in a topic.
+There are a few typical approaches for setting the offsets:
 
-1. Use a combination of `--partitions`, `--offset`, `--to-earliest` and `--to-latest` flags. `--partitions` flag specifies a list of partitions to be reset e.g. `1,2,3 ...`. If not used, the command defaults to resetting consumer group offsets for ALL of the partitions. `--offset` flag indicates the specific value that all desired consumer group partitions will be set to. If not set, it will default to -2. Finally, `--to-earliest` flag resets offsets of consumer group members to earliest offsets of partitions while `--to-latest` resets offsets of consumer group members to latest offsets of partitions. However, only one of the `--to-earliest`, `--to-latest` and `--offset` flags can be used at a time. This approach is easy to use but lacks the ability for detailed offset configuration.
+1. Use `--partitions` and combine it with one of the offset operators:
+   `--delete`, `--offset`, `--to-earliest` or `--to-latest`.
+2. Use `--partition-offset-map` to pass specific offsets per partition.
+   For example, `1=5,2=10` means that the consumer group offset
+   for partition 1 must be set to 5, and partition 2 to offset 10.
+   This is mainly used for replays of specific traffic,
+   such as when a deploy has mishandled or corrupted state,
+   and the prior release must be rerun
+   starting at a specific offset per partition.
+   This is the most flexible approach for offset setting.
 
-2. Use `--partition-offset-map` flag to specify a detailed offset configuration for individual partitions. For example, `1=5,2=10,7=12,...` means that the consumer group offset for partition 1 must be set to 5, partition 2 to offset 10, partition 7 to offset 12 and so on. This approach provides greater flexibility and fine-grained control for this operation. Note that `--partition-offset-map` flag is standalone and cannot be coupled with any of the previous flags.
+Note that `--partition-offset-map` flag is standalone
+and cannot be coupled with other flags.
 
+##### Partition selection flags
 
+At most one of the following may be selected:
+
+* `--partitions` specifies a comma-separated list of partitions IDs.
+
+If none of these are specified,
+the command defaults to selecting ALL of the partitions.
+
+##### Offset selection flags
+
+At most one of the following may be selected:
+
+* `--delete` removes stored group offsets.
+  This will generally have the same effect as `--to-earliest` or `--to-latest`,
+  depending on the consumer group configuration.
+  However, `--delete` is more reliable and convenient,
+  since `--to-earliest` in particular involves a race with message retention
+  that may require numerous attempts.
+* `--offset` indicates the specific value that all selected
+  consumer group partitions will be set to.
+* `--to-earliest` resets group offsets to oldest still-retained per partition.
+* `--to-latest` resets group offsets to newest per partitions.
+
+If none of these are specified, `--to-earliest` will be the default.
 
 #### tail
 
