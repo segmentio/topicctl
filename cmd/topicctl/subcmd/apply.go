@@ -35,6 +35,7 @@ type applyCmdConfig struct {
 	autoContinueRebalance        bool
 	retentionDropStepDurationStr string
 	skipConfirm                  bool
+	ignoreFewerPartitionsError   bool
 	sleepLoopDuration            time.Duration
 
 	shared sharedOptions
@@ -98,6 +99,12 @@ func init() {
 		"skip-confirm",
 		false,
 		"Skip confirmation prompts during apply process",
+	)
+	applyCmd.Flags().BoolVar(
+		&applyConfig.ignoreFewerPartitionsError,
+		"ignore-fewer-partitions-error",
+		false,
+		"Don't return error when topic's config specifies fewer partitions than it currently has",
 	)
 	applyCmd.Flags().DurationVar(
 		&applyConfig.sleepLoopDuration,
@@ -231,6 +238,7 @@ func applyTopic(
 			AutoContinueRebalance:      applyConfig.autoContinueRebalance,
 			RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
 			SkipConfirm:                applyConfig.skipConfirm,
+			IgnoreFewerPartitionsError: applyConfig.ignoreFewerPartitionsError,
 			SleepLoopDuration:          applyConfig.sleepLoopDuration,
 			TopicConfig:                topicConfig,
 		}
