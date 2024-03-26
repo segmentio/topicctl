@@ -362,10 +362,9 @@ jobs:
           KAFKA_CFG_ADVERTISED_PORT: 9092
           KAFKA_CFG_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
           KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
-  
-  
+
   publish-ghcr:
-    needs: [setup]
+    needs: [setup, test010, test270, test360]
     runs-on: ubuntu-latest
     if: ${{ ( github.ref_type == 'branch' ) && (( github.ref_name == 'master' ) || ( github.ref_name == 'v0' )) }}
     steps:
@@ -407,7 +406,7 @@ jobs:
     - run: echo "GHCR PUBLISH SUCCESSFUL"
 
   publish-dockerhub:
-    needs: [setup]
+    needs: [setup, test010, test270, test360]
     environment: CICD
     env: 
       RELEASE_TAG: ${{ needs.setup.outputs.version-tag }}
