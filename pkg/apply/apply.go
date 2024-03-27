@@ -23,6 +23,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var ErrFewerPartitions = errors.New("fewer partitions in topic config")
+
 // TopicApplierConfig contains the configuration for a TopicApplier struct.
 type TopicApplierConfig struct {
 	BrokerThrottleMBsOverride  int
@@ -34,6 +36,7 @@ type TopicApplierConfig struct {
 	AutoContinueRebalance      bool
 	RetentionDropStepDuration  time.Duration
 	SkipConfirm                bool
+	IgnoreFewerPartitionsError bool
 	SleepLoopDuration          time.Duration
 	TopicConfig                config.TopicConfig
 }
@@ -213,6 +216,11 @@ func (t *TopicApplier) applyExistingTopic(
 	}
 
 	if err := t.updatePartitions(ctx, topicInfo); err != nil {
+		if errors.Is(err, ErrFewerPartitions) && t.config.IgnoreFewerPartitionsError {
+			log.Warnf("UpdatePartitions failure ignored. topic: %v, error: %v", t.topicName, err)
+			return nil
+		}
+
 		return err
 	}
 
@@ -477,7 +485,8 @@ func (t *TopicApplier) updatePartitions(
 
 	if currPartitions > t.topicConfig.Spec.Partitions {
 		return fmt.Errorf(
-			"Fewer partitions in topic config (%d) than observed (%d); this cannot be resolved by topicctl",
+			"%w (%d) than observed (%d); this cannot be resolved by topicctl",
+			ErrFewerPartitions,
 			t.topicConfig.Spec.Partitions,
 			currPartitions,
 		)
