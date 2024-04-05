@@ -1,4 +1,4 @@
 package version
 
 // Version is the current topicctl version.
-const Version = "1.14.2"
+const Version = "1.15.0"
