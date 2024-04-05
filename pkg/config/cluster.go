@@ -27,11 +27,12 @@ type ClusterConfig struct {
 // ClusterMeta contains (mostly immutable) metadata about the cluster. Inspired
 // by the meta fields in Kubernetes objects.
 type ClusterMeta struct {
-	Name        string `json:"name"`
-	Region      string `json:"region"`
-	Environment string `json:"environment"`
-	Shard       int    `json:"shard"`
-	Description string `json:"description"`
+	Name        string            `json:"name"`
+	Region      string            `json:"region"`
+	Environment string            `json:"environment"`
+	Shard       int               `json:"shard"`
+	Description string            `json:"description"`
+	Labels      map[string]string `json:"labels"`
 }
 
 // ClusterSpec contains the details necessary to communicate with a kafka cluster.
