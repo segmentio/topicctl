@@ -239,7 +239,15 @@ func (r *Repl) executor(in string) {
 				log.Errorf("Error: %+v", err)
 				return
 			}
-			if err := r.cliRunner.GetACLs(ctx, kafka.ACLFilter{}); err != nil {
+			if err := r.cliRunner.GetACLs(ctx, kafka.ACLFilter{
+				HostFilter:                "",
+				Operation:                 kafka.ACLOperationTypeAny,
+				PermissionType:            kafka.ACLPermissionTypeAny,
+				PrincipalFilter:           "",
+				ResourceNameFilter:        "",
+				ResourceTypeFilter:        kafka.ResourceTypeAny,
+				ResourcePatternTypeFilter: kafka.PatternTypeAny,
+			}); err != nil {
 				log.Errorf("Error: %+v", err)
 				return
 			}
