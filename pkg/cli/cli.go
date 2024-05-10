@@ -208,6 +208,7 @@ func (c *CLIRunner) BootstrapTopics(
 	excludeRegexpStr string,
 	outputDir string,
 	overwrite bool,
+	allowInternalTopics bool,
 ) error {
 	topicInfoObjs, err := c.adminClient.GetTopics(ctx, topics, false)
 	if err != nil {
@@ -226,7 +227,7 @@ func (c *CLIRunner) BootstrapTopics(
 	topicConfigs := []config.TopicConfig{}
 
 	for _, topicInfo := range topicInfoObjs {
-		if strings.HasPrefix(topicInfo.Name, "__") {
+		if !allowInternalTopics && strings.HasPrefix(topicInfo.Name, "__") {
 			// Never include underscore topics
 			continue
 		} else if !matchRegexp.MatchString(topicInfo.Name) {

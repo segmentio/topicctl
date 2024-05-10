@@ -145,6 +145,10 @@ The `bootstrap` subcommand creates apply topic configs from the existing topics 
 cluster. This can be used to "import" topics not created or previously managed by topicctl.
 The output can be sent to either a directory (if the `--output` flag is set) or `stdout`.
 
+By default, this does not include internal topics such as `__consumer_offsets`.
+If you would like to have these topics included,
+pass the `--allow-internal-topics` flag.
+
 #### check
 
 ```
