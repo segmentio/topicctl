@@ -21,6 +21,8 @@ type bootstrapCmdConfig struct {
 	outputDir     string
 	overwrite     bool
 
+	allowDoubleUnderscoreTopics bool
+
 	shared sharedOptions
 }
 
@@ -52,6 +54,12 @@ func init() {
 		false,
 		"Overwrite existing configs in output directory",
 	)
+	// allow topics containing double underscores
+	bootstrapCmd.Flags().BoolVar(
+		&bootstrapConfig.allowDoubleUnderscoreTopics,
+		"allow-double-underscore-topics",
+		false,
+		"Include topics that start with __ (typically these are internal topics)")
 
 	addSharedConfigOnlyFlags(bootstrapCmd, &bootstrapConfig.shared)
 	bootstrapCmd.MarkFlagRequired("cluster-config")
@@ -92,5 +100,6 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 		bootstrapConfig.excludeRegexp,
 		bootstrapConfig.outputDir,
 		bootstrapConfig.overwrite,
+		bootstrapConfig.allowDoubleUnderscoreTopics,
 	)
 }
