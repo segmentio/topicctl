@@ -200,7 +200,16 @@ func (c *CLIRunner) DeleteACL(
 
 // BootstrapTopics creates configs for one or more topics based on their current state in the
 // cluster.
-func (c *CLIRunner) BootstrapTopics(ctx context.Context, topics []string, clusterConfig config.ClusterConfig, matchRegexpStr string, excludeRegexpStr string, outputDir string, overwrite bool, allowUnderscoreTopics bool) error {
+func (c *CLIRunner) BootstrapTopics(
+	ctx context.Context,
+	topics []string,
+	clusterConfig config.ClusterConfig,
+	matchRegexpStr string,
+	excludeRegexpStr string,
+	outputDir string,
+	overwrite bool,
+	allowInternalTopics bool,
+) error {
 	topicInfoObjs, err := c.adminClient.GetTopics(ctx, topics, false)
 	if err != nil {
 		return err
@@ -218,7 +227,7 @@ func (c *CLIRunner) BootstrapTopics(ctx context.Context, topics []string, cluste
 	topicConfigs := []config.TopicConfig{}
 
 	for _, topicInfo := range topicInfoObjs {
-		if !allowUnderscoreTopics && strings.HasPrefix(topicInfo.Name, "__") {
+		if !allowInternalTopics && strings.HasPrefix(topicInfo.Name, "__") {
 			// Never include underscore topics
 			continue
 		} else if !matchRegexp.MatchString(topicInfo.Name) {
