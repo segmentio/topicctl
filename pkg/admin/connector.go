@@ -131,6 +131,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 
 	if !config.TLS.Enabled {
 		connector.Dialer = kafka.DefaultDialer
+		connector.Dialer.SASLMechanism = mechanismClient
 	} else {
 		var certs []tls.Certificate
 		var caCertPool *x509.CertPool
