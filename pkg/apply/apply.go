@@ -37,7 +37,7 @@ type TopicApplierConfig struct {
 	RetentionDropStepDuration  time.Duration
 	SkipConfirm                bool
 	IgnoreFewerPartitionsError bool
-	AllowSettingsDeletion      bool
+	Destructive                bool
 	SleepLoopDuration          time.Duration
 	TopicConfig                config.TopicConfig
 }
@@ -425,7 +425,7 @@ func (t *TopicApplier) updateSettings(
 		}
 	}
 
-	if len(missingKeys) > 0 && t.config.AllowSettingsDeletion {
+	if len(missingKeys) > 0 && t.config.Destructive {
 		log.Infof(
 			"Found %d key(s) set in cluster but missing from config for deletion:\n%s",
 			len(missingKeys),
@@ -461,7 +461,7 @@ func (t *TopicApplier) updateSettings(
 		}
 	}
 
-	if len(missingKeys) > 0 && !t.config.AllowSettingsDeletion {
+	if len(missingKeys) > 0 && !t.config.Destructive {
 		log.Warnf(
 			"Found %d key(s) set in cluster but missing from config:\n%s\nThese will be left as-is.",
 			len(missingKeys),
