@@ -80,6 +80,27 @@ func TestApplyBasicUpdates(t *testing.T) {
 	applier.topicConfig.Spec.ReplicationFactor = 3
 	err = applier.Apply(ctx)
 	require.NotNil(t, err)
+	applier.topicConfig.Spec.ReplicationFactor = 2
+
+	// Settings are not deleted if AllowSettingsDeletion is false. They are
+	// if it is true
+	delete(applier.topicConfig.Spec.Settings, "cleanup.policy")
+	err = applier.Apply(ctx)
+	require.NoError(t, err)
+	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
+	require.NoError(t, err)
+
+	assert.Equal(t, "delete", topicInfo.Config["cleanup.policy"])
+
+	applier.config.AllowSettingsDeletion = true
+	err = applier.Apply(ctx)
+	require.NoError(t, err)
+	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
+	require.NoError(t, err)
+
+	_, present := topicInfo.Config["cleanup.policy"]
+	assert.False(t, present)
+
 }
 
 func TestApplyPlacementUpdates(t *testing.T) {
