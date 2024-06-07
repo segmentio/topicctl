@@ -36,6 +36,7 @@ type applyCmdConfig struct {
 	retentionDropStepDurationStr string
 	skipConfirm                  bool
 	ignoreFewerPartitionsError   bool
+	allowSettingsDeletion        bool
 	sleepLoopDuration            time.Duration
 	failFast                     bool
 
@@ -106,6 +107,12 @@ func init() {
 		"ignore-fewer-partitions-error",
 		false,
 		"Don't return error when topic's config specifies fewer partitions than it currently has",
+	)
+	applyCmd.Flags().BoolVar(
+		&applyConfig.allowSettingsDeletion,
+		"allow-settings-deletion",
+		false,
+		"Deletes topic settings from the broker if the setting is set on the broker but not in config",
 	)
 	applyCmd.Flags().DurationVar(
 		&applyConfig.sleepLoopDuration,
@@ -259,6 +266,7 @@ func applyTopic(
 			RetentionDropStepDuration:  applyConfig.retentionDropStepDuration,
 			SkipConfirm:                applyConfig.skipConfirm,
 			IgnoreFewerPartitionsError: applyConfig.ignoreFewerPartitionsError,
+			AllowSettingsDeletion:      applyConfig.allowSettingsDeletion,
 			SleepLoopDuration:          applyConfig.sleepLoopDuration,
 			TopicConfig:                topicConfig,
 		}
