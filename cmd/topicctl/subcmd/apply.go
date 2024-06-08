@@ -112,7 +112,7 @@ func init() {
 		&applyConfig.destructive,
 		"destructive",
 		false,
-		"Deletes topic settings from the broker if the setting is set on the broker but not in config",
+		"Deletes topic settings from the broker if the settings are present on the broker but not in the config",
 	)
 	applyCmd.Flags().DurationVar(
 		&applyConfig.sleepLoopDuration,
@@ -267,6 +267,7 @@ func applyTopic(
 			SkipConfirm:                applyConfig.skipConfirm,
 			IgnoreFewerPartitionsError: applyConfig.ignoreFewerPartitionsError,
 			Destructive:                applyConfig.destructive,
+			SleepLoopDuration:          applyConfig.sleepLoopDuration,
 			TopicConfig:                topicConfig,
 		}
 
