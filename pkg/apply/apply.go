@@ -427,7 +427,7 @@ func (t *TopicApplier) updateSettings(
 
 	if len(missingKeys) > 0 && t.config.Destructive {
 		log.Infof(
-			"Found %d key(s) set in cluster but missing from config for deletion:\n%s",
+			"Found %d key(s) set in cluster but missing from config to be deleted:\n%s",
 			len(missingKeys),
 			FormatMissingKeys(topicInfo.Config, missingKeys),
 		)
