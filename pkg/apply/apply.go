@@ -31,6 +31,7 @@ type TopicApplierConfig struct {
 	BrokersToRemove            []int
 	ClusterConfig              config.ClusterConfig
 	DryRun                     bool
+	JsonOutput                 bool
 	PartitionBatchSizeOverride int
 	Rebalance                  bool
 	AutoContinueRebalance      bool
@@ -122,19 +123,19 @@ func NewTopicApplier(
 //     c. Check partition count and extend if needed
 //     d. Check partition placement and update/migrate if needed
 //     e. Check partition leaders and update if needed
-func (t *TopicApplier) Apply(ctx context.Context) error {
+func (t *TopicApplier) Apply(ctx context.Context) (map[string]interface{}, error) {
 	log.Info("Validating configs...")
 	brokerRacks := admin.DistinctRacks(t.brokers)
 
 	if err := t.clusterConfig.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.topicConfig.Validate(len(brokerRacks)); err != nil {
-		return err
+		return nil, err
 	}
 	if err := config.CheckConsistency(t.topicConfig.Meta, t.clusterConfig); err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Info("Checking if topic already exists...")
@@ -144,21 +145,25 @@ func (t *TopicApplier) Apply(ctx context.Context) error {
 		if err == admin.ErrTopicDoesNotExist {
 			return t.applyNewTopic(ctx)
 		}
-		return err
+		return nil, err
 	}
 
 	return t.applyExistingTopic(ctx, topicInfo)
 }
 
-func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
+func (t *TopicApplier) applyNewTopic(ctx context.Context) (map[string]interface{}, error) {
 	newTopicConfig, err := t.topicConfig.ToNewTopicConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	changes := make(map[string]interface{})
 
 	if t.config.DryRun {
 		log.Infof("Would create topic with config %+v", newTopicConfig)
-		return nil
+		// add newly created topic to changesMap json object
+		changes[t.topicConfig.Meta.Name] = newTopicConfig
+		changes[t.topicConfig.Meta.Name].(map[string]interface{})["action"] = "create"
+		return changes, nil
 	}
 
 	log.Infof(
@@ -168,7 +173,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 
 	ok, _ := util.Confirm("OK to continue?", t.config.SkipConfirm)
 	if !ok {
-		return errors.New("Stopping because of user response")
+		return nil, errors.New("Stopping because of user response")
 	}
 
 	log.Infof("Creating new topic with config %+v", newTopicConfig)
@@ -178,50 +183,56 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 		newTopicConfig,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Just do a short sleep to ensure that zk is updated before we check
 	if err := interruptableSleep(ctx, t.config.SleepLoopDuration/5); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.updatePlacement(ctx, -1, true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.updateLeaders(ctx, -1); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// add new topic config to changes map
+	changes[t.topicConfig.Meta.Name] = newTopicConfig
+	changes[t.topicConfig.Meta.Name].(map[string]interface{})["action"] = "create"
+
+	return changes, nil
 }
 
 func (t *TopicApplier) applyExistingTopic(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
-) error {
+) (map[string]interface{}, error) {
 	log.Infof("Updating existing topic '%s'", t.topicName)
+	// TODO: applyExistingTopic changes
+	// changes := make(map[string]interface{})
 
 	if err := t.checkExistingState(ctx, topicInfo); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.updateSettings(ctx, topicInfo); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.updateReplication(ctx, topicInfo); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.updatePartitions(ctx, topicInfo); err != nil {
 		if errors.Is(err, ErrFewerPartitions) && t.config.IgnoreFewerPartitionsError {
 			log.Warnf("UpdatePartitions failure ignored. topic: %v, error: %v", t.topicName, err)
-			return nil
+			return nil, nil
 		}
 
-		return err
+		return nil, err
 	}
 
 	if err := t.updatePlacement(
@@ -229,14 +240,14 @@ func (t *TopicApplier) applyExistingTopic(
 		t.maxBatchSize,
 		false,
 	); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.updateLeaders(
 		ctx,
 		-1,
 	); err != nil {
-		return err
+		return nil, err
 	}
 
 	if t.config.Rebalance {
@@ -244,18 +255,18 @@ func (t *TopicApplier) applyExistingTopic(
 			ctx,
 			t.maxBatchSize,
 		); err != nil {
-			return err
+			return nil, err
 		}
 
 		if err := t.updateLeaders(
 			ctx,
 			-1,
 		); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (t *TopicApplier) checkExistingState(
@@ -393,16 +404,27 @@ func (t *TopicApplier) updateSettings(
 	}
 
 	if len(diffKeys) > 0 {
-		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
-		if err != nil {
-			return err
+		if !t.config.JsonOutput {
+			diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
+			if err != nil {
+				return err
+			}
+			log.Infof(
+				"Found %d key(s) with different values:\n%s",
+				len(diffKeys),
+				diffsTable,
+			)
+		} else {
+			diffsJson, err := FormatSettingsDiffJson(topicSettings, topicInfo.Config, diffKeys)
+			if err != nil {
+				return err
+			}
+			log.Infof(
+				"Found %d key(s) with different values:\n%s",
+				len(diffKeys),
+				diffsJson,
+			)
 		}
-
-		log.Infof(
-			"Found %d key(s) with different values:\n%s",
-			len(diffKeys),
-			diffsTable,
-		)
 
 		if reduced {
 			log.Infof(
@@ -416,7 +438,7 @@ func (t *TopicApplier) updateSettings(
 			)
 		}
 
-		if t.config.DryRun {
+		if t.config.DryRun && !t.config.JsonOutput {
 			log.Infof("Skipping update because dryRun is set to true")
 			return nil
 		}

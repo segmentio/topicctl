@@ -1,5 +1,5 @@
 meta:
-  name: topic-default
+  name: test_topic_3
   cluster: local-cluster
   environment: local-env
   region: local-region
@@ -8,10 +8,44 @@ meta:
 
 spec:
   partitions: 3
-  replicationFactor: 2
+  replicationFactor: 1
   retentionMinutes: 100
   placement:
     strategy: in-rack
   settings:
     cleanup.policy: delete
     max.message.bytes: 5542880
+---
+meta:
+  name: test_topic_1
+  cluster: local-cluster
+  environment: local-env
+  region: local-region
+spec:
+  partitions: 16
+  retentionMinutes: 10081
+  replicationFactor: 1
+  placement:
+    strategy: any
+  settings: {
+    'segment.bytes': 573741823, 
+    'compression.type': 'lz4',
+    'message.timestamp.type': 'LogAppendTime'
+  }
+---
+meta:
+  name: test_topic_2
+  cluster: local-cluster
+  environment: local-env
+  region: local-region
+spec:
+  partitions: 16
+  retentionMinutes: 10081
+  replicationFactor: 1
+  placement:
+    strategy: any
+  settings: {
+    'segment.bytes': 573741823, 
+    'compression.type': 'lz4',
+    'message.timestamp.type': 'LogAppendTime'
+  }

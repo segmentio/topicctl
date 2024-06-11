@@ -93,6 +93,34 @@ func FormatSettingsDiff(
 	return string(bytes.TrimRight(buf.Bytes(), "\n")), nil
 }
 
+// FormatSettingsDiffJson formats the settings diffs as a JSON object instead of a table
+func FormatSettingsDiffJson(
+	topicSettings config.TopicSettings,
+	configMap map[string]string,
+	diffKeys []string,
+) ([]byte, error) {
+	diffsMap := make(map[string]map[string]interface{})
+
+	for _, diffKey := range diffKeys {
+		configValueStr := configMap[diffKey]
+
+		var valueStr string
+		var err error
+
+		if topicSettings.HasKey(diffKey) {
+			valueStr, err = topicSettings.GetValueStr(diffKey)
+			if err != nil {
+				return []byte{}, err
+			}
+		}
+
+		diffsMap[diffKey] = make(map[string]interface{})
+		diffsMap[diffKey]["current"] = configValueStr
+		diffsMap[diffKey]["updated"] = valueStr
+	}
+	return json.Marshal(diffsMap)
+}
+
 // FormatMissingKeys generates a table that summarizes the key/value pairs
 // that are set in the config in ZK but missing from the topic config.
 func FormatMissingKeys(
@@ -161,4 +189,14 @@ func timeSuffix(msStr string) string {
 	}
 
 	return fmt.Sprintf(" (%d min)", msInt/60000)
+}
+
+// prints map of changes being made to stdout
+func PrintChangesMap(changesMap map[string]interface{}) error {
+	jsonChanges, err := json.Marshal(changesMap)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Map of changes: %s\n", jsonChanges)
+	return nil
 }

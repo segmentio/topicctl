@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-multierror"
+	log "github.com/sirupsen/logrus"
 )
 
 var sep = regexp.MustCompile("(?:^|\\s*\n)---\\s*")
@@ -83,7 +83,7 @@ func LoadTopicsFile(path string) ([]TopicConfig, error) {
 func LoadTopicBytes(contents []byte) (TopicConfig, error) {
 	config := TopicConfig{}
 	err := unmarshalYAMLStrict(contents, &config)
-	fmt.Println(config)
+	log.Infof("Loading config %+v", config)
 	return config, err
 }
 

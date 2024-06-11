@@ -13,6 +13,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -29,6 +30,7 @@ type applyCmdConfig struct {
 	brokersToRemove              []int
 	brokerThrottleMBsOverride    int
 	dryRun                       bool
+	jsonOutput                   bool
 	partitionBatchSizeOverride   int
 	pathPrefix                   string
 	rebalance                    bool
@@ -118,6 +120,12 @@ func init() {
 		"fail-fast",
 		true,
 		"Fail upon the first error encountered during apply process",
+	)
+	applyCmd.Flags().BoolVar(
+		&applyConfig.jsonOutput,
+		"json-output",
+		false,
+		"Only logs changes as json objects to stdout",
 	)
 
 	addSharedConfigOnlyFlags(applyCmd, &applyConfig.shared)
@@ -239,6 +247,10 @@ func applyTopic(
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 
+	// initialize changesMap and add dry run flag
+	changesMap := make(map[string]interface{})
+	changesMap["_dryRun"] = applyConfig.dryRun
+
 	for _, topicConfig := range topicConfigs {
 		topicConfig.SetDefaults()
 		log.Infof(
@@ -253,6 +265,7 @@ func applyTopic(
 			BrokersToRemove:            applyConfig.brokersToRemove,
 			ClusterConfig:              clusterConfig,
 			DryRun:                     applyConfig.dryRun,
+			JsonOutput:                 applyConfig.jsonOutput,
 			PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
 			Rebalance:                  applyConfig.rebalance,
 			AutoContinueRebalance:      applyConfig.autoContinueRebalance,
@@ -262,10 +275,11 @@ func applyTopic(
 			SleepLoopDuration:          applyConfig.sleepLoopDuration,
 			TopicConfig:                topicConfig,
 		}
-
-		if err := cliRunner.ApplyTopic(ctx, applierConfig); err != nil {
+		changes, err := cliRunner.ApplyTopic(ctx, applierConfig)
+		if err != nil {
 			return err
 		}
+		util.PrintChangesMap(changes)
 	}
 
 	return nil

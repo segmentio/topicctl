@@ -10,11 +10,12 @@ import (
 // Confirm shows the argument prompt to the user and returns a boolean based on whether or not
 // the user confirms that it's ok to continue.
 func Confirm(prompt string, skip bool) (bool, error) {
-	fmt.Printf("%s (yes/no) ", prompt)
 
 	if skip {
 		log.Infof("Automatically answering yes because skip is set to true")
 		return true, nil
+	} else {
+		fmt.Printf("%s (yes/no) ", prompt)
 	}
 
 	var response string

@@ -312,7 +312,8 @@ func rebalanceApplyTopic(
 	}
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
-	if err := cliRunner.ApplyTopic(ctx, applierConfig); err != nil {
+	// TODO: add changes map from rebalancing
+	if _, err := cliRunner.ApplyTopic(ctx, applierConfig); err != nil {
 		return err
 	}
 

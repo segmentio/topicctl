@@ -1,6 +1,8 @@
 package util
 
 import (
+	"encoding/json"
+	"fmt"
 	"hash/fnv"
 	"math/rand"
 	"sort"
@@ -64,4 +66,21 @@ func SortedKeysByValue(input map[int]int, asc bool, keySorter KeySorter) []int {
 	}
 
 	return keys
+}
+
+func MergeMaps(a map[string]interface{}, b map[string]interface{}) map[string]interface{} {
+	for k, v := range b {
+		a[k] = v
+	}
+	return a
+}
+
+// prints map of changes being made to stdout
+func PrintChangesMap(changesMap map[string]interface{}) error {
+	jsonChanges, err := json.Marshal(changesMap)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Map of changes: %s\n", jsonChanges)
+	return nil
 }
