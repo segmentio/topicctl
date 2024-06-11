@@ -84,7 +84,7 @@ func PrintChangesMap(changesMap map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Map of changes: %s\n", jsonChanges)
+	fmt.Printf("%s\n", jsonChanges)
 	return nil
 }
 

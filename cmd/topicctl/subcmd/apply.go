@@ -248,8 +248,8 @@ func applyTopic(
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 
 	// initialize changesMap and add dry run flag
-	changesMap := make(map[string]interface{})
-	changesMap["_dryRun"] = applyConfig.dryRun
+	allChanges := make(map[string]interface{})
+	allChanges["dryRun"] = applyConfig.dryRun
 
 	for _, topicConfig := range topicConfigs {
 		topicConfig.SetDefaults()
@@ -279,9 +279,10 @@ func applyTopic(
 		if err != nil {
 			return err
 		}
-		util.PrintChangesMap(changes)
+		allChanges = util.MergeMaps(allChanges, changes)
 	}
 
+	util.PrintChangesMap(allChanges)
 	return nil
 }
 
