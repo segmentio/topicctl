@@ -190,13 +190,3 @@ func timeSuffix(msStr string) string {
 
 	return fmt.Sprintf(" (%d min)", msInt/60000)
 }
-
-// prints map of changes being made to stdout
-func PrintChangesMap(changesMap map[string]interface{}) error {
-	jsonChanges, err := json.Marshal(changesMap)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Map of changes: %s\n", jsonChanges)
-	return nil
-}

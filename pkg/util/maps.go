@@ -6,6 +6,8 @@ import (
 	"hash/fnv"
 	"math/rand"
 	"sort"
+
+	"github.com/segmentio/kafka-go"
 )
 
 // KeySorter is a type for a function that sorts integer keys based on their values in a map.
@@ -68,6 +70,7 @@ func SortedKeysByValue(input map[int]int, asc bool, keySorter KeySorter) []int {
 	return keys
 }
 
+// merges 2 maps into a single map object
 func MergeMaps(a map[string]interface{}, b map[string]interface{}) map[string]interface{} {
 	for k, v := range b {
 		a[k] = v
@@ -83,4 +86,22 @@ func PrintChangesMap(changesMap map[string]interface{}) error {
 	}
 	fmt.Printf("Map of changes: %s\n", jsonChanges)
 	return nil
+}
+
+// processes TopicConfig into changes map
+func ProcessTopicConfigIntoMap(topicName string, topicConfig kafka.TopicConfig) (map[string]interface{}, error) {
+	changes := make(map[string]interface{})
+	// add newly created topic to changes json object
+	changes[topicName] = topicConfig
+	// encode and decode changes as json to convert value from TopicConfig to map
+	// TODO: better way of doing this?
+	changesJson, err := json.Marshal(changes)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(changesJson, &changes); err != nil {
+		return nil, err
+	}
+	changes[topicName].(map[string]interface{})["Action"] = "create"
+	return changes, nil
 }

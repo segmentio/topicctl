@@ -156,13 +156,13 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) (map[string]interface{
 	if err != nil {
 		return nil, err
 	}
-	changes := make(map[string]interface{})
 
 	if t.config.DryRun {
 		log.Infof("Would create topic with config %+v", newTopicConfig)
-		// add newly created topic to changesMap json object
-		changes[t.topicConfig.Meta.Name] = newTopicConfig
-		changes[t.topicConfig.Meta.Name].(map[string]interface{})["action"] = "create"
+		changes, err := util.ProcessTopicConfigIntoMap(t.topicConfig.Meta.Name, newTopicConfig)
+		if err != nil {
+			return nil, err
+		}
 		return changes, nil
 	}
 
@@ -200,8 +200,10 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) (map[string]interface{
 	}
 
 	// add new topic config to changes map
-	changes[t.topicConfig.Meta.Name] = newTopicConfig
-	changes[t.topicConfig.Meta.Name].(map[string]interface{})["action"] = "create"
+	changes, err := util.ProcessTopicConfigIntoMap(t.topicConfig.Meta.Name, newTopicConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	return changes, nil
 }
@@ -212,7 +214,7 @@ func (t *TopicApplier) applyExistingTopic(
 ) (map[string]interface{}, error) {
 	log.Infof("Updating existing topic '%s'", t.topicName)
 	// TODO: applyExistingTopic changes
-	// changes := make(map[string]interface{})
+	// changes := make(map[string]map[string]interface{})
 
 	if err := t.checkExistingState(ctx, topicInfo); err != nil {
 		return nil, err
