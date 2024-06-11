@@ -9,7 +9,7 @@ meta:
 spec:
   partitions: 3
   replicationFactor: 1
-  retentionMinutes: 100
+  retentionMinutes: 102
   placement:
     strategy: in-rack
   settings:
@@ -23,7 +23,7 @@ meta:
   region: local-region
 spec:
   partitions: 16
-  retentionMinutes: 10081
+  retentionMinutes: 10080
   replicationFactor: 1
   placement:
     strategy: any
@@ -40,12 +40,12 @@ meta:
   region: local-region
 spec:
   partitions: 16
-  retentionMinutes: 10081
+  retentionMinutes: 10080
   replicationFactor: 1
   placement:
     strategy: any
   settings: {
-    'segment.bytes': 573741823, 
+    'segment.bytes': 573741829, 
     'compression.type': 'lz4',
     'message.timestamp.type': 'LogAppendTime'
   }

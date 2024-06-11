@@ -88,7 +88,7 @@ func PrintChangesMap(changesMap map[string]interface{}) error {
 	return nil
 }
 
-// processes TopicConfig into changes map
+// processes TopicConfig object into a map
 func ProcessTopicConfigIntoMap(topicName string, topicConfig kafka.TopicConfig) (map[string]interface{}, error) {
 	changes := make(map[string]interface{})
 	// add newly created topic to changes json object

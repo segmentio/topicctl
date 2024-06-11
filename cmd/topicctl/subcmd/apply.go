@@ -282,7 +282,10 @@ func applyTopic(
 		allChanges = util.MergeMaps(allChanges, changes)
 	}
 
-	util.PrintChangesMap(allChanges)
+	if applyConfig.jsonOutput {
+		util.PrintChangesMap(allChanges)
+	}
+
 	return nil
 }
 

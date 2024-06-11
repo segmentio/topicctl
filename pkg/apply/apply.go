@@ -213,14 +213,13 @@ func (t *TopicApplier) applyExistingTopic(
 	topicInfo admin.TopicInfo,
 ) (map[string]interface{}, error) {
 	log.Infof("Updating existing topic '%s'", t.topicName)
-	// TODO: applyExistingTopic changes
-	// changes := make(map[string]map[string]interface{})
 
 	if err := t.checkExistingState(ctx, topicInfo); err != nil {
 		return nil, err
 	}
 
-	if err := t.updateSettings(ctx, topicInfo); err != nil {
+	changes, err := t.updateSettings(ctx, topicInfo)
+	if err != nil {
 		return nil, err
 	}
 
@@ -268,7 +267,7 @@ func (t *TopicApplier) applyExistingTopic(
 		}
 	}
 
-	return nil, nil
+	return changes, nil
 }
 
 func (t *TopicApplier) checkExistingState(
@@ -373,7 +372,7 @@ func (t *TopicApplier) checkExistingState(
 func (t *TopicApplier) updateSettings(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
-) error {
+) (map[string]interface{}, error) {
 	log.Infof("Checking topic config settings...")
 
 	topicSettings := t.topicConfig.Spec.Settings.Copy()
@@ -383,7 +382,7 @@ func (t *TopicApplier) updateSettings(
 
 	diffKeys, missingKeys, err := topicSettings.ConfigMapDiffs(topicInfo.Config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var retentionDropStepDuration time.Duration
@@ -393,7 +392,7 @@ func (t *TopicApplier) updateSettings(
 		var err error
 		retentionDropStepDuration, err = t.config.ClusterConfig.GetDefaultRetentionDropStepDuration()
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -402,30 +401,23 @@ func (t *TopicApplier) updateSettings(
 		retentionDropStepDuration,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	diffsMap := make(map[string]interface{})
 	if len(diffKeys) > 0 {
-		if !t.config.JsonOutput {
-			diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
-			if err != nil {
-				return err
-			}
-			log.Infof(
-				"Found %d key(s) with different values:\n%s",
-				len(diffKeys),
-				diffsTable,
-			)
-		} else {
-			diffsJson, err := FormatSettingsDiffJson(topicSettings, topicInfo.Config, diffKeys)
-			if err != nil {
-				return err
-			}
-			log.Infof(
-				"Found %d key(s) with different values:\n%s",
-				len(diffKeys),
-				diffsJson,
-			)
+		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
+		if err != nil {
+			return nil, err
+		}
+		log.Infof(
+			"Found %d key(s) with different values:\n%s",
+			len(diffKeys),
+			diffsTable,
+		)
+		diffsMap, err = FormatSettingsDiffMap(t.topicConfig.Meta.Name, topicSettings, topicInfo.Config, diffKeys)
+		if err != nil {
+			return nil, err
 		}
 
 		if reduced {
@@ -440,9 +432,9 @@ func (t *TopicApplier) updateSettings(
 			)
 		}
 
-		if t.config.DryRun && !t.config.JsonOutput {
+		if t.config.DryRun {
 			log.Infof("Skipping update because dryRun is set to true")
-			return nil
+			return diffsMap, nil
 		}
 
 		ok, _ := util.Confirm(
@@ -450,13 +442,13 @@ func (t *TopicApplier) updateSettings(
 			t.config.SkipConfirm,
 		)
 		if !ok {
-			return errors.New("Stopping because of user response")
+			return nil, errors.New("Stopping because of user response")
 		}
 		log.Infof("OK, updating")
 
 		configEntries, err := topicSettings.ToConfigEntries(diffKeys)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		_, err = t.adminClient.UpdateTopicConfig(
@@ -466,7 +458,7 @@ func (t *TopicApplier) updateSettings(
 			true,
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -478,7 +470,7 @@ func (t *TopicApplier) updateSettings(
 		)
 	}
 
-	return nil
+	return diffsMap, nil
 }
 
 func (t *TopicApplier) updateReplication(

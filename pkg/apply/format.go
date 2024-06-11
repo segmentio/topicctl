@@ -93,13 +93,15 @@ func FormatSettingsDiff(
 	return string(bytes.TrimRight(buf.Bytes(), "\n")), nil
 }
 
-// FormatSettingsDiffJson formats the settings diffs as a JSON object instead of a table
-func FormatSettingsDiffJson(
+// FormatSettingsDiffMap formats the settings diffs as a map object instead of a table
+func FormatSettingsDiffMap(
+	topicName string,
 	topicSettings config.TopicSettings,
 	configMap map[string]string,
 	diffKeys []string,
-) ([]byte, error) {
-	diffsMap := make(map[string]map[string]interface{})
+) (map[string]interface{}, error) {
+	diffsMap := make(map[string]interface{})
+	diffsMap[topicName] = make(map[string]interface{})
 
 	for _, diffKey := range diffKeys {
 		configValueStr := configMap[diffKey]
@@ -110,15 +112,17 @@ func FormatSettingsDiffJson(
 		if topicSettings.HasKey(diffKey) {
 			valueStr, err = topicSettings.GetValueStr(diffKey)
 			if err != nil {
-				return []byte{}, err
+				return nil, err
 			}
 		}
 
-		diffsMap[diffKey] = make(map[string]interface{})
-		diffsMap[diffKey]["current"] = configValueStr
-		diffsMap[diffKey]["updated"] = valueStr
+		diffsMap[topicName].(map[string]interface{})["Action"] = "update"
+		diffsMap[topicName].(map[string]interface{})[diffKey] = map[string]interface{}{
+			"current": configValueStr,
+			"updated": valueStr,
+		}
 	}
-	return json.Marshal(diffsMap)
+	return diffsMap, nil
 }
 
 // FormatMissingKeys generates a table that summarizes the key/value pairs
