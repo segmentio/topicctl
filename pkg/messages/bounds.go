@@ -26,9 +26,6 @@ const (
 	// Parameters for backoff when there are connection errors
 	maxRetries               = 4
 	backoffInitSleepDuration = 200 * time.Millisecond
-
-	// Connection timeout
-	connTimeout = 10 * time.Second
 )
 
 // Bounds represents the start and end "bounds" of the messages in
@@ -284,6 +281,6 @@ func dialLeaderRetries(
 		return nil, fmt.Errorf("Error dialing partition %d: %+v", partition, err)
 	}
 
-	conn.SetDeadline(time.Now().Add(connTimeout))
+	conn.SetDeadline(time.Now().Add(connector.Config.ConnTimeout))
 	return conn, nil
 }
