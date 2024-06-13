@@ -203,6 +203,7 @@ type AdminClientOpts struct {
 	UsernameOverride          string
 	PasswordOverride          string
 	SecretsManagerArnOverride string
+	KafkaConnTimeout          time.Duration
 }
 
 // NewAdminClient returns a new admin client using the parameters in the current cluster config.
@@ -268,6 +269,7 @@ func (c ClusterConfig) NewAdminClient(
 						Password:          saslPassword,
 						SecretsManagerArn: secretsManagerArn,
 					},
+					ConnTimeout: opts.KafkaConnTimeout,
 				},
 				ExpectedClusterID: c.Spec.ClusterID,
 				ReadOnly:          opts.ReadOnly,
@@ -284,6 +286,7 @@ func (c ClusterConfig) NewAdminClient(
 				ExpectedClusterID: c.Spec.ClusterID,
 				Sess:              sess,
 				ReadOnly:          opts.ReadOnly,
+				KafkaConnTimeout:  opts.KafkaConnTimeout,
 			},
 		)
 	}
