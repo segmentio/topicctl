@@ -35,9 +35,10 @@ const (
 
 // ConnectorConfig contains the configuration used to contruct a connector.
 type ConnectorConfig struct {
-	BrokerAddr string
-	TLS        TLSConfig
-	SASL       SASLConfig
+	BrokerAddr  string
+	TLS         TLSConfig
+	SASL        SASLConfig
+	ConnTimeout time.Duration
 }
 
 // TLSConfig stores the TLS-related configuration for a connection.

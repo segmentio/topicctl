@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hashicorp/go-multierror"
@@ -29,6 +30,7 @@ type sharedOptions struct {
 	tlsServerName         string
 	zkAddr                string
 	zkPrefix              string
+	connTimeout           time.Duration
 }
 
 func (s sharedOptions) validate() error {
@@ -164,6 +166,7 @@ func (s sharedOptions) getAdminClient(
 						Username:          s.saslUsername,
 						SecretsManagerArn: s.saslSecretsManagerArn,
 					},
+					ConnTimeout: s.connTimeout,
 				},
 				ReadOnly: readOnly,
 			},
@@ -172,10 +175,11 @@ func (s sharedOptions) getAdminClient(
 		return admin.NewZKAdminClient(
 			ctx,
 			admin.ZKAdminClientConfig{
-				ZKAddrs:  []string{s.zkAddr},
-				ZKPrefix: s.zkPrefix,
-				Sess:     sess,
-				ReadOnly: readOnly,
+				ZKAddrs:          []string{s.zkAddr},
+				ZKPrefix:         s.zkPrefix,
+				Sess:             sess,
+				ReadOnly:         readOnly,
+				KafkaConnTimeout: s.connTimeout,
 			},
 		)
 	}
@@ -274,6 +278,12 @@ func addSharedFlags(cmd *cobra.Command, options *sharedOptions) {
 		"zk-prefix",
 		"",
 		"Prefix for cluster-related nodes in zk",
+	)
+	cmd.PersistentFlags().DurationVar(
+		&options.connTimeout,
+		"conn-timeout",
+		10*time.Second,
+		"Kafka connection timeout",
 	)
 }
 

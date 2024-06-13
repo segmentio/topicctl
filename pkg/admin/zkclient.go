@@ -63,6 +63,7 @@ type ZKAdminClientConfig struct {
 	ExpectedClusterID string
 	Sess              *session.Session
 	ReadOnly          bool
+	KafkaConnTimeout  time.Duration
 }
 
 // NewZKAdminClient creates and returns a new Client instance.
@@ -136,7 +137,8 @@ func NewZKAdminClient(
 	client.bootstrapAddrs = bootstrapAddrs
 	client.Connector, err = NewConnector(
 		ConnectorConfig{
-			BrokerAddr: bootstrapAddrs[0],
+			BrokerAddr:  bootstrapAddrs[0],
+			ConnTimeout: config.KafkaConnTimeout,
 		},
 	)
 

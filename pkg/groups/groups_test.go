@@ -18,6 +18,7 @@ func TestGetGroups(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 
@@ -83,6 +84,7 @@ func TestGetGroupsMultiMember(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 
@@ -164,6 +166,7 @@ func TestGetGroupsMultiMemberMultiTopic(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 
@@ -260,6 +263,7 @@ func TestGetLags(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 
@@ -303,6 +307,7 @@ func TestGetEarliestOrLatestOffset(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 
@@ -350,6 +355,7 @@ func TestResetOffsets(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 

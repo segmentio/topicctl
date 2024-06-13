@@ -20,6 +20,7 @@ func TestTailerGetMessages(t *testing.T) {
 
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
 		BrokerAddr: util.TestKafkaAddr(),
+		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
 
