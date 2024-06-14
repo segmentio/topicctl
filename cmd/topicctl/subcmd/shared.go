@@ -125,6 +125,7 @@ func (s sharedOptions) getAdminClient(
 				UsernameOverride:          s.saslUsername,
 				PasswordOverride:          s.saslPassword,
 				SecretsManagerArnOverride: s.saslSecretsManagerArn,
+				KafkaConnTimeout:          s.connTimeout,
 			},
 		)
 	} else if s.brokerAddr != "" {
