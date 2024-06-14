@@ -523,6 +523,8 @@ The `apply` subcommand can make changes, but under the following conditions:
 8. Before applying, the tool checks the cluster ID against the expected value in the
   cluster config. This can help prevent errors around applying in the wrong cluster when multiple
   clusters are accessed through the same address, e.g `localhost:2181`.
+9. If the `destructive` CLI argument is passed, `apply` deletes the settings that are
+  set on the broker but not set in configuration.
 
 The `reset-offsets` command can also make changes in the cluster and should be used carefully.
 

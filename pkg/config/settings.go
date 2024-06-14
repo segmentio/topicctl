@@ -346,6 +346,22 @@ func (t TopicSettings) ToConfigEntries(keys []string) ([]kafka.ConfigEntry, erro
 	return entries, nil
 }
 
+// Produces a slice of kafka-go config entries with empty value. Thus used
+// for deletion of the setting.
+func (t TopicSettings) ToEmptyConfigEntries(keys []string) []kafka.ConfigEntry {
+	entries := []kafka.ConfigEntry{}
+
+	if keys != nil {
+		for _, key := range keys {
+			entries = append(
+				entries,
+				kafka.ConfigEntry{ConfigName: key, ConfigValue: ""},
+			)
+		}
+	}
+	return entries
+}
+
 // HasKey returns whether the current settings instance contains the argument key.
 func (t TopicSettings) HasKey(key string) bool {
 	_, ok := t[key]
