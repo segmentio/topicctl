@@ -26,6 +26,7 @@ type tailCmdConfig struct {
 	partitions []int
 	raw        bool
 	headers    bool
+	groupID    string
 
 	shared sharedOptions
 }
@@ -56,6 +57,12 @@ func init() {
 		"headers",
 		true,
 		"Output message headers",
+	)
+	tailCmd.Flags().StringVar(
+		&tailConfig.groupID,
+		"group-id",
+		"",
+		"Consumer group ID to tail with",
 	)
 
 	addSharedFlags(tailCmd, &tailConfig.shared)
@@ -97,6 +104,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		"",
 		tailConfig.raw,
 		tailConfig.headers,
+		tailConfig.groupID,
 	)
 }
 
