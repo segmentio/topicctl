@@ -307,6 +307,7 @@ func rebalanceApplyTopic(
 		AutoContinueRebalance:      true,                      // to continue without prompts
 		RetentionDropStepDuration:  retentionDropStepDuration, // not needed for rebalance
 		SkipConfirm:                true,                      // to enforce action: rebalance
+		Destructive:                false,                     // Irrelevant here
 		SleepLoopDuration:          rebalanceConfig.sleepLoopDuration,
 		TopicConfig:                topicConfig,
 	}
