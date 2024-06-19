@@ -59,7 +59,7 @@ jobs:
           ALLOW_ANONYMOUS_LOGIN: yes
 
       kafka1:
-        image: bitnami/kafka:0.10.2.1
+        image: bitnami/kafka:0.10.2-1-r3
         ports:
           - "9092:9092"
         env:
@@ -71,7 +71,7 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
 
       kafka2:
-        image: bitnami/kafka:0.10.2.1
+        image: bitnami/kafka:0.10.2-1-r3
         ports:
           - "9093:9092"
         env:
@@ -83,7 +83,7 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
 
       kafka3:
-        image: bitnami/kafka:0.10.2.1
+        image: bitnami/kafka:0.10.2-1-r3
         ports:
           - "9094:9092"
         env:
@@ -95,7 +95,7 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
 
       kafka4:
-        image: bitnami/kafka:0.10.2.1
+        image: bitnami/kafka:0.10.2-1-r3
         ports:
           - "9095:9092"
         env:
@@ -107,7 +107,7 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
 
       kafka5:
-        image: bitnami/kafka:0.10.2.1
+        image: bitnami/kafka:0.10.2-1-r3
         ports:
           - "9096:9092"
         env:
@@ -119,7 +119,7 @@ jobs:
           KAFKA_ADVERTISED_PORT: 9092
 
       kafka6:
-        image: bitnami/kafka:0.10.2.1
+        image: bitnami/kafka:0.10.2-1-r3
         ports:
           - "9097:9092"
         env:
