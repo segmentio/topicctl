@@ -12,6 +12,7 @@ import (
 
 var debug bool
 var noSpinner bool
+var jsonOutput bool
 
 // RootCmd is the cobra CLI root command.
 var RootCmd = &cobra.Command{
@@ -40,6 +41,12 @@ func init() {
 		false,
 		"disable all UI spinners",
 	)
+	RootCmd.PersistentFlags().BoolVar(
+		&jsonOutput,
+		"json-output",
+		false,
+		"enable logging in json format",
+	)
 }
 
 // Execute runs topicctl.
@@ -55,6 +62,9 @@ func Execute(versionRef string) {
 func preRun(cmd *cobra.Command, args []string) error {
 	if debug {
 		log.SetLevel(log.DebugLevel)
+	}
+	if jsonOutput{
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 	return nil
 }
