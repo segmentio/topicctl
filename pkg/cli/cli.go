@@ -111,14 +111,14 @@ func (c *CLIRunner) GetClusterID(ctx context.Context, full bool) error {
 func (c *CLIRunner) ApplyTopic(
 	ctx context.Context,
 	applierConfig apply.TopicApplierConfig,
-) error {
+) (*apply.NewOrUpdatedChanges, error) {
 	applier, err := apply.NewTopicApplier(
 		ctx,
 		c.adminClient,
 		applierConfig,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	highlighter := color.New(color.FgYellow, color.Bold).SprintfFunc()
@@ -130,13 +130,11 @@ func (c *CLIRunner) ApplyTopic(
 		highlighter(applierConfig.TopicConfig.Meta.Cluster),
 	)
 
-	err = applier.Apply(ctx)
-	if err != nil {
-		return err
+	changes, err := applier.Apply(ctx)
+	if err == nil {
+		c.printer("Apply completed successfully!")
 	}
-
-	c.printer("Apply completed successfully!")
-	return nil
+	return changes, err
 }
 
 // CreateACL does an apply run according to the spec in the argument config.

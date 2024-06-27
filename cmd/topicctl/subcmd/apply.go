@@ -2,6 +2,7 @@ package subcmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -29,6 +30,7 @@ type applyCmdConfig struct {
 	brokersToRemove              []int
 	brokerThrottleMBsOverride    int
 	dryRun                       bool
+	jsonOutput                   bool
 	partitionBatchSizeOverride   int
 	pathPrefix                   string
 	rebalance                    bool
@@ -46,6 +48,12 @@ type applyCmdConfig struct {
 }
 
 var applyConfig applyCmdConfig
+
+type allChanges struct {
+	NewTopics     []apply.NewChangesTracker    `json:"newTopics"`
+	UpdatedTopics []apply.UpdateChangesTracker `json:"updatedTopics"`
+	DryRun        bool                         `json:"dryRun"`
+}
 
 func init() {
 	applyCmd.Flags().IntSliceVar(
@@ -125,6 +133,12 @@ func init() {
 		"fail-fast",
 		true,
 		"Fail upon the first error encountered during apply process",
+	)
+	applyCmd.Flags().BoolVar(
+		&applyConfig.jsonOutput,
+		"json-output",
+		false,
+		"Only logs changes as json objects to stdout",
 	)
 
 	addSharedConfigOnlyFlags(applyCmd, &applyConfig.shared)
@@ -206,6 +220,32 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	return errs
 }
 
+// unpacks a NewOrUpdatedChanges object into allChanges' NewTopics and UpdatedTopics lists
+func unpackChanges(currentChange *apply.NewOrUpdatedChanges, changeList allChanges) allChanges {
+	if currentChange.NewChanges != nil {
+		changeList.NewTopics = append(changeList.NewTopics, *currentChange.NewChanges)
+	}
+	if currentChange.UpdateChanges != nil {
+		changeList.UpdatedTopics = append(changeList.UpdatedTopics, *currentChange.UpdateChanges)
+	}
+	return changeList
+}
+
+// prints JSON blob of changes being made to stdout
+// returns the JSON blob as a map object
+func printChanges(changes allChanges) (map[string]interface{}, error) {
+	jsonChanges, err := json.Marshal(changes)
+	if err != nil {
+		return nil, err
+	}
+	//print json to stdout
+	fmt.Printf("%s\n", jsonChanges)
+	// return unmarshalled map
+	changesMap := make(map[string]interface{})
+	err = json.Unmarshal(jsonChanges, &changesMap)
+	return changesMap, err
+}
+
 func applyTopic(
 	ctx context.Context,
 	topicConfigPath string,
@@ -246,6 +286,11 @@ func applyTopic(
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 
+	// initialize changesMap and add dry run flag
+	changesToBePrinted := allChanges{
+		DryRun: applyConfig.dryRun,
+	}
+
 	for _, topicConfig := range topicConfigs {
 		topicConfig.SetDefaults()
 		log.Infof(
@@ -260,6 +305,7 @@ func applyTopic(
 			BrokersToRemove:            applyConfig.brokersToRemove,
 			ClusterConfig:              clusterConfig,
 			DryRun:                     applyConfig.dryRun,
+			JsonOutput:                 applyConfig.jsonOutput,
 			PartitionBatchSizeOverride: applyConfig.partitionBatchSizeOverride,
 			Rebalance:                  applyConfig.rebalance,
 			AutoContinueRebalance:      applyConfig.autoContinueRebalance,
@@ -270,8 +316,26 @@ func applyTopic(
 			SleepLoopDuration:          applyConfig.sleepLoopDuration,
 			TopicConfig:                topicConfig,
 		}
+		topicChanges, err := cliRunner.ApplyTopic(ctx, applierConfig)
+		if err != nil {
+			// if one of the steps after updateSettings errors when updating a topic,
+			// we can be in a state where some (but not all) changes were applied
+			changesToBePrinted = unpackChanges(topicChanges, changesToBePrinted)
+			log.Error("Error detected while updating topic, the following changes were still made:")
+			partialChanges, err := printChanges(changesToBePrinted)
+			if err != nil {
+				log.Error("Error printing JSON changes data")
+				return err
+			}
+			log.Errorf("%#v", partialChanges)
+			return err
+		}
+		changesToBePrinted = unpackChanges(topicChanges, changesToBePrinted)
+	}
 
-		if err := cliRunner.ApplyTopic(ctx, applierConfig); err != nil {
+	// ensure we're not printing empty json if there's no changes to the topic
+	if applyConfig.jsonOutput && (changesToBePrinted.NewTopics != nil || changesToBePrinted.UpdatedTopics != nil) {
+		if _, err := printChanges(changesToBePrinted); err != nil {
 			return err
 		}
 	}

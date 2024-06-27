@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ type TopicApplierConfig struct {
 	BrokersToRemove            []int
 	ClusterConfig              config.ClusterConfig
 	DryRun                     bool
+	JsonOutput                 bool
 	PartitionBatchSizeOverride int
 	Rebalance                  bool
 	AutoContinueRebalance      bool
@@ -123,43 +125,54 @@ func NewTopicApplier(
 //     c. Check partition count and extend if needed
 //     d. Check partition placement and update/migrate if needed
 //     e. Check partition leaders and update if needed
-func (t *TopicApplier) Apply(ctx context.Context) error {
+func (t *TopicApplier) Apply(ctx context.Context) (*NewOrUpdatedChanges, error) {
 	log.Info("Validating configs...")
 	brokerRacks := admin.DistinctRacks(t.brokers)
 
 	if err := t.clusterConfig.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.topicConfig.Validate(len(brokerRacks)); err != nil {
-		return err
+		return nil, err
 	}
 	if err := config.CheckConsistency(t.topicConfig.Meta, t.clusterConfig); err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Info("Checking if topic already exists...")
 
 	topicInfo, err := t.adminClient.GetTopic(ctx, t.topicName, true)
 	if err != nil {
+		// if the topic doesn't exist, create it
 		if err == admin.ErrTopicDoesNotExist {
-			return t.applyNewTopic(ctx)
+			newTopicChanges, err := t.applyNewTopic(ctx)
+			return &NewOrUpdatedChanges{
+				NewChanges:    newTopicChanges,
+				UpdateChanges: nil,
+			}, err
 		}
-		return err
+		return nil, err
 	}
 
-	return t.applyExistingTopic(ctx, topicInfo)
+	// if the topic does exist, update it
+	updatedTopic, err := t.applyExistingTopic(ctx, topicInfo)
+	return &NewOrUpdatedChanges{
+		NewChanges:    nil,
+		UpdateChanges: updatedTopic,
+	}, err
 }
 
-func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
+func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, error) {
 	newTopicConfig, err := t.topicConfig.ToNewTopicConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if t.config.DryRun {
 		log.Infof("Would create topic with config %+v", newTopicConfig)
-		return nil
+		changes := ProcessTopicConfigIntoChanges(t.topicConfig.Meta.Name, newTopicConfig)
+		return changes, nil
 	}
 
 	log.Infof(
@@ -169,7 +182,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 
 	ok, _ := util.Confirm("OK to continue?", t.config.SkipConfirm)
 	if !ok {
-		return errors.New("Stopping because of user response")
+		return nil, errors.New("Stopping because of user response")
 	}
 
 	log.Infof("Creating new topic with config %+v", newTopicConfig)
@@ -179,50 +192,57 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) error {
 		newTopicConfig,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	// add new topic config to changes map
+	changes := ProcessTopicConfigIntoChanges(t.topicConfig.Meta.Name, newTopicConfig)
 
 	// Just do a short sleep to ensure that zk is updated before we check
 	if err := interruptableSleep(ctx, t.config.SleepLoopDuration/5); err != nil {
-		return err
+		return nil, err
 	}
 
+	// TODO: add partition placement updates to ChangesTracker
 	if err := t.updatePlacement(ctx, -1, true); err != nil {
-		return err
+		return changes, err
 	}
 
+	// TODO: add leader elections to ChangesTracker
 	if err := t.updateLeaders(ctx, -1); err != nil {
-		return err
+		return changes, err
 	}
 
-	return nil
+	return changes, nil
 }
 
 func (t *TopicApplier) applyExistingTopic(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
-) error {
+) (*UpdateChangesTracker, error) {
 	log.Infof("Updating existing topic '%s'", t.topicName)
 
 	if err := t.checkExistingState(ctx, topicInfo); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := t.updateSettings(ctx, topicInfo); err != nil {
-		return err
+	changes, err := t.updateSettings(ctx, topicInfo)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := t.updateReplication(ctx, topicInfo); err != nil {
-		return err
+		changes.Error = true
+		return changes, err
 	}
 
 	if err := t.updatePartitions(ctx, topicInfo); err != nil {
 		if errors.Is(err, ErrFewerPartitions) && t.config.IgnoreFewerPartitionsError {
 			log.Warnf("UpdatePartitions failure ignored. topic: %v, error: %v", t.topicName, err)
-			return nil
+			return changes, nil
 		}
-
-		return err
+		changes.Error = true
+		return changes, err
 	}
 
 	if err := t.updatePlacement(
@@ -230,14 +250,16 @@ func (t *TopicApplier) applyExistingTopic(
 		t.maxBatchSize,
 		false,
 	); err != nil {
-		return err
+		changes.Error = true
+		return changes, err
 	}
 
 	if err := t.updateLeaders(
 		ctx,
 		-1,
 	); err != nil {
-		return err
+		changes.Error = true
+		return changes, err
 	}
 
 	if t.config.Rebalance {
@@ -245,18 +267,20 @@ func (t *TopicApplier) applyExistingTopic(
 			ctx,
 			t.maxBatchSize,
 		); err != nil {
-			return err
+			changes.Error = true
+			return changes, err
 		}
 
 		if err := t.updateLeaders(
 			ctx,
 			-1,
 		); err != nil {
-			return err
+			changes.Error = true
+			return changes, err
 		}
 	}
 
-	return nil
+	return changes, nil
 }
 
 func (t *TopicApplier) checkExistingState(
@@ -361,7 +385,7 @@ func (t *TopicApplier) checkExistingState(
 func (t *TopicApplier) updateSettings(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
-) error {
+) (*UpdateChangesTracker, error) {
 	log.Infof("Checking topic config settings...")
 
 	topicSettings := t.topicConfig.Spec.Settings.Copy()
@@ -371,8 +395,10 @@ func (t *TopicApplier) updateSettings(
 
 	diffKeys, missingKeys, err := topicSettings.ConfigMapDiffs(topicInfo.Config)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	// we sort diffKeys to avoid the non-deterministic ordering of ConfigMapDiffs()
+	slices.Sort(diffKeys)
 
 	var retentionDropStepDuration time.Duration
 	if t.config.RetentionDropStepDuration != 0 {
@@ -381,7 +407,7 @@ func (t *TopicApplier) updateSettings(
 		var err error
 		retentionDropStepDuration, err = t.config.ClusterConfig.GetDefaultRetentionDropStepDuration()
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -390,22 +416,28 @@ func (t *TopicApplier) updateSettings(
 		retentionDropStepDuration,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var changes *UpdateChangesTracker
 	configEntries := []kafka.ConfigEntry{}
 
 	if len(diffKeys) > 0 {
+		// format diffs as table and log
 		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
 		if err != nil {
-			return err
+			return nil, err
 		}
-
 		log.Infof(
 			"Found %d key(s) with different values:\n%s",
 			len(diffKeys),
 			diffsTable,
 		)
+		// format diffs as an UpdateChangesTracker for json output
+		changes, err = FormatSettingsDiffTracker(t.topicConfig.Meta.Name, topicSettings, topicInfo.Config, diffKeys)
+		if err != nil {
+			return nil, err
+		}
 
 		if reduced {
 			log.Infof(
@@ -421,24 +453,45 @@ func (t *TopicApplier) updateSettings(
 
 		configEntries, err = topicSettings.ToConfigEntries(diffKeys)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	if len(missingKeys) > 0 && t.config.Destructive {
-		log.Infof(
-			"Found %d key(s) set in cluster but missing from config to be deleted:\n%s",
-			len(missingKeys),
-			FormatMissingKeys(topicInfo.Config, missingKeys),
-		)
+	if len(missingKeys) > 0 {
+		// add missing keys to UpdateChangesTracker object
+		if changes != nil {
+			changes.MissingKeys = missingKeys
+		} else {
+			changes = &UpdateChangesTracker{
+				Topic:                t.topicName,
+				Action:               ActionEnumUpdate,
+				NewConfigEntries:     nil,
+				UpdatedConfigEntries: nil,
+				MissingKeys:          missingKeys,
+				Error:                false,
+			}
+		}
 
-		configEntries = append(configEntries, topicSettings.ToEmptyConfigEntries(missingKeys)...)
+		if t.config.Destructive {
+			log.Infof(
+				"Found %d key(s) set in cluster but missing from config to be deleted:\n%s",
+				len(missingKeys),
+				FormatMissingKeys(topicInfo.Config, missingKeys),
+			)
+			configEntries = append(configEntries, topicSettings.ToEmptyConfigEntries(missingKeys)...)
+		} else {
+			log.Warnf(
+				"Found %d key(s) set in cluster but missing from config, these will be left as-is:\n%s",
+				len(missingKeys),
+				FormatMissingKeys(topicInfo.Config, missingKeys),
+			)
+		}
 	}
 
 	if len(configEntries) > 0 {
 		if t.config.DryRun {
 			log.Infof("Skipping update because dryRun is set to true")
-			return nil
+			return changes, nil
 		}
 
 		ok, _ := util.Confirm(
@@ -446,7 +499,7 @@ func (t *TopicApplier) updateSettings(
 			t.config.SkipConfirm,
 		)
 		if !ok {
-			return errors.New("Stopping because of user response")
+			return nil, errors.New("Stopping because of user response")
 		}
 		log.Infof("OK, updating")
 
@@ -457,19 +510,11 @@ func (t *TopicApplier) updateSettings(
 			true,
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	if len(missingKeys) > 0 && !t.config.Destructive {
-		log.Warnf(
-			"Found %d key(s) set in cluster but missing from config:\n%s\nThese will be left as-is.",
-			len(missingKeys),
-			FormatMissingKeys(topicInfo.Config, missingKeys),
-		)
-	}
-
-	return nil
+	return changes, nil
 }
 
 func (t *TopicApplier) updateReplication(

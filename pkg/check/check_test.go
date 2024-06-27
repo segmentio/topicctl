@@ -67,7 +67,7 @@ func TestCheck(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	type testCase struct {

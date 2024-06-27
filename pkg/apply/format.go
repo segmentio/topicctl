@@ -93,6 +93,73 @@ func FormatSettingsDiff(
 	return string(bytes.TrimRight(buf.Bytes(), "\n")), nil
 }
 
+// FormatSettingsDiffTracker formats the settings diffs as an
+// UpdateChangesTracker object instead of a table
+func FormatSettingsDiffTracker(
+	topicName string,
+	topicSettings config.TopicSettings,
+	configMap map[string]string,
+	diffKeys []string,
+) (*UpdateChangesTracker, error) {
+
+	newConfigEntries := make([]NewConfigEntry, 0)
+	updatedConfigEntries := make([]ConfigEntryChanges, 0)
+	for _, diffKey := range diffKeys {
+		configValueStr := configMap[diffKey]
+
+		var valueStr string
+		var err error
+
+		if topicSettings.HasKey(diffKey) {
+			valueStr, err = topicSettings.GetValueStr(diffKey)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if configValueStr == "" {
+			newConfigEntries = append(newConfigEntries, NewConfigEntry{
+				Name:  diffKey,
+				Value: valueStr,
+			})
+		} else {
+			updatedConfigEntries = append(updatedConfigEntries, ConfigEntryChanges{
+				Name:    diffKey,
+				Current: configValueStr,
+				Updated: valueStr,
+			})
+		}
+	}
+
+	return &UpdateChangesTracker{
+		Topic:                topicName,
+		NewConfigEntries:     &newConfigEntries,
+		UpdatedConfigEntries: &updatedConfigEntries,
+		MissingKeys:          []string{},
+		Action:               ActionEnumUpdate,
+		Error:                false,
+	}, nil
+}
+
+// processes TopicConfig object from topic creation into a NewChangesTracker
+func ProcessTopicConfigIntoChanges(topicName string, topicConfig kafka.TopicConfig) *NewChangesTracker {
+	configEntries := make([]NewConfigEntry, 0)
+	for _, entry := range topicConfig.ConfigEntries {
+		configEntries = append(configEntries, NewConfigEntry{
+			Name:  entry.ConfigName,
+			Value: entry.ConfigValue,
+		})
+	}
+
+	return &NewChangesTracker{
+		Topic:             topicConfig.Topic,
+		NumPartitions:     topicConfig.NumPartitions,
+		ReplicationFactor: topicConfig.ReplicationFactor,
+		ConfigEntries:     &configEntries,
+		Action:            ActionEnumCreate,
+	}
+}
+
 // FormatMissingKeys generates a table that summarizes the key/value pairs
 // that are set in the config in ZK but missing from the topic config.
 func FormatMissingKeys(

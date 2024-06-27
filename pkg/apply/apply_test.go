@@ -2,7 +2,6 @@ package apply
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -51,8 +50,30 @@ func TestApplyBasicUpdates(t *testing.T) {
 	assert.Equal(t, int64(2000000), applier.throttleBytes)
 
 	defer applier.adminClient.Close()
-	err := applier.Apply(ctx)
+	changes, err := applier.Apply(ctx)
 	require.NoError(t, err)
+
+	// test NewOrUpdatedChanges has expected shape when creating topic
+	expectedChanges := &NewOrUpdatedChanges{
+		NewChanges: &NewChangesTracker{
+			Topic:             topicName,
+			NumPartitions:     9,
+			ReplicationFactor: 2,
+			ConfigEntries: &[]NewConfigEntry{
+				{
+					Name:  "cleanup.policy",
+					Value: "compact",
+				},
+				{
+					Name:  "retention.ms",
+					Value: "30000000",
+				},
+			},
+			Action: "create",
+		},
+		UpdateChanges: nil,
+	}
+	assert.Equal(t, changes, expectedChanges)
 
 	// Topic exists and is set up correctly
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
@@ -66,10 +87,40 @@ func TestApplyBasicUpdates(t *testing.T) {
 	// Update retention and settings
 	applier.topicConfig.Spec.RetentionMinutes = 400
 	applier.topicConfig.Spec.Settings["cleanup.policy"] = "delete"
-	err = applier.Apply(ctx)
+	applier.topicConfig.Spec.Settings["max.message.bytes"] = "600000"
+	changes, err = applier.Apply(ctx)
 	require.NoError(t, err)
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
 	require.NoError(t, err)
+
+	// test NewOrUpdatedChanges has expected shape when updating configs
+	expectedChanges = &NewOrUpdatedChanges{
+		NewChanges: nil,
+		UpdateChanges: &UpdateChangesTracker{
+			Action: "update",
+			Topic:  topicName,
+			NewConfigEntries: &[]NewConfigEntry{
+				{
+					Name:  "max.message.bytes",
+					Value: "600000",
+				},
+			},
+			UpdatedConfigEntries: &[]ConfigEntryChanges{
+				{
+					Name:    "cleanup.policy",
+					Current: "compact",
+					Updated: "delete",
+				},
+				{
+					Name:    "retention.ms",
+					Current: "30000000",
+					Updated: "27000000",
+				},
+			},
+			MissingKeys: []string{},
+		},
+	}
+	assert.Equal(t, changes, expectedChanges)
 
 	// Dropped to only 450 because of retention reduction
 	assert.Equal(t, "27000000", topicInfo.Config[admin.RetentionKey])
@@ -78,29 +129,34 @@ func TestApplyBasicUpdates(t *testing.T) {
 	// Updating replication factor not allowed
 	applier.topicConfig.Spec.Partitions = 9
 	applier.topicConfig.Spec.ReplicationFactor = 3
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NotNil(t, err)
 	applier.topicConfig.Spec.ReplicationFactor = 2
 
 	// Settings are not deleted if Destructive is false. They are
 	// if it is true
 	delete(applier.topicConfig.Spec.Settings, "cleanup.policy")
-	err = applier.Apply(ctx)
+	changes, err = applier.Apply(ctx)
 	require.NoError(t, err)
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
 	require.NoError(t, err)
 
+	// assert not deleted
 	assert.Equal(t, "delete", topicInfo.Config["cleanup.policy"])
+	// assert missingKeys field is filled in
+	assert.Equal(t, changes.UpdateChanges.MissingKeys, []string{"cleanup.policy"})
 
 	applier.config.Destructive = true
-	err = applier.Apply(ctx)
+	changes, err = applier.Apply(ctx)
 	require.NoError(t, err)
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
 	require.NoError(t, err)
 
+	// assert deleted
 	_, present := topicInfo.Config["cleanup.policy"]
 	assert.False(t, present)
-
+	// assert missingKeys filled in
+	assert.Equal(t, changes.UpdateChanges.MissingKeys, []string{"cleanup.policy"})
 }
 
 func TestApplyPlacementUpdates(t *testing.T) {
@@ -141,7 +197,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	// Initial apply lays out partitions as specified in static config
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
-	err := applier.Apply(ctx)
+	_, err := applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
@@ -164,8 +220,9 @@ func TestApplyPlacementUpdates(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	// Next apply converts to balanced leaders
+	// TODO: test changes once rebalancing is in UpdateChangesTracker
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyBalancedLeaders
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
@@ -189,7 +246,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 
 	// Third apply switches to in-rack
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyInRack
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
@@ -256,7 +313,7 @@ func TestApplyRebalance(t *testing.T) {
 	// Initial apply lays out partitions as specified in static config
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
-	err := applier.Apply(ctx)
+	_, err := applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
@@ -276,9 +333,10 @@ func TestApplyRebalance(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	// Next apply rebalances
+	// TODO: test changes once rebalancing is in UpdateChangesTracker
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyAny
 	applier.config.Rebalance = true
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
@@ -335,7 +393,7 @@ func TestApplyExtendPartitions(t *testing.T) {
 	// Initial apply lays out partitions as specified in static config
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
-	err := applier.Apply(ctx)
+	_, err := applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
@@ -355,9 +413,10 @@ func TestApplyExtendPartitions(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	// Next apply extends by 3 partitions with balanced leader strategy
+	// TODO: test changes once partition updates are in UpdateChangesTracker
 	applier.topicConfig.Spec.Partitions = 6
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyBalancedLeaders
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
@@ -447,12 +506,12 @@ func TestApplyExistingThrottles(t *testing.T) {
 	// Create topics
 	applier1 := testApplier(ctx, t, topicConfig1)
 	defer applier1.adminClient.Close()
-	err := applier1.Apply(ctx)
+	_, err := applier1.Apply(ctx)
 	require.NoError(t, err)
 
 	applier2 := testApplier(ctx, t, topicConfig2)
 	defer applier2.adminClient.Close()
-	err = applier2.Apply(ctx)
+	_, err = applier2.Apply(ctx)
 	require.NoError(t, err)
 
 	supported1 := applier1.adminClient.GetSupportedFeatures()
@@ -521,7 +580,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 	// Reapply topic1 with new applier (to pick up updated brokers)
 	updatedApplier1 := testApplier(ctx, t, topicConfig1)
 	defer updatedApplier1.adminClient.Close()
-	err = updatedApplier1.Apply(ctx)
+	_, err = updatedApplier1.Apply(ctx)
 	require.NoError(t, err)
 
 	updatedTopic, err := updatedApplier1.adminClient.GetTopic(ctx, topicName1, false)
@@ -532,7 +591,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 
 	// Remove the lock and reapply
 	require.Nil(t, lock.Unlock())
-	err = updatedApplier1.Apply(ctx)
+	_, err = updatedApplier1.Apply(ctx)
 	require.NoError(t, err)
 
 	updatedTopic, err = updatedApplier1.adminClient.GetTopic(ctx, topicName1, false)
@@ -561,7 +620,7 @@ func TestApplyExistingThrottles(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = updatedApplier1.Apply(ctx)
+	_, err = updatedApplier1.Apply(ctx)
 	require.NoError(t, err)
 	brokers, err = updatedApplier1.adminClient.GetBrokers(ctx, nil)
 	require.NoError(t, err)
@@ -600,7 +659,7 @@ func TestApplyDryRun(t *testing.T) {
 	applier := testApplier(ctx, t, topicConfig)
 	defer applier.adminClient.Close()
 	applier.config.DryRun = true
-	err := applier.Apply(ctx)
+	_, err := applier.Apply(ctx)
 	require.NoError(t, err)
 
 	// Dry-run on, topic not created
@@ -609,7 +668,7 @@ func TestApplyDryRun(t *testing.T) {
 	require.Equal(t, 0, len(topics))
 
 	applier.config.DryRun = false
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	// Dry-run off, topic created
@@ -623,7 +682,7 @@ func TestApplyDryRun(t *testing.T) {
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyInRack
 
 	applier.config.DryRun = true
-	err = applier.Apply(ctx)
+	_, err = applier.Apply(ctx)
 	require.NoError(t, err)
 
 	// Changes not made
@@ -919,10 +978,6 @@ func TestApplyOverrides(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(50000000), applier.throttleBytes)
 	assert.Equal(t, applier.maxBatchSize, 8)
-}
-
-func testTopicName(name string) string {
-	return util.RandomString(fmt.Sprintf("topic-%s-", name), 6)
 }
 
 func testApplier(
