@@ -1,0 +1,28 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/topicctl/image:$COMMIT_SHA',
+    '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/topicctl/image:latest',
+    '--build-arg',
+    'VERSION=$COMMIT_SHA',
+    '--build-arg',
+    'BUILDKIT_INLINE_CACHE=1',
+    '--cache-from', 'us-central1-docker.pkg.dev/$PROJECT_ID/topicctl/image:latest',
+    '.',
+  ]
+  env: [DOCKER_BUILDKIT=1]
+
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      # Only push "latest" tag when building on "main"
+      [ "$BRANCH_NAME" != "main" ] && exit 0
+      docker push us-central1-docker.pkg.dev/$PROJECT_ID/topicctl/image:latest
+
+images: [
+  'us-central1-docker.pkg.dev/$PROJECT_ID/topicctl/image:$COMMIT_SHA',
+]
+timeout: 180s

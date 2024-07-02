@@ -22,4 +22,4 @@ COPY --from=builder \
     /go/src/github.com/getsentry/topicctl/scripts \
     /bin/scripts
 
-ENTRYPOINT ["python", "/bin/scripts/call_topicctl.py"]
+ENTRYPOINT ["/bin/topicctl"]
