@@ -96,11 +96,11 @@ func FormatSettingsDiff(
 // FormatSettingsDiffTracker formats the settings diffs as an
 // UpdateChangesTracker object instead of a table
 func FormatSettingsDiffTracker(
-	topicName string,
 	topicSettings config.TopicSettings,
 	configMap map[string]string,
 	diffKeys []string,
-) (*UpdateChangesTracker, error) {
+	changes *UpdateChangesTracker,
+) error {
 
 	newConfigEntries := make([]NewConfigEntry, 0)
 	updatedConfigEntries := make([]ConfigEntryChanges, 0)
@@ -113,7 +113,7 @@ func FormatSettingsDiffTracker(
 		if topicSettings.HasKey(diffKey) {
 			valueStr, err = topicSettings.GetValueStr(diffKey)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -130,15 +130,10 @@ func FormatSettingsDiffTracker(
 			})
 		}
 	}
+	changes.NewConfigEntries = &newConfigEntries
+	changes.UpdatedConfigEntries = &updatedConfigEntries
 
-	return &UpdateChangesTracker{
-		Topic:                topicName,
-		NewConfigEntries:     &newConfigEntries,
-		UpdatedConfigEntries: &updatedConfigEntries,
-		MissingKeys:          []string{},
-		Action:               ActionEnumUpdate,
-		Error:                false,
-	}, nil
+	return nil
 }
 
 // processes TopicConfig object from topic creation into a NewChangesTracker

@@ -226,8 +226,14 @@ func (t *TopicApplier) applyExistingTopic(
 		return nil, err
 	}
 
-	changes, err := t.updateSettings(ctx, topicInfo)
-	if err != nil {
+	changes := &UpdateChangesTracker{
+		Action:      ActionEnumUpdate,
+		Topic:       t.topicName,
+		MissingKeys: make([]string, 0),
+		Error:       false,
+	}
+
+	if err := t.updateSettings(ctx, topicInfo, changes); err != nil {
 		return nil, err
 	}
 
@@ -385,7 +391,8 @@ func (t *TopicApplier) checkExistingState(
 func (t *TopicApplier) updateSettings(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
-) (*UpdateChangesTracker, error) {
+	changes *UpdateChangesTracker,
+) error {
 	log.Infof("Checking topic config settings...")
 
 	topicSettings := t.topicConfig.Spec.Settings.Copy()
@@ -395,7 +402,7 @@ func (t *TopicApplier) updateSettings(
 
 	diffKeys, missingKeys, err := topicSettings.ConfigMapDiffs(topicInfo.Config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// we sort diffKeys to avoid the non-deterministic ordering of ConfigMapDiffs()
 	slices.Sort(diffKeys)
@@ -407,7 +414,7 @@ func (t *TopicApplier) updateSettings(
 		var err error
 		retentionDropStepDuration, err = t.config.ClusterConfig.GetDefaultRetentionDropStepDuration()
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -416,17 +423,16 @@ func (t *TopicApplier) updateSettings(
 		retentionDropStepDuration,
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var changes *UpdateChangesTracker
 	configEntries := []kafka.ConfigEntry{}
 
 	if len(diffKeys) > 0 {
 		// format diffs as table and log
 		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		log.Infof(
 			"Found %d key(s) with different values:\n%s",
@@ -434,9 +440,8 @@ func (t *TopicApplier) updateSettings(
 			diffsTable,
 		)
 		// format diffs as an UpdateChangesTracker for json output
-		changes, err = FormatSettingsDiffTracker(t.topicConfig.Meta.Name, topicSettings, topicInfo.Config, diffKeys)
-		if err != nil {
-			return nil, err
+		if err = FormatSettingsDiffTracker(topicSettings, topicInfo.Config, diffKeys, changes); err != nil {
+			return err
 		}
 
 		if reduced {
@@ -453,24 +458,13 @@ func (t *TopicApplier) updateSettings(
 
 		configEntries, err = topicSettings.ToConfigEntries(diffKeys)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if len(missingKeys) > 0 {
 		// add missing keys to UpdateChangesTracker object
-		if changes != nil {
-			changes.MissingKeys = missingKeys
-		} else {
-			changes = &UpdateChangesTracker{
-				Topic:                t.topicName,
-				Action:               ActionEnumUpdate,
-				NewConfigEntries:     nil,
-				UpdatedConfigEntries: nil,
-				MissingKeys:          missingKeys,
-				Error:                false,
-			}
-		}
+		changes.MissingKeys = missingKeys
 
 		if t.config.Destructive {
 			log.Infof(
@@ -491,7 +485,7 @@ func (t *TopicApplier) updateSettings(
 	if len(configEntries) > 0 {
 		if t.config.DryRun {
 			log.Infof("Skipping update because dryRun is set to true")
-			return changes, nil
+			return nil
 		}
 
 		ok, _ := util.Confirm(
@@ -499,7 +493,7 @@ func (t *TopicApplier) updateSettings(
 			t.config.SkipConfirm,
 		)
 		if !ok {
-			return nil, errors.New("Stopping because of user response")
+			return errors.New("Stopping because of user response")
 		}
 		log.Infof("OK, updating")
 
@@ -510,11 +504,11 @@ func (t *TopicApplier) updateSettings(
 			true,
 		)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return changes, nil
+	return nil
 }
 
 func (t *TopicApplier) updateReplication(

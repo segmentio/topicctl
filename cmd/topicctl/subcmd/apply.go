@@ -222,6 +222,11 @@ func applyRun(cmd *cobra.Command, args []string) error {
 
 // unpacks a NewOrUpdatedChanges object into allChanges' NewTopics and UpdatedTopics lists
 func unpackChanges(currentChange *apply.NewOrUpdatedChanges, changeList allChanges) allChanges {
+	// if no changes were made on this run just return
+	if currentChange == nil {
+		return changeList
+	}
+
 	if currentChange.NewChanges != nil {
 		changeList.NewTopics = append(changeList.NewTopics, *currentChange.NewChanges)
 	}
@@ -320,15 +325,18 @@ func applyTopic(
 		if err != nil {
 			// if one of the steps after updateSettings errors when updating a topic,
 			// we can be in a state where some (but not all) changes were applied
+			// some topic creation errors also still create the topic
 			changesToBePrinted = unpackChanges(topicChanges, changesToBePrinted)
-			log.Error("Error detected while updating topic, the following changes were still made:")
-			partialChanges, err := printChanges(changesToBePrinted)
-			if err != nil {
-				log.Error("Error printing JSON changes data")
+			if changesToBePrinted.NewTopics != nil || changesToBePrinted.UpdatedTopics != nil {
+				log.Error("Error detected while creating or updating a topic, the following changes were still made:")
+				partialChanges, printErr := printChanges(changesToBePrinted)
+				if printErr != nil {
+					log.Error("Error printing partial JSON changes data")
+				} else {
+					log.Errorf("%#v", partialChanges)
+				}
 				return err
 			}
-			log.Errorf("%#v", partialChanges)
-			return err
 		}
 		changesToBePrinted = unpackChanges(topicChanges, changesToBePrinted)
 	}
