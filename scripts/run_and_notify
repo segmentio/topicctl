@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -eux
+
+topicctl "$@" | parse_and_notify.py

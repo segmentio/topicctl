@@ -13,13 +13,16 @@ RUN cd /go/src/${SRC} && \
     GOOS=$TARGETOS GOARCH=$TARGETARCH make topicctl VERSION=${VERSION}
 
 # copy topicctl & scripts to python image
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
 COPY --from=builder \
     /go/src/github.com/getsentry/topicctl/build/topicctl \
     /bin/topicctl
-COPY --from=builder \
-    /go/src/github.com/getsentry/topicctl/scripts \
-    /bin/scripts
 
-ENTRYPOINT ["/bin/topicctl"]
+COPY scripts/* /bin/
+COPY py/*.py /bin/
+COPY py/requirements.txt /
+
+RUN pip install -r requirements.txt
+
+CMD ["/bin/topicctl"]
