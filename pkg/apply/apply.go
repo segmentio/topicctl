@@ -242,7 +242,7 @@ func (t *TopicApplier) applyExistingTopic(
 		return changes, err
 	}
 
-	if err := t.updatePartitions(ctx, topicInfo); err != nil {
+	if err := t.updatePartitions(ctx, topicInfo, changes); err != nil {
 		if errors.Is(err, ErrFewerPartitions) && t.config.IgnoreFewerPartitionsError {
 			log.Warnf("UpdatePartitions failure ignored. topic: %v, error: %v", t.topicName, err)
 			return changes, nil
@@ -532,6 +532,7 @@ func (t *TopicApplier) updateReplication(
 func (t *TopicApplier) updatePartitions(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
+	changes *UpdateChangesTracker,
 ) error {
 	log.Infof("Checking partition count...")
 
@@ -559,6 +560,7 @@ func (t *TopicApplier) updatePartitions(
 		return t.updatePartitionsHelper(
 			ctx,
 			t.topicConfig.Spec.PlacementConfig.Strategy,
+			changes,
 		)
 	}
 
@@ -568,12 +570,20 @@ func (t *TopicApplier) updatePartitions(
 func (t *TopicApplier) updatePartitionsHelper(
 	ctx context.Context,
 	desiredPlacement config.PlacementStrategy,
+	changes *UpdateChangesTracker,
 ) error {
 	topicInfo, err := t.adminClient.GetTopic(ctx, t.topicName, true)
 	if err != nil {
 		return err
 	}
 	currAssignments := topicInfo.ToAssignments()
+
+	// note current and updated partition counts to be added to UpdateChangesTracker
+	// after applying
+	partitionCountChanges := &IntValueChanges{
+		Current: len(topicInfo.Partitions),
+		Updated: t.topicConfig.Spec.Partitions,
+	}
 
 	extraPartitions := t.topicConfig.Spec.Partitions - len(topicInfo.Partitions)
 	log.Infof(
@@ -636,6 +646,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 
 	if t.config.DryRun {
 		log.Infof("Skipping update because dryRun is set to true")
+		changes.NumPartitions = partitionCountChanges
 		return nil
 	}
 
@@ -648,6 +659,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 	if err != nil {
 		return err
 	}
+	changes.NumPartitions = partitionCountChanges
 
 	topicInfo, err = t.adminClient.GetTopic(ctx, t.topicName, true)
 	if err != nil {

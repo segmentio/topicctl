@@ -413,10 +413,9 @@ func TestApplyExtendPartitions(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	// Next apply extends by 3 partitions with balanced leader strategy
-	// TODO: test changes once partition updates are in UpdateChangesTracker
 	applier.topicConfig.Spec.Partitions = 6
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyBalancedLeaders
-	_, err = applier.Apply(ctx)
+	changes, err := applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
@@ -437,6 +436,14 @@ func TestApplyExtendPartitions(t *testing.T) {
 		updatedReplicas,
 	)
 	assert.True(t, topicInfo.AllLeadersCorrect())
+	assert.Equal(
+		t,
+		&IntValueChanges{
+			Current: 3,
+			Updated: 6,
+		},
+		changes.UpdateChanges.NumPartitions,
+	)
 
 	brokers, err := applier.adminClient.GetBrokers(ctx, nil)
 	require.NoError(t, err)

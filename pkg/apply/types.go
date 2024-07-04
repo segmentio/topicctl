@@ -57,12 +57,7 @@ type UpdateChangesTracker struct {
 	Topic  string     `json:"topic"`
 
 	// tracks changes in partition count
-	// TODO: implement this
-	// NumPartitions *IntValueChanges `json:"numPartitions"`
-
-	// tracks changes in replication factor
-	// TODO: implement this
-	// ReplicationFactor *IntValueChanges `json:"replicationFactor"`
+	NumPartitions *IntValueChanges `json:"numPartitions"`
 
 	// ReplicaAssignments among kafka brokers for this topic partitions. If this
 	// is set num_partitions and replication_factor must be unset.
