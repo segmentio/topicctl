@@ -13,7 +13,7 @@ RUN cd /go/src/${SRC} && \
     GOOS=$TARGETOS GOARCH=$TARGETARCH make topicctl VERSION=${VERSION}
 
 # copy topicctl & scripts to python image
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 COPY --from=builder \
     /go/src/github.com/getsentry/topicctl/build/topicctl \
