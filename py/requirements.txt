@@ -1,0 +1,3 @@
+--index-url https://pypi.devinfra.sentry.io/simple
+
+sentry-infra-event-notifier==0.0.3
