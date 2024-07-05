@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "topicctl_integration"
+version = "0.0.1"
+requires-python = ">= 3.8"
+
+[tool.black]
+line-length = 79
+target-version = ['py38']
+skip-magic-trailing-comma = true
+
+[tool.isort]
+profile = "black"
+line_length = 79

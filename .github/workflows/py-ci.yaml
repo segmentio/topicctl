@@ -1,0 +1,26 @@
+name: Python Integration CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  tests:
+    name: "Run tests"
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout code
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+      - name: Run tests
+        working-directory: ./py  
+        run: |
+          pip install -r requirements.txt  
+          pip install -r requirements-dev.txt
+          pytest test_parse_and_notify.py
+
