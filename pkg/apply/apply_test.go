@@ -246,7 +246,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 
 	// Third apply switches to in-rack
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyInRack
-	_, err = applier.Apply(ctx)
+	changes, err := applier.Apply(ctx)
 	require.NoError(t, err)
 
 	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
@@ -267,6 +267,40 @@ func TestApplyPlacementUpdates(t *testing.T) {
 		updatedReplicas,
 	)
 	assert.True(t, topicInfo.AllLeadersCorrect())
+
+	expectedReplicaAssignments := []ReplicaAssignmentChanges{
+		{
+			Partition:       0,
+			CurrentReplicas: []int{5, 2},
+			UpdatedReplicas: []int{5, 6},
+		},
+		{
+			Partition:       1,
+			CurrentReplicas: []int{6, 3},
+			UpdatedReplicas: []int{6, 5},
+		},
+		{
+			Partition:       2,
+			CurrentReplicas: []int{3, 1},
+			UpdatedReplicas: []int{3, 4},
+		},
+		{
+			Partition:       3,
+			CurrentReplicas: []int{1, 2},
+			UpdatedReplicas: []int{1, 2},
+		},
+		{
+			Partition:       4,
+			CurrentReplicas: []int{2, 3},
+			UpdatedReplicas: []int{2, 1},
+		},
+		{
+			Partition:       5,
+			CurrentReplicas: []int{3, 1},
+			UpdatedReplicas: []int{3, 4},
+		},
+	}
+	assert.Equal(t, *changes.UpdateChanges.ReplicaAssignments, expectedReplicaAssignments)
 
 	brokers, err := applier.adminClient.GetBrokers(ctx, nil)
 	require.NoError(t, err)
@@ -333,7 +367,6 @@ func TestApplyRebalance(t *testing.T) {
 	assert.True(t, topicInfo.AllLeadersCorrect())
 
 	// Next apply rebalances
-	// TODO: test changes once rebalancing is in UpdateChangesTracker
 	applier.topicConfig.Spec.PlacementConfig.Strategy = config.PlacementStrategyAny
 	applier.config.Rebalance = true
 	_, err = applier.Apply(ctx)

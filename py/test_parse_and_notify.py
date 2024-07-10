@@ -77,6 +77,18 @@ def test_topicctl() -> None:
                     }
                 ],
                 "missingKeys": ["max.message.bytes"],
+                "replicaAssignments": [
+                    {
+                        "partition": 0,
+                        "currentReplicas": [5, 4],
+                        "updatedReplicas": [3, 4],
+                    },
+                    {
+                        "partition": 1,
+                        "currentReplicas": [2, 6],
+                        "updatedReplicas": [5, 6],
+                    },
+                ],
                 "error": False,
             }
         ],
@@ -101,8 +113,9 @@ def test_topicctl() -> None:
     assert topic2.change_set == [
         ["Action (create/update)", "update", ""],
         ["Partition Count", None, None],
-        ["Replication Factor", "UNSUPPORTED", "UNSUPPORTED"],
         ["cleanup.policy", "", "delete"],
         ["message.timestamp.type", "CreateTime", "LogAppendTime"],
         ["max.message.bytes", "", "REMOVED"],
+        ["Partition 0 assignments", "[5, 4]", "[3, 4]"],
+        ["Partition 1 assignments", "[2, 6]", "[5, 6]"],
     ]
