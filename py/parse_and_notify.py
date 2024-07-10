@@ -166,35 +166,35 @@ class TopicctlOutput:
 
 
 def main():
-    input_data = sys.stdin.read()
-    topics = TopicctlOutput.build(input_data)
+    for line in sys.stdin:
+        topics = TopicctlOutput.build(line)
 
-    token = os.getenv("DATADOG_API_KEY")
-    assert token is not None, "No Datadog token in DATADOG_API_KEY env var"
-    notifier = Notifier(datadog_api_key=token)
+        token = os.getenv("DATADOG_API_KEY")
+        assert token is not None, "No Datadog token in DATADOG_API_KEY env var"
+        notifier = Notifier(datadog_api_key=token)
 
-    dry_run = "Dry run: " if topics.dry_run else ""
-    tags = {
-        "source": "topicctl",
-        "source_category": "infra_tools",
-        "sentry_region": SENTRY_REGION,
-    }
+        dry_run = "Dry run: " if topics.dry_run else ""
+        tags = {
+            "source": "topicctl",
+            "source_category": "infra_tools",
+            "sentry_region": SENTRY_REGION,
+        }
 
-    for topic in topics.topics:
-        title = (
-            f"{dry_run}Topicctl ran apply on topic {topic.name} "
-            f"in region {SENTRY_REGION}"
-        )
-        text = topic.render_table()
-        if len(text) > 3950:
-            text = (
-                "Changes exceed 4000 character limit, "
-                "check topicctl logs for details on changes"
+        for topic in topics.topics:
+            title = (
+                f"{dry_run}Topicctl ran apply on topic {topic.name} "
+                f"in region {SENTRY_REGION}"
             )
-        tags["topicctl_topic"] = topic.name
+            text = topic.render_table()
+            if len(text) > 3950:
+                text = (
+                    "Changes exceed 4000 character limit, "
+                    "check topicctl logs for details on changes"
+                )
+            tags["topicctl_topic"] = topic.name
 
-        notifier.notify(title=title, tags=tags, text=text, alert_type="")
-        print(f"{title}", file=sys.stderr)
+            notifier.notify(title=title, tags=tags, text=text, alert_type="")
+            print(f"{title}", file=sys.stderr)
 
 
 if __name__ == "__main__":
