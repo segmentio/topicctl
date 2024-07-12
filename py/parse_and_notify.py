@@ -48,7 +48,9 @@ class Topic(ABC):
 @dataclass(frozen=True)
 class NewTopic(Topic):
     change_set: Sequence[Sequence[str | int | None]]
+    dry_run: bool
     error: bool
+    name: str
 
     def render_table(self) -> str:
         return make_markdown_table(
@@ -60,6 +62,7 @@ class NewTopic(Topic):
     def build(cls, raw_content: Mapping[str, Any]) -> NewTopic:
         return NewTopic(
             name=raw_content["topic"],
+            dry_run=raw_content["dryRun"],
             error=False,
             change_set=[
                 ["Action (create/update)", "create"],
@@ -76,7 +79,9 @@ class NewTopic(Topic):
 @dataclass(frozen=True)
 class UpdatedTopic(Topic):
     change_set: Sequence[Sequence[str | int | None]]
+    dry_run: bool
     error: bool
+    name: str
 
     def render_table(self) -> str:
         return make_markdown_table(
@@ -90,8 +95,12 @@ class UpdatedTopic(Topic):
             ["Action (create/update)", "update", ""],
             [
                 "Partition Count",
-                raw_content["numPartitions"],
-                raw_content["numPartitions"],
+                raw_content["numPartitions"]["current"]
+                if raw_content["numPartitions"]
+                else None,
+                raw_content["numPartitions"]["updated"]
+                if raw_content["numPartitions"]
+                else None,
             ],
         ]
 
@@ -137,64 +146,47 @@ class UpdatedTopic(Topic):
 
         return UpdatedTopic(
             name=raw_content["topic"],
+            dry_run=raw_content["dryRun"],
             error=raw_content["error"],
             change_set=change_set,
         )
 
 
-@dataclass(frozen=True)
-class TopicctlOutput:
-    dry_run: bool
-    topics: Sequence[Topic]
+def main():
+    token = os.getenv("DATADOG_API_KEY")
+    assert token is not None, "No Datadog token in DATADOG_API_KEY env var"
+    notifier = Notifier(datadog_api_key=token)
 
-    @classmethod
-    def build(cls, raw_content: str) -> TopicctlOutput:
-        parsed = json.loads(raw_content)
-        return TopicctlOutput(
-            dry_run=parsed["dryRun"],
-            topics=[
-                *[
-                    NewTopic.build(content)
-                    for content in parsed["newTopics"] or []
-                ],
-                *[
-                    UpdatedTopic.build(content)
-                    for content in parsed["updatedTopics"] or []
-                ],
-            ],
+    for line in sys.stdin:
+        topic = json.loads(line)
+        action = topic["action"]
+        topic_content = (
+            NewTopic.build(topic)
+            if action == "create"
+            else UpdatedTopic.build(topic)
         )
 
-
-def main():
-    for line in sys.stdin:
-        topics = TopicctlOutput.build(line)
-
-        token = os.getenv("DATADOG_API_KEY")
-        assert token is not None, "No Datadog token in DATADOG_API_KEY env var"
-        notifier = Notifier(datadog_api_key=token)
-
-        dry_run = "Dry run: " if topics.dry_run else ""
         tags = {
             "source": "topicctl",
             "source_category": "infra_tools",
             "sentry_region": SENTRY_REGION,
         }
 
-        for topic in topics.topics:
-            title = (
-                f"{dry_run}Topicctl ran apply on topic {topic.name} "
-                f"in region {SENTRY_REGION}"
+        dry_run = "Dry run: " if topic_content.dry_run else ""
+        title = (
+            f"{dry_run}Topicctl ran apply on topic {topic_content.name} "
+            f"in region {SENTRY_REGION}"
+        )
+        text = topic_content.render_table()
+        if len(text) > 3950:
+            text = (
+                "Changes exceed 4000 character limit, "
+                "check topicctl logs for details on changes"
             )
-            text = topic.render_table()
-            if len(text) > 3950:
-                text = (
-                    "Changes exceed 4000 character limit, "
-                    "check topicctl logs for details on changes"
-                )
-            tags["topicctl_topic"] = topic.name
+        tags["topicctl_topic"] = topic_content.name
 
-            notifier.notify(title=title, tags=tags, text=text, alert_type="")
-            print(f"{title}", file=sys.stderr)
+        notifier.notify(title=title, tags=tags, text=text, alert_type="")
+        print(f"{title}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -1,14 +1,8 @@
-import json
 from typing import Sequence
 
 import pytest
 
-from parse_and_notify import (
-    NewTopic,
-    TopicctlOutput,
-    UpdatedTopic,
-    make_markdown_table,
-)
+from parse_and_notify import NewTopic, UpdatedTopic, make_markdown_table
 
 TABLE_TESTS = [
     pytest.param([], [], "%%%\n||\n||\n%%%", id="Empty table"),
@@ -49,54 +43,48 @@ NEW_TOPIC_RENDERED = """%%%
 
 
 def test_topicctl() -> None:
-    content = {
-        "newTopics": [
-            {
-                "topic": "my_topic",
-                "numPartitions": 16,
-                "replicationFactor": 3,
-                "configEntries": [
-                    {"name": "cleanup.policy", "value": "delete"},
-                    {"name": "max.message.bytes", "value": "5542880"},
-                ],
-            }
-        ],
-        "updatedTopics": [
-            {
-                "action": "update",
-                "topic": "topic-default",
-                "numPartitions": None,
-                "newConfigEntries": [
-                    {"name": "cleanup.policy", "value": "delete"}
-                ],
-                "updatedConfigEntries": [
-                    {
-                        "name": "message.timestamp.type",
-                        "current": "CreateTime",
-                        "updated": "LogAppendTime",
-                    }
-                ],
-                "missingKeys": ["max.message.bytes"],
-                "replicaAssignments": [
-                    {
-                        "partition": 0,
-                        "currentReplicas": [5, 4],
-                        "updatedReplicas": [3, 4],
-                    },
-                    {
-                        "partition": 1,
-                        "currentReplicas": [2, 6],
-                        "updatedReplicas": [5, 6],
-                    },
-                ],
-                "error": False,
-            }
+    new_topic_content = {
+        "action": "create",
+        "topic": "my_topic",
+        "numPartitions": 16,
+        "replicationFactor": 3,
+        "configEntries": [
+            {"name": "cleanup.policy", "value": "delete"},
+            {"name": "max.message.bytes", "value": "5542880"},
         ],
         "dryRun": False,
     }
-    output = TopicctlOutput.build(json.dumps(content))
-    assert len(output.topics) == 2
-    topic = output.topics[0]
+    updated_topic_content = {
+        "action": "update",
+        "topic": "topic-default",
+        "numPartitions": None,
+        "newConfigEntries": [{"name": "cleanup.policy", "value": "delete"}],
+        "updatedConfigEntries": [
+            {
+                "name": "message.timestamp.type",
+                "current": "CreateTime",
+                "updated": "LogAppendTime",
+            }
+        ],
+        "missingKeys": ["max.message.bytes"],
+        "replicaAssignments": [
+            {
+                "partition": 0,
+                "currentReplicas": [5, 4],
+                "updatedReplicas": [3, 4],
+            },
+            {
+                "partition": 1,
+                "currentReplicas": [2, 6],
+                "updatedReplicas": [5, 6],
+            },
+        ],
+        "error": False,
+        "dryRun": False,
+    }
+
+    topic = NewTopic.build(new_topic_content)
+    topic2 = UpdatedTopic.build(updated_topic_content)
     assert isinstance(topic, NewTopic)
     assert topic.change_set == [
         ["Action (create/update)", "create"],
@@ -107,7 +95,6 @@ def test_topicctl() -> None:
     ]
     assert topic.render_table() == NEW_TOPIC_RENDERED
 
-    topic2 = output.topics[1]
     assert isinstance(topic2, UpdatedTopic)
 
     assert topic2.change_set == [

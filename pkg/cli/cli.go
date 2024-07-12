@@ -111,7 +111,7 @@ func (c *CLIRunner) GetClusterID(ctx context.Context, full bool) error {
 func (c *CLIRunner) ApplyTopic(
 	ctx context.Context,
 	applierConfig apply.TopicApplierConfig,
-) (*apply.NewOrUpdatedChanges, error) {
+) (apply.NewOrUpdatedChanges, error) {
 	applier, err := apply.NewTopicApplier(
 		ctx,
 		c.adminClient,

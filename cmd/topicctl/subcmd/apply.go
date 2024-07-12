@@ -49,12 +49,6 @@ type applyCmdConfig struct {
 
 var applyConfig applyCmdConfig
 
-type allChanges struct {
-	NewTopics     []apply.NewChangesTracker    `json:"newTopics"`
-	UpdatedTopics []apply.UpdateChangesTracker `json:"updatedTopics"`
-	DryRun        bool                         `json:"dryRun"`
-}
-
 func init() {
 	applyCmd.Flags().IntSliceVar(
 		&applyConfig.brokersToRemove,
@@ -220,35 +214,38 @@ func applyRun(cmd *cobra.Command, args []string) error {
 	return errs
 }
 
-// unpacks a NewOrUpdatedChanges object into allChanges' NewTopics and UpdatedTopics lists
-func unpackChanges(currentChange *apply.NewOrUpdatedChanges, changeList allChanges) allChanges {
-	// if no changes were made on this run just return
-	if currentChange == nil {
-		return changeList
-	}
-
-	if currentChange.NewChanges != nil {
-		changeList.NewTopics = append(changeList.NewTopics, *currentChange.NewChanges)
-	}
-	if currentChange.UpdateChanges != nil {
-		changeList.UpdatedTopics = append(changeList.UpdatedTopics, *currentChange.UpdateChanges)
-	}
-	return changeList
-}
-
-// prints JSON blob of changes being made to stdout
-// returns the JSON blob as a map object
-func printChanges(changes allChanges) (map[string]interface{}, error) {
+// prints changes as JSON to stdout
+func printJson(changes apply.NewOrUpdatedChanges) (map[string]interface{}, error) {
 	jsonChanges, err := json.Marshal(changes)
 	if err != nil {
 		return nil, err
 	}
-	//print json to stdout
+	// print json to stdout
 	fmt.Printf("%s\n", jsonChanges)
 	// return unmarshalled map
 	changesMap := make(map[string]interface{})
 	err = json.Unmarshal(jsonChanges, &changesMap)
 	return changesMap, err
+}
+
+// checkForChanges returns if a struct implementing NewOrUpdatedChanges is nil
+func checkForChanges(changes apply.NewOrUpdatedChanges) bool {
+	switch changes.(type) {
+	case *apply.NewChangesTracker:
+		if changes.(*apply.NewChangesTracker) != nil {
+			return true
+		} else {
+			return false
+		}
+	case *apply.UpdateChangesTracker:
+		if changes.(*apply.UpdateChangesTracker) != nil {
+			return true
+		} else {
+			return false
+		}
+	default:
+		return false
+	}
 }
 
 func applyTopic(
@@ -291,11 +288,6 @@ func applyTopic(
 
 	cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 
-	// initialize changesMap and add dry run flag
-	changesToBePrinted := allChanges{
-		DryRun: applyConfig.dryRun,
-	}
-
 	for _, topicConfig := range topicConfigs {
 		topicConfig.SetDefaults()
 		log.Infof(
@@ -326,25 +318,24 @@ func applyTopic(
 			// if one of the steps after updateSettings errors when updating a topic,
 			// we can be in a state where some (but not all) changes were applied
 			// some topic creation errors also still create the topic
-			changesToBePrinted = unpackChanges(topicChanges, changesToBePrinted)
-			if changesToBePrinted.NewTopics != nil || changesToBePrinted.UpdatedTopics != nil {
-				log.Error("Error detected while creating or updating a topic, the following changes were still made:")
-				partialChanges, printErr := printChanges(changesToBePrinted)
+			log.Error("Error detected while creating or updating a topic")
+			if checkForChanges(topicChanges) {
+				log.Error("The following changes were still made:")
+				partialChanges, printErr := printJson(topicChanges)
 				if printErr != nil {
-					log.Error("Error printing partial JSON changes data")
+					log.Error("Error printing JSON changes data")
 				} else {
 					log.Errorf("%#v", partialChanges)
 				}
+			}
+			return err
+		}
+
+		// ensure we're not printing empty json if there's no changes to the topic
+		if checkForChanges(topicChanges) {
+			if _, err := printJson(topicChanges); err != nil {
 				return err
 			}
-		}
-		changesToBePrinted = unpackChanges(topicChanges, changesToBePrinted)
-	}
-
-	// ensure we're not printing empty json if there's no changes to the topic
-	if applyConfig.jsonOutput && (changesToBePrinted.NewTopics != nil || changesToBePrinted.UpdatedTopics != nil) {
-		if _, err := printChanges(changesToBePrinted); err != nil {
-			return err
 		}
 	}
 

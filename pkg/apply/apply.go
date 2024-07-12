@@ -67,18 +67,19 @@ const (
 type NewChangesTracker struct {
 	// Action records whether this is a topic being created or updated
 	Action            ActionEnum        `json:"action"`
+	DryRun            bool              `json:"dryRun"`
 	Topic             string            `json:"topic"`
 	NumPartitions     int               `json:"numPartitions"`
 	ReplicationFactor int               `json:"replicationFactor"`
 	ConfigEntries     *[]NewConfigEntry `json:"configEntries"`
 }
 
-// UpdateChangesTracker stores the same data as NewChangesTracker,
-// but
+// UpdateChangesTracker stores changes during topic update
 // to eventually be printed to stdout as a JSON blob in subcmd/apply.go
 type UpdateChangesTracker struct {
 	// Action records whether this is a topic being created or updated
 	Action ActionEnum `json:"action"`
+	DryRun bool       `json:"dryRun"`
 	Topic  string     `json:"topic"`
 
 	// tracks changes in partition count
@@ -116,12 +117,8 @@ func (changes *UpdateChangesTracker) mergeReplicaAssignments(
 	}
 }
 
-// Union of NewChangesTracker and UpdateChangesTracker
-// used as a return type for the Apply function (which forks into applyNewTopic or applyExistingTopic)
-type NewOrUpdatedChanges struct {
-	NewChanges    *NewChangesTracker
-	UpdateChanges *UpdateChangesTracker
-}
+// used as a Union type of NewChangesTracker and UpdateChangesTracker
+type NewOrUpdatedChanges interface{}
 
 // TopicApplierConfig contains the configuration for a TopicApplier struct.
 type TopicApplierConfig struct {
@@ -222,7 +219,7 @@ func NewTopicApplier(
 //     c. Check partition count and extend if needed
 //     d. Check partition placement and update/migrate if needed
 //     e. Check partition leaders and update if needed
-func (t *TopicApplier) Apply(ctx context.Context) (*NewOrUpdatedChanges, error) {
+func (t *TopicApplier) Apply(ctx context.Context) (NewOrUpdatedChanges, error) {
 	log.Info("Validating configs...")
 	brokerRacks := admin.DistinctRacks(t.brokers)
 
@@ -244,20 +241,14 @@ func (t *TopicApplier) Apply(ctx context.Context) (*NewOrUpdatedChanges, error) 
 		// if the topic doesn't exist, create it
 		if err == admin.ErrTopicDoesNotExist {
 			newTopicChanges, err := t.applyNewTopic(ctx)
-			return &NewOrUpdatedChanges{
-				NewChanges:    newTopicChanges,
-				UpdateChanges: nil,
-			}, err
+			return newTopicChanges, err
 		}
 		return nil, err
 	}
 
 	// if the topic does exist, update it
 	updatedTopic, err := t.applyExistingTopic(ctx, topicInfo)
-	return &NewOrUpdatedChanges{
-		NewChanges:    nil,
-		UpdateChanges: updatedTopic,
-	}, err
+	return updatedTopic, err
 }
 
 func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, error) {
@@ -268,7 +259,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, e
 
 	if t.config.DryRun {
 		log.Infof("Would create topic with config %+v", newTopicConfig)
-		changes := ProcessTopicConfigIntoChanges(t.topicConfig.Meta.Name, newTopicConfig)
+		changes := ProcessTopicConfigIntoChanges(t.topicConfig.Meta.Name, newTopicConfig, t.config.DryRun)
 		return changes, nil
 	}
 
@@ -293,7 +284,7 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, e
 	}
 
 	// add new topic config to changes map
-	changes := ProcessTopicConfigIntoChanges(t.topicConfig.Meta.Name, newTopicConfig)
+	changes := ProcessTopicConfigIntoChanges(t.topicConfig.Meta.Name, newTopicConfig, t.config.DryRun)
 
 	// Just do a short sleep to ensure that zk is updated before we check
 	if err := interruptableSleep(ctx, t.config.SleepLoopDuration/5); err != nil {
@@ -312,6 +303,19 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, e
 	return changes, nil
 }
 
+// helper function to check if there are any actual updates on the topic 
+// when returning applyExistingTopic
+func checkForUpdates(updateChanges *UpdateChangesTracker) (*UpdateChangesTracker) {
+	if (updateChanges.NumPartitions == nil &&
+		updateChanges.NewConfigEntries == nil &&
+		updateChanges.UpdatedConfigEntries == nil &&
+		updateChanges.ReplicaAssignments == nil &&
+		len(updateChanges.MissingKeys) == 0) {
+		return nil
+	}
+	return updateChanges
+}
+
 func (t *TopicApplier) applyExistingTopic(
 	ctx context.Context,
 	topicInfo admin.TopicInfo,
@@ -324,6 +328,7 @@ func (t *TopicApplier) applyExistingTopic(
 
 	changes := &UpdateChangesTracker{
 		Action:      ActionEnumUpdate,
+		DryRun:      t.config.DryRun,
 		Topic:       t.topicName,
 		MissingKeys: make([]string, 0),
 		Error:       false,
@@ -334,17 +339,16 @@ func (t *TopicApplier) applyExistingTopic(
 	}
 
 	if err := t.updateReplication(ctx, topicInfo); err != nil {
-		changes.Error = true
-		return changes, err
+		return checkForUpdates(changes), err
 	}
 
 	if err := t.updatePartitions(ctx, topicInfo, changes); err != nil {
 		if errors.Is(err, ErrFewerPartitions) && t.config.IgnoreFewerPartitionsError {
 			log.Warnf("UpdatePartitions failure ignored. topic: %v, error: %v", t.topicName, err)
-			return changes, nil
+			return checkForUpdates(changes), nil
 		}
 		changes.Error = true
-		return changes, err
+		return checkForUpdates(changes), err
 	}
 
 	// record current partition assignments before we start any rebalances
@@ -367,7 +371,7 @@ func (t *TopicApplier) applyExistingTopic(
 		changes,
 	); err != nil {
 		changes.Error = true
-		return changes, err
+		return checkForUpdates(changes), err
 	}
 
 	if err := t.updateLeaders(
@@ -375,7 +379,7 @@ func (t *TopicApplier) applyExistingTopic(
 		-1,
 	); err != nil {
 		changes.Error = true
-		return changes, err
+		return checkForUpdates(changes), err
 	}
 
 	if t.config.Rebalance {
@@ -385,7 +389,7 @@ func (t *TopicApplier) applyExistingTopic(
 			changes,
 		); err != nil {
 			changes.Error = true
-			return changes, err
+			return checkForUpdates(changes), err
 		}
 
 		if err := t.updateLeaders(
@@ -393,7 +397,7 @@ func (t *TopicApplier) applyExistingTopic(
 			-1,
 		); err != nil {
 			changes.Error = true
-			return changes, err
+			return checkForUpdates(changes), err
 		}
 	}
 
@@ -408,7 +412,7 @@ func (t *TopicApplier) applyExistingTopic(
 		changes.ReplicaAssignments = nil
 	}
 
-	return changes, nil
+	return checkForUpdates(changes), nil
 }
 
 func (t *TopicApplier) checkExistingState(
