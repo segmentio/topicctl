@@ -9,17 +9,26 @@ services:
     hostname: zookeeper
     image: bitnami/zookeeper:latest
     ports:
-      - "2181:2181"
+    - "2181:2181"
     environment:
       ALLOW_ANONYMOUS_LOGIN: yes
 
   # Zone 1 brokers
+    # If you are on arm64 and experiencing issues with the tests (hangs,
+    # connection reset) then try the following in order:
+
+    # - stopping and removing all downloaded container images
+    # - ensuring you have the latest Docker Desktop version
+    # - factory reset your Docker Desktop settings
+
+    # If you are still running into issues please post in #help-infra-seg.
+    platform: linux/amd64
   kafka1:
     container_name: kafka1
     hostname: 169.254.123.123
     image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
-      - "9092:9092"
+    - "9092:9092"
     environment:
       KAFKA_CFG_BROKER_ID: 1
       KAFKA_CFG_BROKER_RACK: zone1
@@ -30,14 +39,16 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://169.254.123.123:9092
     restart: on-failure
     depends_on:
-      - zookeeper
+    - zookeeper
 
+    # See platform comment above for amd64/arm64 troubleshooting
+    platform: linux/amd64
   kafka2:
     container_name: kafka2
     hostname: 169.254.123.123
     image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
-      - "9093:9092"
+    - "9093:9092"
     environment:
       KAFKA_CFG_BROKER_ID: 2
       KAFKA_CFG_BROKER_RACK: zone1
@@ -48,15 +59,17 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://169.254.123.123:9093
     restart: on-failure
     depends_on:
-      - zookeeper
+    - zookeeper
 
   # Zone 2 brokers
+    # See platform comment above for amd64/arm64 troubleshooting
+    platform: linux/amd64
   kafka3:
     container_name: kafka3
     hostname: 169.254.123.123
     image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
-      - "9094:9092"
+    - "9094:9092"
     environment:
       KAFKA_CFG_BROKER_ID: 3
       KAFKA_CFG_BROKER_RACK: zone2
@@ -67,14 +80,16 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://169.254.123.123:9094
     restart: on-failure
     depends_on:
-      - zookeeper
+    - zookeeper
 
+    # See platform comment above for amd64/arm64 troubleshooting
+    platform: linux/amd64
   kafka4:
     container_name: kafka4
     hostname: 169.254.123.123
     image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
-      - "9095:9092"
+    - "9095:9092"
     environment:
       KAFKA_CFG_BROKER_ID: 4
       KAFKA_CFG_BROKER_RACK: zone2
@@ -85,15 +100,17 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://169.254.123.123:9095
     restart: on-failure
     depends_on:
-      - zookeeper
+    - zookeeper
 
   # Zone 3 brokers
+    # See platform comment above for amd64/arm64 troubleshooting
+    platform: linux/amd64
   kafka5:
     container_name: kafka5
     hostname: 169.254.123.123
     image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
-      - "9096:9092"
+    - "9096:9092"
     environment:
       KAFKA_CFG_BROKER_ID: 5
       KAFKA_CFG_BROKER_RACK: zone3
@@ -104,14 +121,16 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://169.254.123.123:9096
     restart: on-failure
     depends_on:
-      - zookeeper
+    - zookeeper
 
+    # See platform comment above for amd64/arm64 troubleshooting
+    platform: linux/amd64
   kafka6:
     container_name: kafka6
     hostname: 169.254.123.123
     image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
-      - "9097:9092"
+    - "9097:9092"
     environment:
       KAFKA_CFG_BROKER_ID: 6
       KAFKA_CFG_BROKER_RACK: zone3
@@ -122,4 +141,6 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://169.254.123.123:9097
     restart: on-failure
     depends_on:
-      - zookeeper
+    - zookeeper
+    # See platform comment above for amd64/arm64 troubleshooting
+    platform: linux/amd64
