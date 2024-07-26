@@ -32,7 +32,7 @@ func TestKafkaAddr() string {
 	// address
 	testKafkaAddr, ok := os.LookupEnv("KAFKA_TOPICS_TEST_KAFKA_ADDR")
 	if !ok {
-		return "169.254.123.123:9092"
+		return "localhost:9092"
 	}
 
 	return testKafkaAddr
