@@ -168,6 +168,7 @@ def main():
 
         tags = {
             "source": "topicctl",
+            "source_tool": "topicctl",
             "source_category": "infra_tools",
             "sentry_region": SENTRY_REGION,
         }
