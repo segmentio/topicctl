@@ -228,17 +228,17 @@ func printJson(changes apply.NewOrUpdatedChanges) (map[string]interface{}, error
 	return changesMap, err
 }
 
-// checkForChanges returns if a struct implementing NewOrUpdatedChanges is nil
-func checkForChanges(changes apply.NewOrUpdatedChanges) bool {
-	switch changes.(type) {
+// isStructNotNil returns if a struct implementing NewOrUpdatedChanges is nil
+func isStructNotNil(changes apply.NewOrUpdatedChanges) bool {
+	switch changes := changes.(type) {
 	case *apply.NewChangesTracker:
-		if changes.(*apply.NewChangesTracker) != nil {
+		if changes != nil {
 			return true
 		} else {
 			return false
 		}
 	case *apply.UpdateChangesTracker:
-		if changes.(*apply.UpdateChangesTracker) != nil {
+		if changes != nil {
 			return true
 		} else {
 			return false
@@ -315,30 +315,27 @@ func applyTopic(
 		}
 		topicChanges, err := cliRunner.ApplyTopic(ctx, applierConfig)
 		if err != nil {
-			// if one of the steps after updateSettings errors when updating a topic,
-			// we can be in a state where some (but not all) changes were applied
-			// some topic creation errors also still create the topic
+			// If one of the steps after updateSettings errors when updating a topic,
+			// we can be in a state where some (but not all) changes were applied.
+			// Some topic creation errors also still create the topic
 			log.Error("Error detected while creating or updating a topic")
-			if checkForChanges(topicChanges) {
-				log.Error("The following changes were still made:")
-				partialChanges, printErr := printJson(topicChanges)
-				if printErr != nil {
-					log.Error("Error printing JSON changes data")
-				} else {
-					log.Errorf("%#v", partialChanges)
-				}
+			log.Error("The following changes were still made:")
+			partialChanges, printErr := printJson(topicChanges)
+			if printErr != nil {
+				log.Error("Error printing JSON changes data")
+			} else {
+				log.Errorf("%#v", partialChanges)
 			}
 			return err
 		}
 
-		// ensure we're not printing empty json if there's no changes to the topic
-		if checkForChanges(topicChanges) {
+		// if there were no changes, topicChanges can be nil
+		if isStructNotNil(topicChanges) {
 			if _, err := printJson(topicChanges); err != nil {
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 

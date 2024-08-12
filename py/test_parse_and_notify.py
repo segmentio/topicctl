@@ -27,7 +27,7 @@ def test_markdown_table(
     content: Sequence[Sequence[str | int | None]],
     expected: str,
 ) -> None:
-    assert make_markdown_table(headers, content) == expected
+    assert make_markdown_table(headers, content, False, None) == expected
 
 
 NEW_TOPIC_RENDERED = """%%%
@@ -41,6 +41,28 @@ NEW_TOPIC_RENDERED = """%%%
 |max.message.bytes|5542880|
 %%%"""
 
+EMPTY_ERROR_MESSAGE = """%%%
+# ERROR - the following error occurred while processing this topic:
+this is an error
+
+# No changes were made.%%%"""
+
+UPDATE_CHANGES_ERROR_MESSAGE = """%%%
+# ERROR - the following error occurred while processing this topic:
+also an error
+
+# The following changes were still made:
+
+|Parameter|Old Value|New Value|
+|-|-|-|
+|Action (create/update)|update||
+|cleanup.policy||delete|
+|message.timestamp.type|CreateTime|LogAppendTime|
+|max.message.bytes||REMOVED|
+|Partition 0 assignments|[5, 4]|[3, 4]|
+|Partition 1 assignments|[2, 6]|[5, 6]|
+%%%"""
+
 
 def test_topicctl() -> None:
     new_topic_content = {
@@ -52,6 +74,8 @@ def test_topicctl() -> None:
             {"name": "cleanup.policy", "value": "delete"},
             {"name": "max.message.bytes", "value": "5542880"},
         ],
+        "error": False,
+        "errorMessage": "",
         "dryRun": False,
     }
     updated_topic_content = {
@@ -80,6 +104,7 @@ def test_topicctl() -> None:
             },
         ],
         "error": False,
+        "errorMessage": "",
         "dryRun": False,
     }
 
@@ -99,10 +124,72 @@ def test_topicctl() -> None:
 
     assert topic2.change_set == [
         ["Action (create/update)", "update", ""],
-        ["Partition Count", None, None],
         ["cleanup.policy", "", "delete"],
         ["message.timestamp.type", "CreateTime", "LogAppendTime"],
         ["max.message.bytes", "", "REMOVED"],
         ["Partition 0 assignments", "[5, 4]", "[3, 4]"],
         ["Partition 1 assignments", "[2, 6]", "[5, 6]"],
     ]
+
+
+def test_topicctl_errors() -> None:
+    new_topic_content = {
+        "action": "create",
+        "topic": "my_topic",
+        "numPartitions": None,
+        "replicationFactor": None,
+        "configEntries": [],
+        "error": True,
+        "errorMessage": "this is an error",
+        "dryRun": False,
+    }
+    updated_topic_content = {
+        "action": "update",
+        "topic": "topic-default",
+        "numPartitions": None,
+        "newConfigEntries": [{"name": "cleanup.policy", "value": "delete"}],
+        "updatedConfigEntries": [
+            {
+                "name": "message.timestamp.type",
+                "current": "CreateTime",
+                "updated": "LogAppendTime",
+            }
+        ],
+        "missingKeys": ["max.message.bytes"],
+        "replicaAssignments": [
+            {
+                "partition": 0,
+                "currentReplicas": [5, 4],
+                "updatedReplicas": [3, 4],
+            },
+            {
+                "partition": 1,
+                "currentReplicas": [2, 6],
+                "updatedReplicas": [5, 6],
+            },
+        ],
+        "error": True,
+        "errorMessage": "also an error",
+        "dryRun": False,
+    }
+
+    topic = NewTopic.build(new_topic_content)
+    topic2 = UpdatedTopic.build(updated_topic_content)
+    assert isinstance(topic, NewTopic)
+    # change_set is empty because no changes are in the dict
+    assert topic.change_set == []
+
+    assert topic.render_table() == EMPTY_ERROR_MESSAGE
+
+    assert isinstance(topic2, UpdatedTopic)
+
+    assert topic2.change_set == [
+        ["Action (create/update)", "update", ""],
+        ["cleanup.policy", "", "delete"],
+        ["message.timestamp.type", "CreateTime", "LogAppendTime"],
+        ["max.message.bytes", "", "REMOVED"],
+        ["Partition 0 assignments", "[5, 4]", "[3, 4]"],
+        ["Partition 1 assignments", "[2, 6]", "[5, 6]"],
+    ]
+
+    assert topic2.render_table() == UPDATE_CHANGES_ERROR_MESSAGE

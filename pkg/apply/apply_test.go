@@ -71,7 +71,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 			},
 			Action: "create",
 		}
-		assert.Equal(t, changes, expectedNewChanges)
+		assert.Equal(t, expectedNewChanges, changes)
 
 	// Topic exists and is set up correctly
 	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
@@ -117,7 +117,7 @@ func TestApplyBasicUpdates(t *testing.T) {
 			MissingKeys: []string{},
 		}
 	
-	assert.Equal(t, changes, expectedUpdateChanges)
+	assert.Equal(t, expectedUpdateChanges, changes)
 
 	// Dropped to only 450 because of retention reduction
 	assert.Equal(t, "27000000", topicInfo.Config[admin.RetentionKey])
@@ -332,7 +332,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 		{
 			Partition:       3,
 			CurrentReplicas: []int{1, 2},
-			UpdatedReplicas: []int{1, 2},
+			UpdatedReplicas: nil,
 		},
 		{
 			Partition:       4,
@@ -345,7 +345,7 @@ func TestApplyPlacementUpdates(t *testing.T) {
 			UpdatedReplicas: []int{3, 4},
 		},
 	}
-	assert.Equal(t, changes.(*UpdateChangesTracker).ReplicaAssignments, expectedReplicaAssignments)
+	assert.Equal(t, expectedReplicaAssignments, changes.(*UpdateChangesTracker).ReplicaAssignments)
 
 	brokers, err := applier.adminClient.GetBrokers(ctx, nil)
 	require.NoError(t, err)

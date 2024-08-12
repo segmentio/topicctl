@@ -72,6 +72,9 @@ type NewChangesTracker struct {
 	NumPartitions     int               `json:"numPartitions"`
 	ReplicationFactor int               `json:"replicationFactor"`
 	ConfigEntries     *[]NewConfigEntry `json:"configEntries"`
+	// Error stores if an error occurred during topic update
+	Error bool          `json:"error"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 // UpdateChangesTracker stores changes during topic update
@@ -97,7 +100,8 @@ type UpdateChangesTracker struct {
 	// MissingKeys stores configs which are set in the cluster but not in the topicctl config
 	MissingKeys []string `json:"missingKeys"`
 	// Error stores if an error occurred during topic update
-	Error bool `json:"error"`
+	Error bool          `json:"error"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 func (changes *UpdateChangesTracker) mergeReplicaAssignments(
@@ -205,6 +209,33 @@ func NewTopicApplier(
 	}, nil
 }
 
+// helper function to check if there are any actual updates on the topic 
+// when returning applyExistingTopic
+func ensureChangesOccurred(updateChanges *UpdateChangesTracker) (*UpdateChangesTracker) {
+	replicaAssignmentsChanged := false
+	if updateChanges.ReplicaAssignments != nil {
+		for _, partition := range *updateChanges.ReplicaAssignments {
+			if partition.UpdatedReplicas != nil {
+				replicaAssignmentsChanged = true
+			}
+		}
+	}
+	if !replicaAssignmentsChanged {
+		updateChanges.ReplicaAssignments = nil
+	}
+
+	// if nothing actually changed, report changes as nil
+	if (updateChanges.NumPartitions == nil &&
+		updateChanges.NewConfigEntries == nil &&
+		updateChanges.UpdatedConfigEntries == nil &&
+		len(updateChanges.MissingKeys) == 0 &&
+		updateChanges.ReplicaAssignments == nil &&
+		!updateChanges.Error) {
+		return nil
+	}
+	return updateChanges
+}
+
 // Apply runs a single "apply" run on the configured topic. The general flow is:
 //
 //  1. Validate configs
@@ -241,6 +272,10 @@ func (t *TopicApplier) Apply(ctx context.Context) (NewOrUpdatedChanges, error) {
 		// if the topic doesn't exist, create it
 		if err == admin.ErrTopicDoesNotExist {
 			newTopicChanges, err := t.applyNewTopic(ctx)
+			if err != nil {
+				newTopicChanges.Error = true
+				newTopicChanges.ErrorMessage = err.Error()
+			}
 			return newTopicChanges, err
 		}
 		return nil, err
@@ -248,7 +283,11 @@ func (t *TopicApplier) Apply(ctx context.Context) (NewOrUpdatedChanges, error) {
 
 	// if the topic does exist, update it
 	updatedTopic, err := t.applyExistingTopic(ctx, topicInfo)
-	return updatedTopic, err
+	if err != nil {
+		updatedTopic.Error = true
+    updatedTopic.ErrorMessage = err.Error()
+	}
+	return ensureChangesOccurred(updatedTopic), err
 }
 
 func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, error) {
@@ -295,25 +334,11 @@ func (t *TopicApplier) applyNewTopic(ctx context.Context) (*NewChangesTracker, e
 		return changes, err
 	}
 
-	// TODO: add leader elections to ChangesTracker
 	if err := t.updateLeaders(ctx, -1); err != nil {
 		return changes, err
 	}
 
 	return changes, nil
-}
-
-// helper function to check if there are any actual updates on the topic 
-// when returning applyExistingTopic
-func checkForUpdates(updateChanges *UpdateChangesTracker) (*UpdateChangesTracker) {
-	if (updateChanges.NumPartitions == nil &&
-		updateChanges.NewConfigEntries == nil &&
-		updateChanges.UpdatedConfigEntries == nil &&
-		updateChanges.ReplicaAssignments == nil &&
-		len(updateChanges.MissingKeys) == 0) {
-		return nil
-	}
-	return updateChanges
 }
 
 func (t *TopicApplier) applyExistingTopic(
@@ -335,20 +360,19 @@ func (t *TopicApplier) applyExistingTopic(
 	}
 
 	if err := t.updateSettings(ctx, topicInfo, changes); err != nil {
-		return nil, err
+		return changes, err
 	}
 
 	if err := t.updateReplication(ctx, topicInfo); err != nil {
-		return checkForUpdates(changes), err
+		return changes, err
 	}
 
 	if err := t.updatePartitions(ctx, topicInfo, changes); err != nil {
 		if errors.Is(err, ErrFewerPartitions) && t.config.IgnoreFewerPartitionsError {
 			log.Warnf("UpdatePartitions failure ignored. topic: %v, error: %v", t.topicName, err)
-			return checkForUpdates(changes), nil
+			return changes, nil
 		}
-		changes.Error = true
-		return checkForUpdates(changes), err
+		return changes, err
 	}
 
 	// record current partition assignments before we start any rebalances
@@ -358,8 +382,7 @@ func (t *TopicApplier) applyExistingTopic(
 		assignmentChanges = append(assignmentChanges, ReplicaAssignmentChanges{
 			Partition:       assignment.ID,
 			CurrentReplicas: assignment.Replicas,
-			// initially setting current == updated so we can check if anything changed later on
-			UpdatedReplicas: assignment.Replicas,
+			UpdatedReplicas: nil,
 		})
 	}
 	changes.ReplicaAssignments = &assignmentChanges
@@ -370,16 +393,14 @@ func (t *TopicApplier) applyExistingTopic(
 		false,
 		changes,
 	); err != nil {
-		changes.Error = true
-		return checkForUpdates(changes), err
+		return changes, err
 	}
 
 	if err := t.updateLeaders(
 		ctx,
 		-1,
 	); err != nil {
-		changes.Error = true
-		return checkForUpdates(changes), err
+		return changes, err
 	}
 
 	if t.config.Rebalance {
@@ -388,31 +409,18 @@ func (t *TopicApplier) applyExistingTopic(
 			t.maxBatchSize,
 			changes,
 		); err != nil {
-			changes.Error = true
-			return checkForUpdates(changes), err
+			return changes, err
 		}
 
 		if err := t.updateLeaders(
 			ctx,
 			-1,
 		); err != nil {
-			changes.Error = true
-			return checkForUpdates(changes), err
+			return changes, err
 		}
 	}
 
-	// if no replica assignments changed, don't report ReplicaAssignments
-	keepReplicaAssignments := false
-	for _, partition := range *changes.ReplicaAssignments {
-		if !reflect.DeepEqual(partition.CurrentReplicas, partition.UpdatedReplicas) {
-			keepReplicaAssignments = true
-		}
-	}
-	if !keepReplicaAssignments {
-		changes.ReplicaAssignments = nil
-	}
-
-	return checkForUpdates(changes), nil
+	return changes, nil
 }
 
 func (t *TopicApplier) checkExistingState(
