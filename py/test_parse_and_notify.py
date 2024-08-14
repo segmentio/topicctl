@@ -2,66 +2,92 @@ from typing import Sequence
 
 import pytest
 
-from parse_and_notify import NewTopic, UpdatedTopic, make_markdown_table
+from parse_and_notify import Destinations, NewTopic, UpdatedTopic, make_table
 
-TABLE_TESTS = [
-    pytest.param([], [], "%%%\n||\n||\n%%%", id="Empty table"),
+TABLE_TESTS_DATADOG = [
+    pytest.param([], [], "", id="Empty table"),
     pytest.param(
-        ["col1", "col2"],
-        [],
-        "%%%\n|col1|col2|\n|-|-|\n%%%",
-        id="Table with header",
+        ["col1", "col2"], [], "%%%\n%%%", id="Table with just headers"
     ),
     pytest.param(
         ["col1", "col2"],
         [["val1", "val2"], ["val3", "val4"]],
-        "%%%\n|col1|col2|\n|-|-|\n|val1|val2|\n|val3|val4|\n%%%",
+        "%%%\n| col1 | col2 |\n| ---- | ---- |\n| val1 | val2 |\n| val3 | val4 |\n%%%",  # noqa
+        id="Table with header and rows",
+    ),
+]
+
+TABLE_TESTS_SLACK = [
+    pytest.param([], [], "", id="Empty table"),
+    pytest.param(["col1", "col2"], [], "", id="Table with just headers"),
+    pytest.param(
+        ["col1", "col2"],
+        [["val1", "val2"], ["val3", "val4"]],
+        "```\n| col1 | col2 |\n| ---- | ---- |\n| val1 | val2 |\n| val3 | val4 |\n```",  # noqa
         id="Table with header and rows",
     ),
 ]
 
 
-@pytest.mark.parametrize("headers, content, expected", TABLE_TESTS)
-def test_markdown_table(
+@pytest.mark.parametrize("headers, content, expected", TABLE_TESTS_DATADOG)
+def test_table_datadog(
     headers: Sequence[str],
     content: Sequence[Sequence[str | int | None]],
     expected: str,
 ) -> None:
-    assert make_markdown_table(headers, content, False, None) == expected
+    assert make_table(headers, content, None, Destinations.DATADOG) == expected
 
 
-NEW_TOPIC_RENDERED = """%%%
-|Parameter|Value|
-|-|-|
-|Topic Name|my_topic|
-|Action (create/update)|create|
-|Partition Count|16|
-|Replication Factor|3|
-|cleanup.policy|delete|
-|max.message.bytes|5542880|
-%%%"""
+@pytest.mark.parametrize("headers, content, expected", TABLE_TESTS_SLACK)
+def test_table_slack(
+    headers: Sequence[str],
+    content: Sequence[Sequence[str | int | None]],
+    expected: str,
+) -> None:
+    assert make_table(headers, content, None, Destinations.SLACK) == expected
 
-EMPTY_ERROR_MESSAGE = """%%%
+
+NEW_TOPIC_RENDERED = """
+| Parameter              | Value    |
+| ---------------------- | -------- |
+| Topic Name             | my_topic |
+| Action (create/update) | create   |
+| Partition Count        | 16       |
+| Replication Factor     | 3        |
+| cleanup.policy         | delete   |
+| max.message.bytes      | 5542880  |
+"""
+DD_NEW_TOPIC_RENDERED = f"%%%{NEW_TOPIC_RENDERED}%%%"
+SLACK_NEW_TOPIC_RENDERED = f"```{NEW_TOPIC_RENDERED}```"
+
+DD_ERROR_MESSAGE = """
 # ERROR - the following error occurred while processing this topic:
 this is an error
+"""
+DD_EMPTY_ERROR_MESSAGE = f"%%%{DD_ERROR_MESSAGE}\n# No changes were made.\n%%%"
 
-# No changes were made.%%%"""
 
-UPDATE_CHANGES_ERROR_MESSAGE = """%%%
-# ERROR - the following error occurred while processing this topic:
-also an error
+SLACK_ERROR_MESSAGE = (
+    ":warning: *ERROR - the following error"
+    " occurred while processing this topic:*\n"
+    "this is an error\n"
+)
+SLACK_EMPTY_ERROR_MESSAGE = (
+    f"{SLACK_ERROR_MESSAGE}\n:warning: *No changes were made.*\n"
+)
 
-# The following changes were still made:
-
-|Parameter|Old Value|New Value|
-|-|-|-|
-|Action (create/update)|update||
-|cleanup.policy||delete|
-|message.timestamp.type|CreateTime|LogAppendTime|
-|max.message.bytes||REMOVED|
-|Partition 0 assignments|[5, 4]|[3, 4]|
-|Partition 1 assignments|[2, 6]|[5, 6]|
-%%%"""
+UPDATE_CHANGES = """
+| Parameter               | Old Value  | New Value     |
+| ----------------------- | ---------- | ------------- |
+| Action (create/update)  | update     |               |
+| cleanup.policy          |            | delete        |
+| message.timestamp.type  | CreateTime | LogAppendTime |
+| max.message.bytes       |            | REMOVED       |
+| Partition 0 assignments | [5, 4]     | [3, 4]        |
+| Partition 1 assignments | [2, 6]     | [5, 6]        |
+"""
+DD_UPDATE_ERROR = f"%%%{DD_ERROR_MESSAGE}\n# The following changes were still made:{UPDATE_CHANGES}%%%"  # noqa
+SLACK_UPDATE_ERROR = f"{SLACK_ERROR_MESSAGE}\n:warning: *The following changes were still made:*\n```{UPDATE_CHANGES}```"  # noqa
 
 
 def test_topicctl() -> None:
@@ -74,8 +100,7 @@ def test_topicctl() -> None:
             {"name": "cleanup.policy", "value": "delete"},
             {"name": "max.message.bytes", "value": "5542880"},
         ],
-        "error": False,
-        "errorMessage": "",
+        "errorMessage": None,
         "dryRun": False,
     }
     updated_topic_content = {
@@ -103,8 +128,7 @@ def test_topicctl() -> None:
                 "updatedReplicas": [5, 6],
             },
         ],
-        "error": False,
-        "errorMessage": "",
+        "errorMessage": None,
         "dryRun": False,
     }
 
@@ -118,7 +142,8 @@ def test_topicctl() -> None:
         ["cleanup.policy", "delete"],
         ["max.message.bytes", "5542880"],
     ]
-    assert topic.render_table() == NEW_TOPIC_RENDERED
+    assert topic.render_table(Destinations.DATADOG) == DD_NEW_TOPIC_RENDERED
+    assert topic.render_table(Destinations.SLACK) == SLACK_NEW_TOPIC_RENDERED
 
     assert isinstance(topic2, UpdatedTopic)
 
@@ -139,7 +164,6 @@ def test_topicctl_errors() -> None:
         "numPartitions": None,
         "replicationFactor": None,
         "configEntries": [],
-        "error": True,
         "errorMessage": "this is an error",
         "dryRun": False,
     }
@@ -168,8 +192,7 @@ def test_topicctl_errors() -> None:
                 "updatedReplicas": [5, 6],
             },
         ],
-        "error": True,
-        "errorMessage": "also an error",
+        "errorMessage": "this is an error",
         "dryRun": False,
     }
 
@@ -179,7 +202,8 @@ def test_topicctl_errors() -> None:
     # change_set is empty because no changes are in the dict
     assert topic.change_set == []
 
-    assert topic.render_table() == EMPTY_ERROR_MESSAGE
+    assert topic.render_table(Destinations.DATADOG) == DD_EMPTY_ERROR_MESSAGE
+    assert topic.render_table(Destinations.SLACK) == SLACK_EMPTY_ERROR_MESSAGE
 
     assert isinstance(topic2, UpdatedTopic)
 
@@ -192,4 +216,5 @@ def test_topicctl_errors() -> None:
         ["Partition 1 assignments", "[2, 6]", "[5, 6]"],
     ]
 
-    assert topic2.render_table() == UPDATE_CHANGES_ERROR_MESSAGE
+    assert topic2.render_table(Destinations.DATADOG) == DD_UPDATE_ERROR
+    assert topic2.render_table(Destinations.SLACK) == SLACK_UPDATE_ERROR

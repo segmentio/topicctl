@@ -72,9 +72,8 @@ type NewChangesTracker struct {
 	NumPartitions     int               `json:"numPartitions"`
 	ReplicationFactor int               `json:"replicationFactor"`
 	ConfigEntries     *[]NewConfigEntry `json:"configEntries"`
-	// Error stores if an error occurred during topic update
-	Error bool          `json:"error"`
-	ErrorMessage string `json:"errorMessage"`
+	// ErrorMessage stores the message of an error if one occurs during apply
+	ErrorMessage *string `json:"errorMessage"`
 }
 
 // UpdateChangesTracker stores changes during topic update
@@ -99,9 +98,8 @@ type UpdateChangesTracker struct {
 
 	// MissingKeys stores configs which are set in the cluster but not in the topicctl config
 	MissingKeys []string `json:"missingKeys"`
-	// Error stores if an error occurred during topic update
-	Error bool          `json:"error"`
-	ErrorMessage string `json:"errorMessage"`
+	// ErrorMessage stores the message of an error if one occurs during apply
+	ErrorMessage *string `json:"errorMessage"`
 }
 
 func (changes *UpdateChangesTracker) mergeReplicaAssignments(
@@ -230,7 +228,7 @@ func ensureChangesOccurred(updateChanges *UpdateChangesTracker) (*UpdateChangesT
 		updateChanges.UpdatedConfigEntries == nil &&
 		len(updateChanges.MissingKeys) == 0 &&
 		updateChanges.ReplicaAssignments == nil &&
-		!updateChanges.Error) {
+		updateChanges.ErrorMessage == nil) {
 		return nil
 	}
 	return updateChanges
@@ -273,8 +271,8 @@ func (t *TopicApplier) Apply(ctx context.Context) (NewOrUpdatedChanges, error) {
 		if err == admin.ErrTopicDoesNotExist {
 			newTopicChanges, err := t.applyNewTopic(ctx)
 			if err != nil {
-				newTopicChanges.Error = true
-				newTopicChanges.ErrorMessage = err.Error()
+				msg := err.Error()
+				newTopicChanges.ErrorMessage = &msg
 			}
 			return newTopicChanges, err
 		}
@@ -284,8 +282,8 @@ func (t *TopicApplier) Apply(ctx context.Context) (NewOrUpdatedChanges, error) {
 	// if the topic does exist, update it
 	updatedTopic, err := t.applyExistingTopic(ctx, topicInfo)
 	if err != nil {
-		updatedTopic.Error = true
-    updatedTopic.ErrorMessage = err.Error()
+		msg := err.Error()
+    updatedTopic.ErrorMessage = &msg
 	}
 	return ensureChangesOccurred(updatedTopic), err
 }
@@ -356,7 +354,6 @@ func (t *TopicApplier) applyExistingTopic(
 		DryRun:      t.config.DryRun,
 		Topic:       t.topicName,
 		MissingKeys: make([]string, 0),
-		Error:       false,
 	}
 
 	if err := t.updateSettings(ctx, topicInfo, changes); err != nil {

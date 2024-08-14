@@ -7,51 +7,99 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Mapping, Sequence
 
-from infra_event_notifier.notifier import Notifier
+from infra_event_notifier.datadog_notifier import DatadogNotifier
+from infra_event_notifier.slack_notifier import SlackNotifier
+
+
+class Destinations(Enum):
+    DATADOG = "datadog"
+    SLACK = "slack"
+
+
+# DD event max length is 4000 chars,
+# slack msg max length is 3000 chars,
+# we check 100 lower to leave room for titles
+DATADOG_MAX_LENGTH = 3900
+SLACK_MAX_LENGTH = 2900
+
 
 SENTRY_REGION = os.getenv("SENTRY_REGION", "unknown")
 
 
-def make_markdown_table(
+def make_table(
     headers: Sequence[str],
     content: Sequence[Sequence[str | int | None]],
-    error: bool,
     error_message: str | None,
+    destination: str,
 ) -> str:
     """
-    Creates a markdown table given a sequence of Sequences of cells.
+    Formats an ASCII table for slack message since slack's
+    markdown support is lacking
     """
+    if not headers and not content:
+        return ""
 
-    def make_row(row: Sequence[str | int | None]) -> str:
-        content = "|".join((str(col) for col in row))
+    def make_row(
+        row: Sequence[str | int | None], max_width: Sequence[int]
+    ) -> str:
+        content = "|".join(
+            (
+                " " + str(col).ljust(max_width[i]) + " "
+                for i, col in enumerate(row)
+            )
+        )
         return f"|{content}|\n"
 
     assert all(
         len(row) == len(headers) for row in content
     ), "Invalid table format."
+    # get max width of columns
+    num_cols = len(headers)
+    max_width = [len(h) for h in headers]
+    for i in range(num_cols):
+        for row in content:
+            max_width[i] = max(max_width[i], len(str(row[i])))
 
-    line = "-" * len(headers)
-    rows = [make_row(r) for r in content]
-    table = f"{make_row(headers)}{make_row(line)}{''.join(rows)}"
-
-    if error:
-        error_header = (
-            "# ERROR - the following error occurred while processing this topic:\n"  # noqa
-            f"{error_message}\n\n"
+    line = ["-" * (width) for width in max_width]
+    rows = [make_row(r, max_width) for r in content]
+    # only create table body if changes actually occurred
+    # (if no changes then `content` = [["Topic Name", {name}]], hence len > 1)
+    table = (
+        (
+            f"{make_row(headers, max_width)}"
+            + f"{make_row(line, max_width)}"
+            + f"{''.join(rows)}"
         )
-        # if changes were still made before an error, report them
-        if len(content) > 1:
-            table = (
-                error_header
-                + "# The following changes were still made:\n\n"
-                + table
-            )
-        else:
-            table = error_header + "# No changes were made."
+        if len(content) > 1
+        else ""
+    )
+    if destination == Destinations.SLACK and table:
+        table = f"```\n{table}```"
 
-    return f"%%%\n{table}%%%"
+    if error_message is not None:
+        error_header = (
+            "ERROR - the following error occurred while processing this topic:"
+        )
+        error_footer = (
+            "The following changes were still made:"
+            if len(content) > 1
+            else "No changes were made."
+        )
+        if destination == Destinations.DATADOG:
+            error_header = f"# {error_header}\n"
+            error_footer = f"# {error_footer}\n"
+        elif destination == Destinations.SLACK:
+            error_header = f":warning: *{error_header}*\n"
+            error_footer = f":warning: *{error_footer}*\n"
+        table = error_header + f"{error_message}\n\n" + error_footer + table
+
+    if destination == Destinations.DATADOG:
+        table = f"%%%\n{table}%%%"
+
+    return table
 
 
 @dataclass(frozen=True)
@@ -67,16 +115,15 @@ class Topic(ABC):
 class NewTopic(Topic):
     change_set: Sequence[Sequence[str | int | None]]
     dry_run: bool
-    error: bool
     error_message: str | None
     name: str
 
-    def render_table(self) -> str:
-        return make_markdown_table(
+    def render_table(self, destination: str) -> str:
+        return make_table(
             headers=["Parameter", "Value"],
             content=[["Topic Name", self.name], *self.change_set],
-            error=self.error,
             error_message=self.error_message,
+            destination=destination,
         )
 
     @classmethod
@@ -100,7 +147,6 @@ class NewTopic(Topic):
         return NewTopic(
             name=raw_content["topic"],
             dry_run=raw_content["dryRun"],
-            error=raw_content["error"],
             error_message=raw_content["errorMessage"],
             change_set=change_set,
         )
@@ -110,16 +156,15 @@ class NewTopic(Topic):
 class UpdatedTopic(Topic):
     change_set: Sequence[Sequence[str | int | None]]
     dry_run: bool
-    error: bool
     error_message: str | None
     name: str
 
-    def render_table(self) -> str:
-        return make_markdown_table(
+    def render_table(self, destination: str) -> str:
+        return make_table(
             headers=["Parameter", "Old Value", "New Value"],
             content=self.change_set,
-            error=self.error,
             error_message=self.error_message,
+            destination=destination,
         )
 
     @classmethod
@@ -186,16 +231,24 @@ class UpdatedTopic(Topic):
         return UpdatedTopic(
             name=raw_content["topic"],
             dry_run=raw_content["dryRun"],
-            error=raw_content["error"],
             error_message=raw_content["errorMessage"],
             change_set=change_set,
         )
 
 
 def main():
-    token = os.getenv("DATADOG_API_KEY")
-    assert token is not None, "No Datadog token in DATADOG_API_KEY env var"
-    notifier = Notifier(datadog_api_key=token)
+    dd_token = os.getenv("DATADOG_API_KEY")
+    slack_secret = os.getenv("TOPICCTL_WEBHOOK_SECRET")
+    slack_url = os.getenv("ENG_PIPES_URL")
+    assert dd_token is not None, "No Datadog token in DATADOG_API_KEY env var"
+    assert (
+        slack_secret is not None
+    ), "No HMAC secret in TOPICCTL_WEBHOOK_SECRET env var"
+
+    dd_notifier = DatadogNotifier(datadog_api_key=dd_token)
+    slack_notifier = SlackNotifier(
+        eng_pipes_key=slack_secret, eng_pipes_url=slack_url
+    )
 
     for line in sys.stdin:
         topic = json.loads(line)
@@ -218,15 +271,17 @@ def main():
             f"{dry_run}Topicctl ran apply on topic {topic_content.name} "
             f"in region {SENTRY_REGION}"
         )
-        text = topic_content.render_table()
-        if len(text) > 3950:
-            text = (
-                "Changes exceed 4000 character limit, "
-                "check topicctl logs for details on changes"
-            )
+        dd_table = topic_content.render_table(Destinations.DATADOG)
+        slack_table = topic_content.render_table(Destinations.SLACK)
+
+        if len(dd_table) > DATADOG_MAX_LENGTH:
+            dd_table = dd_table[:(DATADOG_MAX_LENGTH)] + "\n..."
+        if len(slack_table) > SLACK_MAX_LENGTH:
+            slack_table = slack_table[:(SLACK_MAX_LENGTH)] + "\n..."
         tags["topicctl_topic"] = topic_content.name
 
-        notifier.notify(title=title, tags=tags, text=text, alert_type="")
+        dd_notifier.send(title=title, body=dd_table, tags=tags, alert_type="")
+        slack_notifier.send(title=title, body=slack_table)
         print(f"{title}", file=sys.stderr)
 
 

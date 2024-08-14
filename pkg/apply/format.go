@@ -153,7 +153,6 @@ func ProcessTopicConfigIntoChanges(topicName string, topicConfig kafka.TopicConf
 		ReplicationFactor: topicConfig.ReplicationFactor,
 		ConfigEntries:     &configEntries,
 		Action:            ActionEnumCreate,
-		Error:             false,
 	}
 }
 
