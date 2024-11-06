@@ -224,9 +224,13 @@ func GetKafkaCredentials(svc secretsmanageriface.SecretsManagerAPI, secretArn st
 	log.Debugf("Fetching credentials from Secrets Manager for secret: %s", secretArn)
 	var creds credentials
 
+	if !arn.IsARN(secretArn) {
+		return creds, fmt.Errorf("invalid ARN provided: %s", secretArn)
+	}
+
 	arn, err := arn.Parse(secretArn)
 	if err != nil {
-		return creds, fmt.Errorf("Couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
+		return creds, fmt.Errorf("couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
 	}
 	// Remove "secret:" from the resource to get the secret name
 	secretName := strings.Split(arn.Resource, ":")[1]
