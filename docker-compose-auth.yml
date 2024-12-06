@@ -48,7 +48,7 @@ services:
 
       KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
 
-      KAFKA_CFG_SSL_KEYSTORE_LOCATION: /opt/bitnami/kafka/config/certs/kafka.truststore.jks
+      KAFKA_CFG_SSL_KEYSTORE_LOCATION: /opt/bitnami/kafka/config/certs/kafka.keystore.jks
       KAFKA_CFG_SSL_KEYSTORE_PASSWORD: test123
 
       KAFKA_CFG_SSL_TRUSTSTORE_LOCATION: /opt/bitnami/kafka/config/certs/kafka.truststore.jks
