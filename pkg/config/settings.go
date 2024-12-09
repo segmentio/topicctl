@@ -62,6 +62,9 @@ var keyValidators = map[string]configValidator{
 		return intVal >= 0
 	},
 	"follower.replication.throttled.replicas": func(v string) bool {
+		if v == "*" {
+			return true
+		}
 		subValues := strings.Split(v, ",")
 		for _, subValue := range subValues {
 			elements := strings.Split(subValue, ":")
@@ -86,6 +89,9 @@ var keyValidators = map[string]configValidator{
 		return intVal >= 0
 	},
 	"leader.replication.throttled.replicas": func(v string) bool {
+		if v == "*" {
+			return true
+		}
 		subValues := strings.Split(v, ",")
 		for _, subValue := range subValues {
 			elements := strings.Split(subValue, ":")

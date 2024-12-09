@@ -58,6 +58,14 @@ func TestValidateSettings(t *testing.T) {
 			expError: false,
 		},
 		{
+			description: "wildcard throttle",
+			settings: TopicSettings{
+				"follower.replication.throttled.replicas": "*",
+				"leader.replication.throttled.replicas":   "*",
+			},
+			expError: false,
+		},
+		{
 			description: "unrecognized key",
 			settings: TopicSettings{
 				"bad-key": "1",
