@@ -26,6 +26,7 @@ import (
 type TopicTailer struct {
 	Connector  *admin.Connector
 	topic      string
+	groupID    string
 	partitions []int
 	offset     int64
 	minBytes   int
@@ -36,6 +37,7 @@ type TopicTailer struct {
 func NewTopicTailer(
 	Connector *admin.Connector,
 	topic string,
+	groupID string,
 	partitions []int,
 	offset int64,
 	minBytes int,
@@ -44,6 +46,7 @@ func NewTopicTailer(
 	return &TopicTailer{
 		Connector:  Connector,
 		topic:      topic,
+		groupID:    groupID,
 		partitions: partitions,
 		offset:     offset,
 		minBytes:   minBytes,
@@ -77,32 +80,45 @@ type TailPartitionStats struct {
 	LastTime                  time.Time
 }
 
+func (t *TopicTailer) buildReaders() []*kafka.Reader {
+	baseReaderCfg := kafka.ReaderConfig{
+		Brokers:        []string{t.Connector.Config.BrokerAddr},
+		Dialer:         t.Connector.Dialer,
+		Topic:          t.topic,
+		GroupID:        t.groupID,
+		MinBytes:       t.minBytes,
+		MaxBytes:       t.maxBytes,
+		ReadBackoffMin: 200 * time.Millisecond,
+		ReadBackoffMax: 3 * time.Second,
+		MaxAttempts:    5,
+	}
+	if t.groupID != "" {
+		c := baseReaderCfg
+		c.GroupID = t.groupID
+		return []*kafka.Reader{
+			kafka.NewReader(c),
+		}
+	}
+
+	readers := []*kafka.Reader{}
+	for _, partition := range t.partitions {
+		c := baseReaderCfg
+		c.Partition = partition
+
+		reader := kafka.NewReader(c)
+		reader.SetOffset(t.offset)
+		readers = append(readers, reader)
+	}
+	return readers
+}
+
 // GetMessages gets a stream of messages from the tailer. These are passed
 // back through the argument channel.
 func (t *TopicTailer) GetMessages(
 	ctx context.Context,
 	messagesChan chan TailMessage,
 ) {
-	readers := []*kafka.Reader{}
-
-	for _, partition := range t.partitions {
-		reader := kafka.NewReader(
-			kafka.ReaderConfig{
-				Brokers:        []string{t.Connector.Config.BrokerAddr},
-				Dialer:         t.Connector.Dialer,
-				Topic:          t.topic,
-				Partition:      partition,
-				MinBytes:       t.minBytes,
-				MaxBytes:       t.maxBytes,
-				ReadBackoffMin: 200 * time.Millisecond,
-				ReadBackoffMax: 3 * time.Second,
-				MaxAttempts:    5,
-			},
-		)
-
-		reader.SetOffset(t.offset)
-		readers = append(readers, reader)
-	}
+	readers := t.buildReaders()
 
 	for _, reader := range readers {
 		go func(r *kafka.Reader) {
@@ -180,17 +196,18 @@ func (t *TopicTailer) LogMessages(
 		PartitionStats: map[int]*TailPartitionStats{},
 	}
 
-	for _, partition := range t.partitions {
-		stats.PartitionStats[partition] = &TailPartitionStats{}
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
 			return stats, ctx.Err()
 		case tailMessage := <-messagesChan:
 			partition := tailMessage.Partition
-			partitionStats := stats.PartitionStats[partition]
+
+			partitionStats, ok := stats.PartitionStats[partition]
+			if !ok {
+				partitionStats = &TailPartitionStats{}
+				stats.PartitionStats[partition] = partitionStats
+			}
 
 			if tailMessage.Err != nil {
 				log.Warnf("Got error: %+v", tailMessage.Err)
