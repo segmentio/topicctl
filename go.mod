@@ -1,6 +1,6 @@
 module github.com/segmentio/topicctl
 
-go 1.21
+go 1.22.0
 
 require (
 	github.com/aws/aws-sdk-go v1.49.12
