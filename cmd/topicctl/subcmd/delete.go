@@ -44,6 +44,7 @@ func init() {
 	addSharedFlags(deleteCmd, &deleteConfig.shared)
 	deleteCmd.AddCommand(
 		deleteACLCmd(),
+		deleteGroupCmd(),
 	)
 	RootCmd.AddCommand(deleteCmd)
 }
@@ -149,4 +150,30 @@ $ topicctl delete acls --resource-type topic --resource-pattern-type literal --r
 	)
 	cmd.MarkFlagRequired("resource-type")
 	return cmd
+}
+
+func deleteGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "group [group]",
+		Short:   "Delete a given consumer group. Ensure the group is not active before deleting.",
+		Args:    cobra.ExactArgs(1),
+		Example: `Delete group my-group`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := deleteConfig.shared.getAdminClient(ctx, sess, deleteConfig.dryRun)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			group := args[0]
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.DeleteGroup(ctx, group)
+		},
+	}
+
+	return cmd
+
 }
