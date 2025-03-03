@@ -944,7 +944,7 @@ func (c *ZKAdminClient) getTopic(
 	for i := 0; i < len(zkTopicInfo.Partitions); i++ {
 		partitionResp := <-partitionRespChan
 		if partitionResp.err != nil {
-			return topicInfo, err
+			return topicInfo, partitionResp.err
 		}
 		topicInfo.Partitions = append(
 			topicInfo.Partitions,
