@@ -548,7 +548,7 @@ func (t *TopicApplier) updatePartitionsHelper(
 			true,
 			picker,
 		)
-	case config.PlacementStrategyBalancedLeaders, config.PlacementStrategyAny:
+	case config.PlacementStrategyBalancedLeaders, config.PlacementStrategyAny, config.PlacementStrategyCrossRack:
 		extender = extenders.NewBalancedExtender(
 			t.brokers,
 			false,
