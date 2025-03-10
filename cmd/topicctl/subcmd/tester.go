@@ -168,7 +168,7 @@ func runTestWriter(ctx context.Context) error {
 			Balancer:     &kafka.LeastBytes{},
 			Async:        false,
 			BatchSize:    batchSize,
-			BatchTimeout: 1 * time.Millisecond,
+			BatchTimeout: 1 * time.Nanosecond,
 		},
 	)
 	defer writer.Close()
