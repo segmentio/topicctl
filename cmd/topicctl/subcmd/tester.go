@@ -160,13 +160,13 @@ func runTestWriter(ctx context.Context) error {
 
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
-			Brokers:       []string{connector.Config.BrokerAddr},
-			Dialer:        connector.Dialer,
-			Topic:         testerConfig.topic,
-			Balancer:      &kafka.LeastBytes{},
-			Async:         true,
-			QueueCapacity: 5,
-			BatchSize:     5,
+			Brokers:      []string{connector.Config.BrokerAddr},
+			Dialer:       connector.Dialer,
+			Topic:        testerConfig.topic,
+			Balancer:     &kafka.LeastBytes{},
+			Async:        false,
+			BatchSize:    5,
+			BatchTimeout: 1 * time.Millisecond,
 		},
 	)
 	defer writer.Close()
@@ -183,17 +183,22 @@ func runTestWriter(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-sendTicker.C:
-			err := writer.WriteMessages(
-				ctx,
-				kafka.Message{
+			msgs := []kafka.Message{}
+
+			for i := 0; i < 5; i++ {
+				msgs = append(msgs, kafka.Message{
 					Key:   []byte(fmt.Sprintf("msg_%d", index)),
 					Value: []byte(fmt.Sprintf("Contents of test message %d", index)),
-				},
+				})
+				index++
+			}
+			err := writer.WriteMessages(
+				ctx,
+				msgs...,
 			)
 			if err != nil {
 				return err
 			}
-			index++
 		case <-logTicker.C:
 			log.Infof("%d messages sent", index)
 		}
