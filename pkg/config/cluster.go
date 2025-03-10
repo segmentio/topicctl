@@ -218,9 +218,12 @@ func (c ClusterConfig) NewAdminClient(
 		var saslUsername string
 		var saslPassword string
 		var secretsManagerArn string
+
+		overridingUserPass := false
 		if opts.UsernameOverride != "" {
 			log.Debugf("Setting SASL username from override value")
 			saslUsername = opts.UsernameOverride
+			overridingUserPass = true
 		} else {
 			saslUsername = c.Spec.SASL.Username
 		}
@@ -228,6 +231,7 @@ func (c ClusterConfig) NewAdminClient(
 		if opts.PasswordOverride != "" {
 			log.Debugf("Setting SASL password from override value")
 			saslPassword = opts.PasswordOverride
+			overridingUserPass = true
 		} else {
 			saslPassword = c.Spec.SASL.Password
 		}
@@ -237,6 +241,15 @@ func (c ClusterConfig) NewAdminClient(
 			secretsManagerArn = opts.SecretsManagerArnOverride
 		} else {
 			secretsManagerArn = c.Spec.SASL.SecretsManagerArn
+		}
+		if overridingUserPass {
+			// Make sure both user and pass were provided
+			if saslUsername == "" || saslPassword == "" {
+				return nil, errors.New("Both username and password are required when overriding config")
+			} else {
+				log.Warn("Username/Password override takes precedence over SecretsManagerArn")
+				secretsManagerArn = ""
+			}
 		}
 
 		var saslMechanism admin.SASLMechanism
