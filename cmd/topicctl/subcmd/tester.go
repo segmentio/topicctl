@@ -158,6 +158,8 @@ func runTestWriter(ctx context.Context) error {
 		return errors.New("Stopping because of user response")
 	}
 
+	batchSize := 5
+
 	writer := kafka.NewWriter(
 		kafka.WriterConfig{
 			Brokers:      []string{connector.Config.BrokerAddr},
@@ -165,14 +167,14 @@ func runTestWriter(ctx context.Context) error {
 			Topic:        testerConfig.topic,
 			Balancer:     &kafka.LeastBytes{},
 			Async:        false,
-			BatchSize:    5,
+			BatchSize:    batchSize,
 			BatchTimeout: 1 * time.Millisecond,
 		},
 	)
 	defer writer.Close()
 
 	index := 0
-	tickDuration := time.Duration(1000.0/float64(testerConfig.writeRate)) * time.Millisecond
+	tickDuration := time.Duration(1000.0/float64(testerConfig.writeRate/batchSize)) * time.Millisecond
 	sendTicker := time.NewTicker(tickDuration)
 	logTicker := time.NewTicker(5 * time.Second)
 
