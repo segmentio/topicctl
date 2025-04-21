@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -406,13 +405,7 @@ func (t *TopicApplier) updateSettings(
 
 		if reduced {
 			log.Infof(
-				strings.Join(
-					[]string{
-						"Note: Retention drop has been reduced to minimize cluster disruption.",
-						"Re-run apply afterwards to keep dropping retention to configured value or run with --retention-drop-step-duration=0 to not do gradual step-down.",
-					},
-					" ",
-				),
+				"Note: Retention drop has been reduced to minimize cluster disruption. Re-run apply afterwards to keep dropping retention to configured value or run with --retention-drop-step-duration=0 to not do gradual step-down.",
 			)
 		}
 
