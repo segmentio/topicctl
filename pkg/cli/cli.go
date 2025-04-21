@@ -648,6 +648,19 @@ func (c *CLIRunner) ResetOffsets(
 	return nil
 }
 
+// DeleteGroup deletes a single consumer group.
+func (c *CLIRunner) DeleteGroup(ctx context.Context, groupID string) error {
+	c.startSpinner()
+	err := groups.Delete(ctx, c.adminClient.GetConnector(), groupID)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Success")
+	return nil
+}
+
 // Tail prints out a stream of the latest messages in a topic.
 func (c *CLIRunner) Tail(
 	ctx context.Context,

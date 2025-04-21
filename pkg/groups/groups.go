@@ -225,6 +225,31 @@ func ResetOffsets(
 	)
 }
 
+// Delete deletes a consumer group based on its groupId.
+func Delete(ctx context.Context, connector *admin.Connector, groupID string) error {
+	describeGroupsRequest := kafka.DescribeGroupsRequest{
+		GroupIDs: []string{groupID},
+	}
+	describeGroupsResponse, err := connector.KafkaClient.DescribeGroups(ctx, &describeGroupsRequest)
+	if err != nil {
+		return err
+	}
+
+	if len(describeGroupsResponse.Groups) != 1 {
+		return errors.New("Unexpected response length from describeGroups")
+	}
+
+	if describeGroupsResponse.Groups[0].GroupState == "Dead" {
+		return errors.New("Group state is dead; check that group ID is valid")
+	}
+
+	req := kafka.DeleteGroupsRequest{
+		GroupIDs: []string{groupID},
+	}
+	_, err = connector.KafkaClient.DeleteGroups(ctx, &req)
+	return err
+}
+
 // GetEarliestorLatestOffset gets earliest/latest offset for a given topic partition for resetting offsets of consumer group
 func GetEarliestOrLatestOffset(
 	ctx context.Context,
