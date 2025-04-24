@@ -6,6 +6,7 @@ import (
 
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
+	log "github.com/sirupsen/logrus"
 )
 
 // EvaluateAssignments determines whether the given assignments are consistent
@@ -61,6 +62,10 @@ func EvaluateAssignments(
 		brokerRacks := admin.BrokerRacks(brokers)
 		for _, assignment := range assignments {
 			if len(assignment.Replicas) != len(assignment.DistinctRacks(brokerRacks)) {
+				log.Errorf(
+					"Expected replicas to equal number of racks, but got %d replicas and %d racks for assignment %v",
+					len(assignment.Replicas), len(assignment.DistinctRacks(brokerRacks)), assignment,
+				)
 				return false, nil
 			}
 		}

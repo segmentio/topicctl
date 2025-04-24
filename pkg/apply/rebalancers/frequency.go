@@ -67,7 +67,7 @@ func (f *FrequencyRebalancer) Rebalance(
 	if err != nil {
 		return nil, err
 	} else if !ok {
-		return nil, fmt.Errorf("Starting assignments do not satisfy placement config")
+		return nil, fmt.Errorf("starting assignments on topic %s do not satisfy placement config - assignments: %#v", topic, curr)
 	}
 
 	desired := admin.CopyAssignments(curr)
