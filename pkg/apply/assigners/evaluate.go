@@ -61,12 +61,15 @@ func EvaluateAssignments(
 	case config.PlacementStrategyCrossRack:
 		brokerRacks := admin.BrokerRacks(brokers)
 		for _, assignment := range assignments {
+			// If a topicctl rebalance gets stopped while running, we can be in a state where
+			// multiple replicas are on the same rack. This should be fixed on a re-run with
+			// cross-rack assignment.
 			if len(assignment.Replicas) != len(assignment.DistinctRacks(brokerRacks)) {
-				log.Errorf(
+				log.Warnf(
 					"Expected replicas to equal number of racks, but got %d replicas and %d racks for assignment %v",
 					len(assignment.Replicas), len(assignment.DistinctRacks(brokerRacks)), assignment,
 				)
-				return false, nil
+				return true, nil
 			}
 		}
 		return true, nil
