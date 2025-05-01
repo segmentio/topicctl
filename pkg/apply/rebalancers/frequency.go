@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/apply/assigners"
 	"github.com/segmentio/topicctl/pkg/apply/pickers"
 	"github.com/segmentio/topicctl/pkg/config"
+	log "github.com/sirupsen/logrus"
 )
 
 // FrequencyRebalancer is a Rebalancer that rebalances to achieve in-topic balance among
@@ -67,7 +68,13 @@ func (f *FrequencyRebalancer) Rebalance(
 	if err != nil {
 		return nil, err
 	} else if !ok {
-		return nil, fmt.Errorf("starting assignments on topic %s do not satisfy placement config - assignments: %#v", topic, curr)
+		// If we're doing a static rebalance, we don't expect the existing assignments to
+		// satify the placement config
+		if f.placementConfig.Strategy == config.PlacementStrategyStatic {
+			log.Info("Current partition assignment does not match static assignment, rebalancing will take place")
+		} else {
+			return nil, fmt.Errorf("starting assignments on topic %s do not satisfy placement config - assignments: %#v", topic, curr)
+		}
 	}
 
 	desired := admin.CopyAssignments(curr)
