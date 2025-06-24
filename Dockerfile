@@ -15,6 +15,8 @@ RUN cd /go/src/${SRC} && \
 # copy topicctl & scripts to python image
 FROM python:3.12-slim-bookworm
 
+RUN groupadd -r topicctl --gid 1000 && useradd -r -m -g topicctl --uid 1000 topicctl
+
 COPY --from=builder \
     /go/src/github.com/getsentry/topicctl/build/topicctl \
     /bin/topicctl
@@ -24,5 +26,7 @@ COPY py/*.py /bin/
 COPY py/requirements.txt /
 
 RUN pip install -r requirements.txt
+
+USER topicctl
 
 CMD ["/bin/topicctl"]
