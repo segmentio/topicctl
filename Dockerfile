@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.24.2 as builder
+FROM --platform=$BUILDPLATFORM golang:1.24.4 as builder
 ENV SRC github.com/segmentio/topicctl
 ENV CGO_ENABLED=0
 
