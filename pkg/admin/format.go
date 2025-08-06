@@ -11,14 +11,13 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
 // FormatBrokers creates a pretty table from a list of brokers.
 func FormatBrokers(brokers []BrokerInfo, full bool) string {
 	buf := &bytes.Buffer{}
-
-	table := tablewriter.NewWriter(buf)
 
 	var hasInstances bool
 	for _, broker := range brokers {
@@ -28,7 +27,7 @@ func FormatBrokers(brokers []BrokerInfo, full bool) string {
 		}
 	}
 
-	headers := []string{
+	headers := []any{
 		"ID",
 		"Host",
 		"Port",
@@ -52,29 +51,24 @@ func FormatBrokers(brokers []BrokerInfo, full bool) string {
 		headers = append(headers, "Config")
 	}
 
-	table.SetHeader(headers)
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
 
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, broker := range brokers {
 		row := []string{
@@ -111,23 +105,22 @@ func FormatBrokers(brokers []BrokerInfo, full bool) string {
 // FormatControllerID creates a pretty table for controller broker.
 func FormatControllerID(brokerID int) string {
 	buf := &bytes.Buffer{}
-	table := tablewriter.NewWriter(buf)
-	headers := []string{"Active Controller"}
-	table.SetHeader(headers)
-
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+	table.Header("Active Controller")
 
 	table.Append([]string{
 		fmt.Sprintf("%d", brokerID),
@@ -140,23 +133,22 @@ func FormatControllerID(brokerID int) string {
 // FormatClusterID creates a pretty table for cluster ID.
 func FormatClusterID(clusterID string) string {
 	buf := &bytes.Buffer{}
-	table := tablewriter.NewWriter(buf)
-	headers := []string{"Kafka Cluster ID"}
-	table.SetHeader(headers)
-
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+	table.Header("Kafka Cluster ID")
 
 	table.Append([]string{
 		clusterID,
@@ -172,12 +164,10 @@ func FormatClusterID(clusterID string) string {
 func FormatBrokerReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-
 	maxReplicas := MaxReplication(topics)
 	hasLeaders := HasLeaders(topics)
 
-	headers := []string{
+	headers := []any{
 		"ID",
 		"Rack",
 	}
@@ -191,27 +181,24 @@ func FormatBrokerReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 	}
 	headers = append(headers, "Total")
 
-	table.SetHeader(headers)
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
 
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	brokerLeaders := map[int]int{}
 	brokerPositions := map[int][]int{}
@@ -269,12 +256,10 @@ func FormatBrokerReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 func FormatBrokerRackReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-
 	maxReplicas := MaxReplication(topics)
 	hasLeaders := HasLeaders(topics)
 
-	headers := []string{
+	headers := []any{
 		"Rack",
 	}
 
@@ -287,27 +272,24 @@ func FormatBrokerRackReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 	}
 	headers = append(headers, "Total")
 
-	table.SetHeader(headers)
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
 
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	rackLeaders := map[string]int{}
 	rackPositions := map[string][]int{}
@@ -368,28 +350,24 @@ func FormatBrokerRackReplicas(brokers []BrokerInfo, topics []TopicInfo) string {
 func FormatBrokersPerRack(brokers []BrokerInfo) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Rack",
-			"Num Brokers",
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header("Rack", "Num Brokers")
 
 	brokerCountsPerRack := BrokerCountsPerRack(brokers)
 	racks := DistinctRacks(brokers)
@@ -412,7 +390,7 @@ func FormatBrokersPerRack(brokers []BrokerInfo) string {
 func FormatTopics(topics []TopicInfo, brokers []BrokerInfo, full bool) string {
 	buf := &bytes.Buffer{}
 
-	headers := []string{
+	headers := []any{
 		"Name",
 		"Partitions",
 		"Replication",
@@ -424,29 +402,24 @@ func FormatTopics(topics []TopicInfo, brokers []BrokerInfo, full bool) string {
 		headers = append(headers, "Config")
 	}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(headers)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	brokerRacks := BrokerRacks(brokers)
 
@@ -484,31 +457,27 @@ func FormatTopics(topics []TopicInfo, brokers []BrokerInfo, full bool) string {
 func FormatTopicPartitions(partitions []PartitionInfo, brokers []BrokerInfo) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"ID", "Leader", "Replicas", "ISR", "Distinct\nRacks", "Racks", "Status",
-		},
+	headers := []any{
+		"ID", "Leader", "Replicas", "ISR", "Distinct\nRacks", "Racks", "Status",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	brokerRacks := BrokerRacks(brokers)
 	maxBrokerWidth := maxValueToMaxWidth(len(brokers))
@@ -569,31 +538,31 @@ func FormatTopicsPartitionsSummary(
 ) string {
 	buf := &bytes.Buffer{}
 
-	headers := []string{
+	headers := []any{
 		"Topic",
 		"Status",
 		"Count",
 		"IDs",
 	}
-	columnAligment := []int{
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
 	}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(headers)
-	table.SetAutoWrapText(true)
-	table.SetColumnAlignment(columnAligment)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
+
+	table.Header(headers...)
 
 	topicNames := []string{}
 	tableData := make(map[string][][]string)
@@ -643,7 +612,7 @@ func FormatTopicsPartitions(
 ) string {
 	buf := &bytes.Buffer{}
 
-	headers := []string{
+	headers := []any{
 		"Topic",
 		"ID",
 		"Leader",
@@ -653,29 +622,25 @@ func FormatTopicsPartitions(
 		"Racks",
 		"Status",
 	}
-	columnAligment := []int{
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
-		tablewriter.ALIGN_LEFT,
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
 	}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(headers)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(columnAligment)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
+
+	table.Header(headers...)
 
 	topicNames := []string{}
 	brokerRacks := BrokerRacks(brokers)
@@ -766,28 +731,24 @@ func FormatTopicsPartitions(
 func FormatConfig(configMap map[string]string) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Key",
-			"Value",
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header("Key", "Value")
 
 	keys := []string{}
 	for key := range configMap {
@@ -816,27 +777,24 @@ func FormatConfig(configMap map[string]string) string {
 func FormatTopicLeadersPerRack(topic TopicInfo, brokers []BrokerInfo) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Rack", "Num Leaders",
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header("Rack", "Num Leaders")
 
 	leadersPerRack := LeadersPerRack(brokers, topic)
 	racks := DistinctRacks(brokers)
@@ -863,33 +821,31 @@ func FormatAssignentDiffs(
 ) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Partition",
-			"Curr\nReplicas",
-			"Proposed\nReplicas",
-			"Diff?",
-			"New\nLeader?",
-		},
+	headers := []any{
+		"Partition",
+		"Curr\nReplicas",
+		"Proposed\nReplicas",
+		"Diff?",
+		"New\nLeader?",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+	table.Header(headers...)
 
 	diffs := AssignmentDiffs(curr, desired)
 
@@ -934,32 +890,31 @@ func FormatBrokerMaxPartitions(
 ) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Broker",
-			"Curr\nPartitions",
-			"Max\nPartitions",
-			"Proposed\nPartitions",
-		},
+	headers := []any{
+		"Broker",
+		"Curr\nPartitions",
+		"Max\nPartitions",
+		"Proposed\nPartitions",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	startPartitionsPerBroker := MaxPartitionsPerBroker(curr)
 	maxPartitionsPerBroker := MaxPartitionsPerBroker(curr, desired)
@@ -1007,7 +962,7 @@ func FormatBrokerMaxPartitions(
 func FormatACLs(acls []ACLInfo) string {
 	buf := &bytes.Buffer{}
 
-	headers := []string{
+	headers := []any{
 		"Resource Type",
 		"Pattern Type",
 		"Resource Name",
@@ -1017,28 +972,24 @@ func FormatACLs(acls []ACLInfo) string {
 		"Permission Type",
 	}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(headers)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, acl := range acls {
 		row := []string{
@@ -1063,29 +1014,31 @@ func FormatACLs(acls []ACLInfo) string {
 func FormatUsers(users []UserInfo) string {
 	buf := &bytes.Buffer{}
 
-	headers := []string{
+	headers := []any{
 		"Name",
 		"Mechanism",
 		"Iterations",
 	}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(headers)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(2).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, user := range users {
 		for _, credential := range user.CredentialInfos {
