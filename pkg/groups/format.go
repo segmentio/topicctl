@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -16,30 +17,30 @@ import (
 func FormatGroupCoordinators(groupCoordinators []GroupCoordinator) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Group",
-			"Coordinator",
-			"Topics",
-		},
+	headers := []any{
+		"Group",
+		"Coordinator",
+		"Topics",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, groupCoordinator := range groupCoordinators {
 		table.Append(
@@ -59,33 +60,31 @@ func FormatGroupCoordinators(groupCoordinators []GroupCoordinator) string {
 func FormatGroupMembers(members []MemberInfo, full bool) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Member ID",
-			"Client Host",
-			"Num\nPartitions",
-			"Partition\nAssignments",
-		},
+	headers := []any{
+		"Member ID",
+		"Client Host",
+		"Num\nPartitions",
+		"Partition\nAssignments",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(true)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, member := range members {
 		var clientHost string
@@ -127,28 +126,29 @@ func FormatGroupMembers(members []MemberInfo, full bool) string {
 func FormatMemberPartitionCounts(members []MemberInfo) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Num Partitions",
-			"Num Members",
-		},
+	headers := []any{
+		"Num Partitions",
+		"Num Members",
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(true)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	countKeys := []int{}
 	membersByCount := map[int]int{}
@@ -188,40 +188,35 @@ func FormatMemberPartitionCounts(members []MemberInfo) string {
 func FormatMemberLags(memberLags []MemberPartitionLag, full bool) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Partition",
-			"Member ID",
-			"Member Offset",
-			"Member Time",
-			"Latest Offset",
-			"Latest Time",
-			"Offset Lag",
-			"Time Lag",
-		},
+	headers := []any{
+		"Partition",
+		"Member ID",
+		"Member Offset",
+		"Member Time",
+		"Latest Offset",
+		"Latest Time",
+		"Offset Lag",
+		"Time Lag",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(true)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, memberLag := range memberLags {
 		var memberID string
@@ -275,28 +270,24 @@ func FormatMemberLags(memberLags []MemberPartitionLag, full bool) string {
 func FormatPartitionOffsets(partitionOffsets map[int]int64) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Partition",
-			"New Offset",
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header("Partition", "New Offset")
 
 	partitionIDs := []int{}
 	for partitionID := range partitionOffsets {
