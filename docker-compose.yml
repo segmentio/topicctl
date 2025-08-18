@@ -1,13 +1,13 @@
 # By default, this docker-compose setup uses Kafka 2.7.0. This version can
 # be overwritten by setting the KAFKA_IMAGE_TAG environment variable.
 #
-# See https://hub.docker.com/r/bitnami/kafka/tags for the complete list.
+# See https://hub.docker.com/r/bitnamilegacy/kafka/tags for the complete list.
 version: '3'
 services:
   zookeeper:
     container_name: zookeeper
     hostname: zookeeper
-    image: bitnami/zookeeper:latest
+    image: bitnamilegacy/zookeeper:latest
     ports:
       - "2181:2181"
     environment:
@@ -17,7 +17,7 @@ services:
   kafka1:
     container_name: kafka1
     hostname: 169.254.123.123
-    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
+    image: bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
       - "9092:9092"
     environment:
@@ -35,7 +35,7 @@ services:
   kafka2:
     container_name: kafka2
     hostname: 169.254.123.123
-    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
+    image: bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
       - "9093:9092"
     environment:
@@ -54,7 +54,7 @@ services:
   kafka3:
     container_name: kafka3
     hostname: 169.254.123.123
-    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
+    image: bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
       - "9094:9092"
     environment:
@@ -72,7 +72,7 @@ services:
   kafka4:
     container_name: kafka4
     hostname: 169.254.123.123
-    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
+    image: bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
       - "9095:9092"
     environment:
@@ -91,7 +91,7 @@ services:
   kafka5:
     container_name: kafka5
     hostname: 169.254.123.123
-    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
+    image: bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
       - "9096:9092"
     environment:
@@ -109,7 +109,7 @@ services:
   kafka6:
     container_name: kafka6
     hostname: 169.254.123.123
-    image: bitnami/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
+    image: bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-2.7.0}
     ports:
       - "9097:9092"
     environment:

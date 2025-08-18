@@ -642,7 +642,7 @@ make test
 
 You can change the Kafka version of the local cluster by setting the
 `KAFKA_IMAGE_TAG` environment variable when running `docker-compose up -d`. See the
-[`bitnami/kafka` dockerhub page](https://hub.docker.com/r/bitnami/kafka/tags) for more
+[`bitnamilegacy/kafka` dockerhub page](https://hub.docker.com/r/bitnamilegacy/kafka/tags) for more
 details on the available versions.
 
 #### Run against local cluster
