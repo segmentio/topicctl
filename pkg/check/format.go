@@ -6,6 +6,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -13,30 +14,24 @@ import (
 func FormatResults(results TopicCheckResults) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-
-	table.SetHeader([]string{
-		"Name",
-		"OK",
-		"Details",
-	})
-
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_CENTER,
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignCenter).Build().
+				ForColumn(2).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+	table.Header("Name", "OK", "Details")
 
 	for _, result := range results.Results {
 		var checkPrinter func(f string, a ...interface{}) string
