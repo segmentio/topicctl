@@ -251,6 +251,7 @@ def main():
     )
 
     for line in sys.stdin:
+        print("DEBUG read line: {line}")
         topic = json.loads(line)
         action = topic["action"]
         topic_content = (
