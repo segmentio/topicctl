@@ -1,0 +1,11 @@
+meta:
+  name: test-user
+  cluster: auth-cluster
+  region: us-west-2
+  environment: dev
+  description: A sample SCRAM user for testing
+spec:
+  name: test-user
+  mechanism: scram-sha-256
+  password: "secure-password-123"
+  iterations: 4096

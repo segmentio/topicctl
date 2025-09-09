@@ -12,6 +12,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/config"
+	"github.com/segmentio/topicctl/pkg/create"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +56,7 @@ func init() {
 	addSharedFlags(createCmd, &createConfig.shared)
 	createCmd.AddCommand(
 		createACLsCmd(),
+		createUsersCmd(),
 	)
 	RootCmd.AddCommand(createCmd)
 }
@@ -197,6 +199,146 @@ func clusterConfigForACLCreate(aclConfigPath string) (string, error) {
 	return filepath.Abs(
 		filepath.Join(
 			filepath.Dir(aclConfigPath),
+			"..",
+			"cluster.yaml",
+		),
+	)
+}
+
+func createUsersCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "user [user configs]",
+		Short:   "creates SCRAM users from configuration files",
+		Args:    cobra.MinimumNArgs(1),
+		RunE:    createUserRun,
+		PreRunE: createPreRun,
+	}
+
+	return cmd
+}
+
+func createUserRun(cmd *cobra.Command, args []string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		cancel()
+	}()
+
+	// Keep a cache of the admin clients with the cluster config path as the key
+	adminClients := map[string]admin.Client{}
+
+	defer func() {
+		for _, adminClient := range adminClients {
+			adminClient.Close()
+		}
+	}()
+
+	matchCount := 0
+
+	for _, arg := range args {
+		if createConfig.pathPrefix != "" && !filepath.IsAbs(arg) {
+			arg = filepath.Join(createConfig.pathPrefix, arg)
+		}
+
+		matches, err := filepath.Glob(arg)
+		if err != nil {
+			return err
+		}
+
+		for _, match := range matches {
+			matchCount++
+			if err := createUser(ctx, match, adminClients); err != nil {
+				return err
+			}
+		}
+	}
+
+	if matchCount == 0 {
+		return fmt.Errorf("No user configs match the provided args (%+v)", args)
+	}
+
+	return nil
+}
+
+func createUser(
+	ctx context.Context,
+	userConfigPath string,
+	adminClients map[string]admin.Client,
+) error {
+	clusterConfigPath, err := clusterConfigForUserCreate(userConfigPath)
+	if err != nil {
+		return err
+	}
+
+	userConfigs, err := config.LoadUsersFile(userConfigPath)
+	if err != nil {
+		return err
+	}
+
+	clusterConfig, err := config.LoadClusterFile(clusterConfigPath, createConfig.shared.expandEnv)
+	if err != nil {
+		return err
+	}
+
+	adminClient, ok := adminClients[clusterConfigPath]
+	if !ok {
+		adminClient, err = clusterConfig.NewAdminClient(
+			ctx,
+			nil,
+			config.AdminClientOpts{
+				ReadOnly:                  createConfig.dryRun,
+				UsernameOverride:          createConfig.shared.saslUsername,
+				PasswordOverride:          createConfig.shared.saslPassword,
+				SecretsManagerArnOverride: createConfig.shared.saslSecretsManagerArn,
+			},
+		)
+		if err != nil {
+			return err
+		}
+		adminClients[clusterConfigPath] = adminClient
+	}
+
+	for _, userConfig := range userConfigs {
+		userConfig.SetDefaults()
+		log.Infof(
+			"Processing user %s in config %s with cluster config %s",
+			userConfig.Meta.Name,
+			userConfigPath,
+			clusterConfigPath,
+		)
+
+		userCreatorConfig := create.UserCreatorConfig{
+			DryRun:        createConfig.dryRun,
+			SkipConfirm:   createConfig.skipConfirm,
+			UserConfig:    userConfig,
+			ClusterConfig: clusterConfig,
+		}
+
+		userCreator, err := create.NewUserCreator(ctx, adminClient, userCreatorConfig)
+		if err != nil {
+			return err
+		}
+
+		if err := userCreator.Create(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func clusterConfigForUserCreate(userConfigPath string) (string, error) {
+	if createConfig.shared.clusterConfig != "" {
+		return createConfig.shared.clusterConfig, nil
+	}
+
+	return filepath.Abs(
+		filepath.Join(
+			filepath.Dir(userConfigPath),
 			"..",
 			"cluster.yaml",
 		),

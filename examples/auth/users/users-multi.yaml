@@ -1,0 +1,23 @@
+meta:
+  name: app-user
+  cluster: auth-cluster
+  region: us-west-2
+  environment: dev
+  description: Application service user
+spec:
+  name: app-user
+  mechanism: scram-sha-256
+  password: "app-secret-123"
+  iterations: 4096
+---
+meta:
+  name: admin-user
+  cluster: auth-cluster
+  region: us-west-2
+  environment: dev
+  description: Admin user with higher security
+spec:
+  name: admin-user
+  mechanism: scram-sha-512
+  password: "admin-secret-456"
+  iterations: 8192

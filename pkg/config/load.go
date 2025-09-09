@@ -125,7 +125,45 @@ func LoadACLBytes(contents []byte) (ACLConfig, error) {
 	return config, err
 }
 
-// CheckConsistency verifies that the argument topic config is consistent with the argument
+// LoadUsersFile loads one or more UserConfigs from a path to a YAML file.
+func LoadUsersFile(path string) ([]UserConfig, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	contents = []byte(os.ExpandEnv(string(contents)))
+
+	trimmedFile := strings.TrimSpace(string(contents))
+	userStrs := sep.Split(trimmedFile, -1)
+
+	userConfigs := []UserConfig{}
+
+	for _, userStr := range userStrs {
+		userStr = strings.TrimSpace(userStr)
+		if isEmpty(userStr) {
+			continue
+		}
+
+		userConfig, err := LoadUserBytes([]byte(userStr))
+		if err != nil {
+			return nil, err
+		}
+
+		userConfigs = append(userConfigs, userConfig)
+	}
+
+	return userConfigs, nil
+}
+
+// LoadUserBytes loads a UserConfig from YAML bytes.
+func LoadUserBytes(contents []byte) (UserConfig, error) {
+	config := UserConfig{}
+	err := unmarshalYAMLStrict(contents, &config)
+	return config, err
+}
+
+// CheckConsistency verifies that the argument resource config is consistent with the argument
 // cluster, e.g. has the same environment and region, etc.
 func CheckConsistency(resourceMeta ResourceMeta, clusterConfig ClusterConfig) error {
 	var err error
@@ -133,19 +171,19 @@ func CheckConsistency(resourceMeta ResourceMeta, clusterConfig ClusterConfig) er
 	if resourceMeta.Cluster != clusterConfig.Meta.Name {
 		err = multierror.Append(
 			err,
-			errors.New("Topic cluster name does not match name in cluster config"),
+			errors.New("Resource cluster name does not match name in cluster config"),
 		)
 	}
 	if resourceMeta.Environment != clusterConfig.Meta.Environment {
 		err = multierror.Append(
 			err,
-			errors.New("Topic environment does not match cluster environment"),
+			errors.New("Resource environment does not match cluster environment"),
 		)
 	}
 	if resourceMeta.Region != clusterConfig.Meta.Region {
 		err = multierror.Append(
 			err,
-			errors.New("Topic region does not match cluster region"),
+			errors.New("Resource region does not match cluster region"),
 		)
 	}
 
