@@ -21,6 +21,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -616,12 +617,12 @@ func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
 	_, err := c.adminClient.GetTopic(ctx, topic, false)
 	if err != nil {
 		c.stopSpinner()
-		return fmt.Errorf("Error fetching topic info: %+v", err)
+		return fmt.Errorf("error fetching topic info: %+v", err)
 	}
 	c.stopSpinner()
 	c.printer("Topic %s exists in the cluster!", topic)
 
-	confirm, err := apply.Confirm(fmt.Sprintf("Delete topic \"%s\"", topic), false)
+	confirm, err := util.Confirm(fmt.Sprintf("Delete topic \"%s\"", topic), false)
 	if err != nil {
 		return err
 	}
