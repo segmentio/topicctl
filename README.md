@@ -215,18 +215,6 @@ The `rebalance` subcommand, on the other hand, performs a rebalance for **all** 
 
 See the [rebalancing](#rebalancing) section below for more information on rebalancing.
 
-#### delete
-
-```
-topicctl delete [flags] [operation]
-```
-
-The `delete` subcommand deletes a particular resource type in the cluster.
-Currently, the following operations are supported:
-| Subcommand      | Description |
-| --------- | ----------- |
-| `delete topic [topic]` | Deletes a single topic in the cluster |
-
 #### repl
 
 ```
