@@ -42,7 +42,6 @@ func init() {
 	)
 
 	addSharedFlags(deleteCmd, &deleteConfig.shared)
-
 	deleteCmd.AddCommand(
 		deleteACLCmd(),
 		deleteTopicCmd(),
