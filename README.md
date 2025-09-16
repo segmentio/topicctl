@@ -178,6 +178,7 @@ Currently, the following operations are supported:
 | Subcommand      | Description |
 | --------- | ----------- |
 | `delete acls [flags]` | Deletes ACL(s) in the cluster matching the provided flags |
+| `delete topic [topic]` | Deletes a single topic in the cluster |
 
 #### get
 
