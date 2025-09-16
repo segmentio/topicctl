@@ -42,8 +42,10 @@ func init() {
 	)
 
 	addSharedFlags(deleteCmd, &deleteConfig.shared)
+
 	deleteCmd.AddCommand(
 		deleteACLCmd(),
+		deleteTopicCmd(),
 	)
 	RootCmd.AddCommand(deleteCmd)
 }
@@ -149,4 +151,25 @@ $ topicctl delete acls --resource-type topic --resource-pattern-type literal --r
 	)
 	cmd.MarkFlagRequired("resource-type")
 	return cmd
+}
+
+func deleteTopicCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "topic [topic name]",
+		Short: "Delete a topic",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			sess := session.Must(session.NewSession())
+
+			adminClient, err := deleteConfig.shared.getAdminClient(ctx, sess, false)
+			if err != nil {
+				return err
+			}
+			defer adminClient.Close()
+
+			cliRunner := cli.NewCLIRunner(adminClient, log.Infof, !noSpinner)
+			return cliRunner.DeleteTopic(ctx, args[0])
+		},
+	}
 }
