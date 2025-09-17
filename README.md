@@ -224,8 +224,6 @@ topicctl repl [flags]
 The `repl` subcommand starts up a shell that allows running the `get` and `tail`
 subcommands interactively.
 
-By default, `repl` is in read-only mode. Disable this behaviour with: `--read-only-enabled=false` 
-
 #### reset-offsets
 
 ```
