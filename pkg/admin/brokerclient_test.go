@@ -419,6 +419,70 @@ func TestBrokerClientAddPartitions(t *testing.T) {
 	assert.Equal(t, []int{6, 1}, topicInfo.Partitions[4].Replicas)
 }
 
+func TestBrokerDeleteTopic(t *testing.T) {
+	if !util.CanTestBrokerAdmin() {
+		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")
+	}
+
+	ctx := context.Background()
+	client, err := NewBrokerAdminClient(
+		ctx,
+		BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				BrokerAddr: util.TestKafkaAddr(),
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	topicName := util.RandomString("topic-delete-", 6)
+	err = client.CreateTopic(
+		ctx,
+		kafka.TopicConfig{
+			Topic:             topicName,
+			NumPartitions:     -1,
+			ReplicationFactor: -1,
+			ReplicaAssignments: []kafka.ReplicaAssignment{
+				{
+					Partition: 0,
+					Replicas:  []int{1, 2},
+				},
+				{
+					Partition: 1,
+					Replicas:  []int{2, 3},
+				},
+				{
+					Partition: 2,
+					Replicas:  []int{3, 4},
+				},
+			},
+			ConfigEntries: []kafka.ConfigEntry{
+				{
+					ConfigName:  "flush.ms",
+					ConfigValue: "2000",
+				},
+				{
+					ConfigName:  "retention.ms",
+					ConfigValue: "10000000",
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+	util.RetryUntil(t, 5*time.Second, func() error {
+		_, err := client.GetTopic(ctx, topicName, true)
+		return err
+	})
+
+	err = client.DeleteTopic(ctx, topicName)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 10)
+
+	_, err = client.GetTopic(ctx, topicName, false)
+	require.Error(t, err)
+}
+
 func TestBrokerClientAlterAssignments(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")

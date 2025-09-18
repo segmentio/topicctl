@@ -21,6 +21,7 @@ import (
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/messages"
+	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -604,6 +605,40 @@ func (c *CLIRunner) GetTopics(ctx context.Context, full bool) error {
 	}
 
 	c.printer("Topics:\n%s", admin.FormatTopics(topics, brokers, full))
+
+	return nil
+}
+
+// DeleteTopic deletes a single topic.
+func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
+	c.printer("Checking if topic %s exists...", topic)
+	c.startSpinner()
+	// First check that topic exists
+	_, err := c.adminClient.GetTopic(ctx, topic, false)
+	if err != nil {
+		c.stopSpinner()
+		return fmt.Errorf("error fetching topic info: %+v", err)
+	}
+	c.stopSpinner()
+	c.printer("Topic %s exists in the cluster!", topic)
+
+	confirm, err := util.Confirm(fmt.Sprintf("Delete topic \"%s\"", topic), false)
+	if err != nil {
+		return err
+	}
+
+	if !confirm {
+		return nil
+	}
+
+	c.startSpinner()
+	err = c.adminClient.DeleteTopic(ctx, topic)
+	c.stopSpinner()
+	if err != nil {
+		return err
+	}
+
+	c.printer("Topic %s successfully deleted", topic)
 
 	return nil
 }

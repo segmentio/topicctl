@@ -616,6 +616,31 @@ func (c *BrokerAdminClient) AssignPartitions(
 	return err
 }
 
+// DeleteTopic deletes a topic in the cluster.
+func (c *BrokerAdminClient) DeleteTopic(ctx context.Context, topic string) error {
+	if c.config.ReadOnly {
+		return errors.New("Cannot delete topics in read-only mode")
+	}
+
+	req := &kafka.DeleteTopicsRequest{
+		Topics: []string{topic},
+	}
+	log.Debugf("DeleteTopics request: %+v", req)
+
+	resp, err := c.client.DeleteTopics(ctx, req)
+	log.Debugf("DeleteTopics response: %+v (%+v)", resp, err)
+
+	if err != nil {
+		return err
+	}
+
+	if err, ok := resp.Errors[topic]; ok {
+		return err
+	}
+
+	return nil
+}
+
 // AddPartitions extends a topic by adding one or more new partitions to it.
 func (c *BrokerAdminClient) AddPartitions(
 	ctx context.Context,

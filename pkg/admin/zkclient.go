@@ -645,6 +645,29 @@ func (c *ZKAdminClient) CreateTopic(
 	return err
 }
 
+func (c *ZKAdminClient) DeleteTopic(ctx context.Context, topic string) error {
+	if c.readOnly {
+		return errors.New("Cannot delete topics in read-only mode")
+	}
+
+	req := kafka.DeleteTopicsRequest{
+		Topics: []string{topic},
+	}
+	log.Debugf("DeleteTopics request: %+v", req)
+
+	resp, err := c.Connector.KafkaClient.DeleteTopics(ctx, &req)
+	log.Debugf("DeleteTopics response: %+v (%+v)", resp, err)
+	if err != nil {
+		return err
+	}
+
+	if err, ok := resp.Errors[topic]; ok {
+		return err
+	}
+
+	return nil
+}
+
 // AssignPartitions notifies the cluster to begin a partition reassignment.
 // This should only be used for existing partitions; to create new partitions,
 // use the AddPartitions method.
