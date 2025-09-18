@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/segmentio/topicctl/pkg/util"
 )
 
@@ -14,12 +15,10 @@ import (
 func FormatTailStats(stats TailStats, filtered bool) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-
-	var headerNames []string
+	var headers []any
 
 	if filtered {
-		headerNames = []string{
+		headers = []any{
 			"Partition",
 			"Messages Tailed\n(Total)",
 			"Messages Tailed\n(Filtered)",
@@ -29,7 +28,7 @@ func FormatTailStats(stats TailStats, filtered bool) string {
 			"Last Time",
 		}
 	} else {
-		headerNames = []string{
+		headers = []any{
 			"Partition",
 			"Messages Tailed",
 			"First Offset",
@@ -39,27 +38,24 @@ func FormatTailStats(stats TailStats, filtered bool) string {
 		}
 	}
 
-	table.SetHeader(headerNames)
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
 
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	partitions := []int{}
 
@@ -109,40 +105,35 @@ func FormatTailStats(stats TailStats, filtered bool) string {
 func FormatBounds(boundsSlice []Bounds) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Partition",
-			"First Offset",
-			"First Time",
-			"Last Offset",
-			"Last Time",
-			"Messages",
-			"Duration",
-			"Avg Rate",
-		},
+	headers := []any{
+		"Partition",
+		"First Offset",
+		"First Time",
+		"Last Offset",
+		"Last Time",
+		"Messages",
+		"Duration",
+		"Avg Rate",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	for _, bounds := range boundsSlice {
 		if bounds.FirstOffset == bounds.LastOffset {
@@ -186,35 +177,32 @@ func FormatBounds(boundsSlice []Bounds) string {
 func FormatBoundTotals(boundsSlice []Bounds) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-	table.SetHeader(
-		[]string{
-			"Earliest Time",
-			"Latest Time",
-			"Total Messages",
-			"Duration",
-			"Avg Rate",
-		},
+	headers := []any{
+		"Earliest Time",
+		"Latest Time",
+		"Total Messages",
+		"Duration",
+		"Avg Rate",
+	}
+
+	configBuilder := tablewriter.NewConfigBuilder().WithRowAutoWrap(tw.WrapNone)
+	for i := range headers {
+		configBuilder = configBuilder.ForColumn(i).WithAlignment(tw.AlignLeft).Build()
+	}
+
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(configBuilder.Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
 	)
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
-	)
+
+	table.Header(headers...)
 
 	var totalMessages int64
 	var earliestTime time.Time
