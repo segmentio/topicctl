@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -9,12 +10,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
+	// "github.com/aws/aws-sdk-go/aws"
+	// "github.com/aws/aws-sdk-go/aws/arn"
+	// "github.com/aws/aws-sdk-go/aws/session"
+	// sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	// "github.com/aws/aws-sdk-go/service/secretsmanager"
+	// "github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	sigv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	awsCfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/aws/session"
-	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/aws_msk_iam"
@@ -67,6 +73,15 @@ type Connector struct {
 	KafkaClient *kafka.Client
 }
 
+// ARN is a parsed Amazon Resource Name.
+type ARN struct {
+	Partition string
+	Service   string
+	Region    string
+	AccountID string
+	Resource  string
+}
+
 // NewConnector contructs a new Connector instance given the argument config.
 func NewConnector(config ConnectorConfig) (*Connector, error) {
 	connector := &Connector{
@@ -80,10 +95,16 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 	if config.SASL.Enabled {
 		saslUsername := config.SASL.Username
 		saslPassword := config.SASL.Password
+		ctx := context.Background()
 
 		if config.SASL.SecretsManagerArn != "" {
-			secretProvider := secretsmanager.New(session.Must(session.NewSession()))
-			creds, err := GetKafkaCredentials(secretProvider, config.SASL.SecretsManagerArn)
+			cfg, err := awsCfg.LoadDefaultConfig(ctx)
+			if err != nil {
+				return nil, err
+			}
+			secretProvider := secretsmanager.NewFromConfig(cfg)
+
+			creds, err := GetKafkaCredentials(ctx, secretProvider, config.SASL.SecretsManagerArn)
 			if err != nil {
 				return nil, err
 			}
@@ -220,16 +241,24 @@ type credentials struct {
 	Password string `json:"password"`
 }
 
-func GetKafkaCredentials(svc secretsmanageriface.SecretsManagerAPI, secretArn string) (credentials, error) {
+func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secretArn string) (credentials, error) {
 	log.Debugf("Fetching credentials from Secrets Manager for secret: %s", secretArn)
 	var creds credentials
 
-	arn, err := arn.Parse(secretArn)
+	arn, err := ParseARN(secretArn)
 	if err != nil {
 		return creds, fmt.Errorf("Couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
 	}
-	// Remove "secret:" from the resource to get the secret name
-	secretName := strings.Split(arn.Resource, ":")[1]
+
+	// Adding additional ARN validation as the AWS SDK v2 does not provide this functionality
+	secretParts := strings.Split(arn.Resource, ":")
+	if len(secretParts) < 2 {
+		return creds, fmt.Errorf("invalid resource format in ARN: %s", secretArn)
+	}
+	secretName := secretParts[1]
+	if len(secretName) < 7 {
+		return creds, fmt.Errorf("secret name too short: %s", secretName)
+	}
 	// Strip the six random characters at the end of the arn to get the secret name
 	// https://docs.aws.amazon.com/secretsmanager/latest/userguide/getting-started.html
 	secretNameNoSuffix := secretName[:len(secretName)-7]
@@ -240,12 +269,38 @@ func GetKafkaCredentials(svc secretsmanageriface.SecretsManagerAPI, secretArn st
 		SecretId: aws.String(secretNameNoSuffix),
 	}
 
-	result, err := svc.GetSecretValue(input)
+	result, err := svc.GetSecretValue(ctx, input)
 	if err != nil {
 		return creds, err
 	}
 
-	json.Unmarshal([]byte(*result.SecretString), &creds)
+	if result.SecretString == nil {
+		return creds, fmt.Errorf("SecretString is nil for secret: %s", secretNameNoSuffix)
+	}
+
+	if err := json.Unmarshal([]byte(*result.SecretString), &creds); err != nil {
+		return creds, err
+	}
 
 	return creds, nil
+}
+
+// ParseARN parses an AWS ARN string into its components.
+// Example ARN: arn:aws:secretsmanager:us-west-2:123456789012:secret:mysecret-abc123
+func ParseARN(arnStr string) (ARN, error) {
+	const arnPrefix = "arn:"
+	if !strings.HasPrefix(arnStr, arnPrefix) {
+		return ARN{}, fmt.Errorf("invalid ARN: %s", arnStr)
+	}
+	parts := strings.SplitN(arnStr, ":", 6)
+	if len(parts) < 6 {
+		return ARN{}, fmt.Errorf("invalid ARN format: %s", arnStr)
+	}
+	return ARN{
+		Partition: parts[1],
+		Service:   parts[2],
+		Region:    parts[3],
+		AccountID: parts[4],
+		Resource:  parts[5],
+	}, nil
 }
