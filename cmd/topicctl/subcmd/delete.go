@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/acl"
 	"github.com/segmentio/topicctl/pkg/admin"
@@ -69,9 +69,12 @@ $ topicctl delete acls --resource-type topic --resource-pattern-type literal --r
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := deleteConfig.shared.getAdminClient(ctx, sess, deleteConfig.dryRun)
+			adminClient, err := deleteConfig.shared.getAdminClient(ctx, cfg, deleteConfig.dryRun)
 			if err != nil {
 				return err
 			}
@@ -159,9 +162,12 @@ func deleteTopicCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := deleteConfig.shared.getAdminClient(ctx, sess, false)
+			adminClient, err := deleteConfig.shared.getAdminClient(ctx, cfg, false)
 			if err != nil {
 				return err
 			}

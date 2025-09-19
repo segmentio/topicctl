@@ -5,14 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 	"github.com/segmentio/topicctl/pkg/zk"
@@ -49,7 +50,7 @@ type ZKAdminClient struct {
 	zkPrefix       string
 	bootstrapAddrs []string
 	Connector      *Connector
-	sess           *session.Session
+	awsCfg         aws.Config
 	readOnly       bool
 }
 
@@ -61,7 +62,7 @@ type ZKAdminClientConfig struct {
 	ZKPrefix          string
 	BootstrapAddrs    []string
 	ExpectedClusterID string
-	Sess              *session.Session
+	AwsCfg            aws.Config
 	ReadOnly          bool
 	KafkaConnTimeout  time.Duration
 }
@@ -97,7 +98,7 @@ func NewZKAdminClient(
 	client := &ZKAdminClient{
 		zkClient: zkClient,
 		zkPrefix: zkPrefix,
-		sess:     config.Sess,
+		awsCfg:   config.AwsCfg,
 		readOnly: config.ReadOnly,
 	}
 
@@ -256,9 +257,9 @@ func (c *ZKAdminClient) GetBrokers(
 		if !ok {
 			continue
 		}
-		brokers[b].InstanceID = aws.StringValue(instance.InstanceId)
-		brokers[b].InstanceType = aws.StringValue(instance.InstanceType)
-		brokers[b].AvailabilityZone = aws.StringValue(
+		brokers[b].InstanceID = stringValue(instance.InstanceId)
+		brokers[b].InstanceType = string(instance.InstanceType)
+		brokers[b].AvailabilityZone = stringValue(
 			instance.Placement.AvailabilityZone,
 		)
 	}
@@ -1053,27 +1054,27 @@ func (c *ZKAdminClient) zNode(elements ...string) string {
 func (c *ZKAdminClient) getInstances(
 	ctx context.Context,
 	ips []string,
-) (map[string]ec2.Instance, error) {
-	instancesMap := map[string]ec2.Instance{}
+) (map[string]ec2types.Instance, error) {
+	instancesMap := map[string]ec2types.Instance{}
 
-	if c.sess == nil {
+	if reflect.DeepEqual(c.awsCfg, aws.Config{}) {
 		return instancesMap, nil
 	}
 
-	ec2Client := ec2.New(c.sess)
+	ec2Client := ec2.NewFromConfig(c.awsCfg)
 
 	ipsMap := map[string]struct{}{}
 
-	ipValues := []*string{}
+	ipValues := []string{}
 	for _, ip := range ips {
-		ipValues = append(ipValues, aws.String(ip))
+		ipValues = append(ipValues, ip)
 		ipsMap[ip] = struct{}{}
 	}
 
-	resp, err := ec2Client.DescribeInstancesWithContext(
+	resp, err := ec2Client.DescribeInstances(
 		ctx,
 		&ec2.DescribeInstancesInput{
-			Filters: []*ec2.Filter{
+			Filters: []ec2types.Filter{
 				{
 					Name:   aws.String("private-ip-address"),
 					Values: ipValues,
@@ -1088,10 +1089,10 @@ func (c *ZKAdminClient) getInstances(
 	for _, reservation := range resp.Reservations {
 		for _, instance := range reservation.Instances {
 			for _, networkInterface := range instance.NetworkInterfaces {
-				privateIP := aws.StringValue(networkInterface.PrivateIpAddress)
+				privateIP := stringValue(networkInterface.PrivateIpAddress)
 
 				if _, ok := ipsMap[privateIP]; ok {
-					instancesMap[privateIP] = *instance
+					instancesMap[privateIP] = instance
 				}
 			}
 		}
@@ -1178,4 +1179,11 @@ func (c *ZKAdminClient) GetAllTopicsMetadata(
 	}
 
 	return metadata, nil
+}
+
+func stringValue(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
 }
