@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/spf13/cobra"
 
 	"github.com/segmentio/topicctl/pkg/admin"
@@ -124,7 +125,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	}
 
 	adminClient, err := clusterConfig.NewAdminClient(ctx,
-		nil,
+		aws.Config{},
 		config.AdminClientOpts{
 			ReadOnly:                  rebalanceConfig.dryRun,
 			UsernameOverride:          rebalanceConfig.shared.saslUsername,

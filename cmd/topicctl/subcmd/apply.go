@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/cli"
@@ -223,7 +224,7 @@ func applyTopic(
 	if !ok {
 		adminClient, err = clusterConfig.NewAdminClient(
 			ctx,
-			nil,
+			aws.Config{},
 			config.AdminClientOpts{
 				ReadOnly:                  applyConfig.dryRun,
 				UsernameOverride:          applyConfig.shared.saslUsername,

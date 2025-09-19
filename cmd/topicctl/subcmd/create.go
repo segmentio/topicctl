@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/topicctl/pkg/acl"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
@@ -149,7 +150,7 @@ func createACL(
 	if !ok {
 		adminClient, err = clusterConfig.NewAdminClient(
 			ctx,
-			nil,
+			aws.Config{},
 			config.AdminClientOpts{
 				ReadOnly:                  createConfig.dryRun,
 				UsernameOverride:          createConfig.shared.saslUsername,

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -673,7 +674,7 @@ func testACLAdmin(
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, config.AdminClientOpts{})
+	adminClient, err := clusterConfig.NewAdminClient(ctx, aws.Config{}, config.AdminClientOpts{})
 	require.NoError(t, err)
 
 	aclAdmin, err := NewACLAdmin(
