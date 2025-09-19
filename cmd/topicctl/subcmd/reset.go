@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/segmentio/topicctl/pkg/groups"
 	"github.com/segmentio/topicctl/pkg/util"
@@ -90,7 +91,7 @@ func resetOffsetsRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	adminClient, err := resetOffsetsConfig.shared.getAdminClient(ctx, nil, true)
+	adminClient, err := resetOffsetsConfig.shared.getAdminClient(ctx, aws.Config{}, true)
 	if err != nil {
 		return err
 	}

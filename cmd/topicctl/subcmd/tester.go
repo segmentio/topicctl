@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/util"
 	log "github.com/sirupsen/logrus"
@@ -90,7 +91,7 @@ func testerRun(cmd *cobra.Command, args []string) error {
 }
 
 func runTestReader(ctx context.Context) error {
-	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, aws.Config{}, true)
 	if err != nil {
 		return err
 	}
@@ -139,7 +140,7 @@ func runTestReader(ctx context.Context) error {
 }
 
 func runTestWriter(ctx context.Context) error {
-	adminClient, err := testerConfig.shared.getAdminClient(ctx, nil, true)
+	adminClient, err := testerConfig.shared.getAdminClient(ctx, aws.Config{}, true)
 	if err != nil {
 		return err
 	}
