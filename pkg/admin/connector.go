@@ -10,12 +10,6 @@ import (
 	"strings"
 	"time"
 
-	// "github.com/aws/aws-sdk-go/aws"
-	// "github.com/aws/aws-sdk-go/aws/arn"
-	// "github.com/aws/aws-sdk-go/aws/session"
-	// sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-	// "github.com/aws/aws-sdk-go/service/secretsmanager"
-	// "github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	sigv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsCfg "github.com/aws/aws-sdk-go-v2/config"
