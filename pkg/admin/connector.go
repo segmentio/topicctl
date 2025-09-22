@@ -247,7 +247,6 @@ func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secret
 		return creds, fmt.Errorf("Couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
 	}
 
-	// Adding additional ARN validation as the AWS SDK v2 does not provide this functionality
 	secretParts := strings.Split(arn.Resource, ":")
 	if len(secretParts) < 2 {
 		return creds, fmt.Errorf("invalid resource format in ARN: %s", secretArn)
