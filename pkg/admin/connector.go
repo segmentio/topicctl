@@ -14,10 +14,9 @@ import (
 	sigv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsCfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
-	"github.com/segmentio/kafka-go/sasl/aws_msk_iam"
+	"github.com/segmentio/kafka-go/sasl/aws_msk_iam_v2"
 	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/segmentio/kafka-go/sasl/scram"
 	log "github.com/sirupsen/logrus"
@@ -109,11 +108,15 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 
 		switch config.SASL.Mechanism {
 		case SASLMechanismAWSMSKIAM:
-			sess := session.Must(session.NewSession())
-			signer := sigv4.NewSigner(sess.Config.Credentials)
-			region := aws.StringValue(sess.Config.Region)
+			cfg, err := awsCfg.LoadDefaultConfig(ctx)
+			if err != nil {
+				return nil, err
+			}
 
-			mechanismClient = &aws_msk_iam.Mechanism{
+			signer := sigv4.NewSigner()
+			region := cfg.Region
+
+			mechanismClient = &aws_msk_iam_v2.Mechanism{
 				Signer: signer,
 				Region: region,
 			}
