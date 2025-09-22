@@ -288,7 +288,7 @@ func ParseARN(arnStr string) (ARN, error) {
 	if !strings.HasPrefix(arnStr, arnPrefix) {
 		return ARN{}, fmt.Errorf("invalid ARN: %s", arnStr)
 	}
-	parts := strings.SplitN(arnStr, ":", 6)
+	parts := strings.SplitN(arnStr, ":", 6) // Split into at most 6 parts for cases of multi-colon resources
 	if len(parts) < 6 {
 		return ARN{}, fmt.Errorf("invalid ARN format: %s", arnStr)
 	}
