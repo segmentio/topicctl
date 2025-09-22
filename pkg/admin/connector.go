@@ -247,7 +247,7 @@ func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secret
 		return creds, fmt.Errorf("Couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
 	}
 
-	secretParts := strings.Split(arn.Resource, ":")
+	secretParts := strings.SplitN(arn.Resource, ":", 2) // Split into at most 2 parts for cases of multi-colon resources
 	if len(secretParts) < 2 {
 		return creds, fmt.Errorf("invalid resource format in ARN: %s", secretArn)
 	}
