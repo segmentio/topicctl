@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/check"
 	"github.com/segmentio/topicctl/pkg/cli"
@@ -136,7 +137,7 @@ func checkTopicFile(
 		if !ok {
 			adminClient, err = clusterConfig.NewAdminClient(
 				ctx,
-				nil,
+				aws.Config{},
 				config.AdminClientOpts{
 					ReadOnly:                  true,
 					UsernameOverride:          checkConfig.shared.saslUsername,

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/topicctl/pkg/apply"
 	"github.com/segmentio/topicctl/pkg/config"
 	"github.com/segmentio/topicctl/pkg/util"
@@ -28,7 +29,7 @@ func TestCheck(t *testing.T) {
 		},
 	}
 
-	adminClient, err := clusterConfig.NewAdminClient(ctx, nil, config.AdminClientOpts{})
+	adminClient, err := clusterConfig.NewAdminClient(ctx, aws.Config{}, config.AdminClientOpts{})
 	require.NoError(t, err)
 
 	topicName := util.RandomString("check-topic-", 6)

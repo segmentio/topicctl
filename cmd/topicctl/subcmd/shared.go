@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/config"
@@ -109,7 +109,7 @@ func (s sharedOptions) validate() error {
 
 func (s sharedOptions) getAdminClient(
 	ctx context.Context,
-	sess *session.Session,
+	awsCfg aws.Config,
 	readOnly bool,
 ) (admin.Client, error) {
 	if s.clusterConfig != "" {
@@ -119,7 +119,7 @@ func (s sharedOptions) getAdminClient(
 		}
 		return clusterConfig.NewAdminClient(
 			ctx,
-			sess,
+			awsCfg,
 			config.AdminClientOpts{
 				ReadOnly:                  readOnly,
 				UsernameOverride:          s.saslUsername,
@@ -178,7 +178,7 @@ func (s sharedOptions) getAdminClient(
 			admin.ZKAdminClientConfig{
 				ZKAddrs:          []string{s.zkAddr},
 				ZKPrefix:         s.zkPrefix,
-				Sess:             sess,
+				AwsCfg:           awsCfg,
 				ReadOnly:         readOnly,
 				KafkaConnTimeout: s.connTimeout,
 			},

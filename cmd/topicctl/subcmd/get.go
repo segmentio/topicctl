@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/admin"
 	"github.com/segmentio/topicctl/pkg/cli"
@@ -95,9 +95,12 @@ func balanceCmd() *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -122,9 +125,12 @@ func brokersCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -143,9 +149,12 @@ func controllerCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -164,9 +173,12 @@ func clusterIDCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -185,9 +197,12 @@ func configCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -206,9 +221,12 @@ func groupsCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -227,9 +245,12 @@ func lagsCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -254,9 +275,12 @@ func membersCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -275,9 +299,12 @@ func partitionsCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -321,9 +348,12 @@ func offsetsCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -342,9 +372,12 @@ func topicsCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -397,9 +430,12 @@ $ topicctl get acls --host 198.51.100.0
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}
@@ -467,9 +503,12 @@ func usersCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			sess := session.Must(session.NewSession())
+			cfg, err := config.LoadDefaultConfig(ctx)
+			if err != nil {
+				return err
+			}
 
-			adminClient, err := getConfig.shared.getAdminClient(ctx, sess, true)
+			adminClient, err := getConfig.shared.getAdminClient(ctx, cfg, true)
 			if err != nil {
 				return err
 			}

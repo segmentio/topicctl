@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/go-multierror"
 	"github.com/segmentio/topicctl/pkg/admin"
 	log "github.com/sirupsen/logrus"
@@ -209,7 +209,7 @@ type AdminClientOpts struct {
 // NewAdminClient returns a new admin client using the parameters in the current cluster config.
 func (c ClusterConfig) NewAdminClient(
 	ctx context.Context,
-	sess *session.Session,
+	awsCfg aws.Config,
 	opts AdminClientOpts,
 ) (admin.Client, error) {
 	if len(c.Spec.ZKAddrs) == 0 {
@@ -297,7 +297,7 @@ func (c ClusterConfig) NewAdminClient(
 				ZKPrefix:          c.Spec.ZKPrefix,
 				BootstrapAddrs:    c.Spec.BootstrapAddrs,
 				ExpectedClusterID: c.Spec.ClusterID,
-				Sess:              sess,
+				AwsCfg:            awsCfg,
 				ReadOnly:          opts.ReadOnly,
 				KafkaConnTimeout:  opts.KafkaConnTimeout,
 			},

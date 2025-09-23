@@ -3,7 +3,7 @@ package subcmd
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/segmentio/topicctl/pkg/cli"
 	"github.com/spf13/cobra"
 )
@@ -32,9 +32,12 @@ func replPreRun(cmd *cobra.Command, args []string) error {
 
 func replRun(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
-	sess := session.Must(session.NewSession())
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return err
+	}
 
-	adminClient, err := replConfig.shared.getAdminClient(ctx, sess, true)
+	adminClient, err := replConfig.shared.getAdminClient(ctx, cfg, true)
 	if err != nil {
 		return err
 	}

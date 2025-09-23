@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/cli"
 	log "github.com/sirupsen/logrus"
@@ -81,7 +82,7 @@ func tailRun(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
-	adminClient, err := tailConfig.shared.getAdminClient(ctx, nil, true)
+	adminClient, err := tailConfig.shared.getAdminClient(ctx, aws.Config{}, true)
 	if err != nil {
 		return err
 	}

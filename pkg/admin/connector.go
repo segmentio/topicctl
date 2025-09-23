@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -9,15 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	sigv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	awsCfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
-	"github.com/segmentio/kafka-go/sasl/aws_msk_iam"
+	"github.com/segmentio/kafka-go/sasl/aws_msk_iam_v2"
 	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/segmentio/kafka-go/sasl/scram"
 	log "github.com/sirupsen/logrus"
@@ -80,10 +80,16 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 	if config.SASL.Enabled {
 		saslUsername := config.SASL.Username
 		saslPassword := config.SASL.Password
+		ctx := context.Background()
 
 		if config.SASL.SecretsManagerArn != "" {
-			secretProvider := secretsmanager.New(session.Must(session.NewSession()))
-			creds, err := GetKafkaCredentials(secretProvider, config.SASL.SecretsManagerArn)
+			cfg, err := awsCfg.LoadDefaultConfig(ctx)
+			if err != nil {
+				return nil, err
+			}
+			secretProvider := secretsmanager.NewFromConfig(cfg)
+
+			creds, err := GetKafkaCredentials(ctx, secretProvider, config.SASL.SecretsManagerArn)
 			if err != nil {
 				return nil, err
 			}
@@ -94,13 +100,18 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 
 		switch config.SASL.Mechanism {
 		case SASLMechanismAWSMSKIAM:
-			sess := session.Must(session.NewSession())
-			signer := sigv4.NewSigner(sess.Config.Credentials)
-			region := aws.StringValue(sess.Config.Region)
+			cfg, err := awsCfg.LoadDefaultConfig(ctx)
+			if err != nil {
+				return nil, err
+			}
 
-			mechanismClient = &aws_msk_iam.Mechanism{
-				Signer: signer,
-				Region: region,
+			signer := sigv4.NewSigner()
+			region := cfg.Region
+
+			mechanismClient = &aws_msk_iam_v2.Mechanism{
+				Signer:      signer,
+				Region:      region,
+				Credentials: cfg.Credentials,
 			}
 		case SASLMechanismPlain:
 			mechanismClient = plain.Mechanism{
@@ -220,7 +231,7 @@ type credentials struct {
 	Password string `json:"password"`
 }
 
-func GetKafkaCredentials(svc secretsmanageriface.SecretsManagerAPI, secretArn string) (credentials, error) {
+func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secretArn string) (credentials, error) {
 	log.Debugf("Fetching credentials from Secrets Manager for secret: %s", secretArn)
 	var creds credentials
 
@@ -240,7 +251,7 @@ func GetKafkaCredentials(svc secretsmanageriface.SecretsManagerAPI, secretArn st
 		SecretId: aws.String(secretNameNoSuffix),
 	}
 
-	result, err := svc.GetSecretValue(input)
+	result, err := svc.GetSecretValue(ctx, input)
 	if err != nil {
 		return creds, err
 	}
