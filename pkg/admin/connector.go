@@ -109,8 +109,9 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 			region := cfg.Region
 
 			mechanismClient = &aws_msk_iam_v2.Mechanism{
-				Signer: signer,
-				Region: region,
+				Signer:      signer,
+				Region:      region,
+				Credentials: cfg.Credentials,
 			}
 		case SASLMechanismPlain:
 			mechanismClient = plain.Mechanism{
@@ -238,7 +239,6 @@ func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secret
 	if err != nil {
 		return creds, fmt.Errorf("Couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
 	}
-
 	// Remove "secret:" from the resource to get the secret name
 	secretName := strings.Split(arn.Resource, ":")[1]
 	// Strip the six random characters at the end of the arn to get the secret name
