@@ -257,9 +257,9 @@ func (c *ZKAdminClient) GetBrokers(
 		if !ok {
 			continue
 		}
-		brokers[b].InstanceID = stringValue(instance.InstanceId)
+		brokers[b].InstanceID = aws.ToString(instance.InstanceId)
 		brokers[b].InstanceType = string(instance.InstanceType)
-		brokers[b].AvailabilityZone = stringValue(
+		brokers[b].AvailabilityZone = aws.ToString(
 			instance.Placement.AvailabilityZone,
 		)
 	}
@@ -1089,7 +1089,7 @@ func (c *ZKAdminClient) getInstances(
 	for _, reservation := range resp.Reservations {
 		for _, instance := range reservation.Instances {
 			for _, networkInterface := range instance.NetworkInterfaces {
-				privateIP := stringValue(networkInterface.PrivateIpAddress)
+				privateIP := aws.ToString(networkInterface.PrivateIpAddress)
 
 				if _, ok := ipsMap[privateIP]; ok {
 					instancesMap[privateIP] = instance
@@ -1179,11 +1179,4 @@ func (c *ZKAdminClient) GetAllTopicsMetadata(
 	}
 
 	return metadata, nil
-}
-
-func stringValue(s *string) string {
-	if s != nil {
-		return *s
-	}
-	return ""
 }
