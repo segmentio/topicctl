@@ -67,15 +67,6 @@ type Connector struct {
 	KafkaClient *kafka.Client
 }
 
-// ARN is a parsed Amazon Resource Name.
-type ARN struct {
-	Partition string
-	Service   string
-	Region    string
-	AccountID string
-	Resource  string
-}
-
 // NewConnector contructs a new Connector instance given the argument config.
 func NewConnector(config ConnectorConfig) (*Connector, error) {
 	connector := &Connector{
