@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	sigv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsCfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -242,19 +243,13 @@ func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secret
 	log.Debugf("Fetching credentials from Secrets Manager for secret: %s", secretArn)
 	var creds credentials
 
-	arn, err := ParseARN(secretArn)
+	arn, err := arn.Parse(secretArn)
 	if err != nil {
 		return creds, fmt.Errorf("Couldn't parse the ARN for secret: %s, error: %v", secretArn, err)
 	}
 
-	secretParts := strings.SplitN(arn.Resource, ":", 2) // Split into at most 2 parts for cases of multi-colon resources
-	if len(secretParts) < 2 {
-		return creds, fmt.Errorf("invalid resource format in ARN: %s", secretArn)
-	}
-	secretName := secretParts[1]
-	if len(secretName) < 7 {
-		return creds, fmt.Errorf("secret name too short: %s", secretName)
-	}
+	// Remove "secret:" from the resource to get the secret name
+	secretName := strings.Split(arn.Resource, ":")[1]
 	// Strip the six random characters at the end of the arn to get the secret name
 	// https://docs.aws.amazon.com/secretsmanager/latest/userguide/getting-started.html
 	secretNameNoSuffix := secretName[:len(secretName)-7]
@@ -270,33 +265,7 @@ func GetKafkaCredentials(ctx context.Context, svc *secretsmanager.Client, secret
 		return creds, err
 	}
 
-	if result.SecretString == nil {
-		return creds, fmt.Errorf("SecretString is nil for secret: %s", secretNameNoSuffix)
-	}
-
-	if err := json.Unmarshal([]byte(*result.SecretString), &creds); err != nil {
-		return creds, err
-	}
+	json.Unmarshal([]byte(*result.SecretString), &creds)
 
 	return creds, nil
-}
-
-// ParseARN parses an AWS ARN string into its components.
-// Example ARN: arn:aws:secretsmanager:us-west-2:123456789012:secret:mysecret-abc123
-func ParseARN(arnStr string) (ARN, error) {
-	const arnPrefix = "arn:"
-	if !strings.HasPrefix(arnStr, arnPrefix) {
-		return ARN{}, fmt.Errorf("invalid ARN: %s", arnStr)
-	}
-	parts := strings.SplitN(arnStr, ":", 6) // Split into at most 6 parts for cases of multi-colon resources
-	if len(parts) < 6 {
-		return ARN{}, fmt.Errorf("invalid ARN format: %s", arnStr)
-	}
-	return ARN{
-		Partition: parts[1],
-		Service:   parts[2],
-		Region:    parts[3],
-		AccountID: parts[4],
-		Resource:  parts[5],
-	}, nil
 }
