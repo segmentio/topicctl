@@ -82,6 +82,7 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 		aws.Config{},
 		config.AdminClientOpts{
 			ReadOnly:                  true,
+			KafkaConnTimeout:          bootstrapConfig.shared.connTimeout,
 			UsernameOverride:          bootstrapConfig.shared.saslUsername,
 			PasswordOverride:          bootstrapConfig.shared.saslPassword,
 			SecretsManagerArnOverride: bootstrapConfig.shared.saslSecretsManagerArn,
