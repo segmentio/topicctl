@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultTimeout = 5 * time.Second
+	defaultRequestTimeout = 5 * time.Second
 
 	// Used for filtering out default configs
 	configSourceUnknown                    int8 = 0
@@ -136,6 +136,14 @@ func NewBrokerAdminClient(
 	}
 
 	return adminClient, nil
+}
+
+func (c *BrokerAdminClient) requestTimeout() time.Duration {
+	if c.config.ConnTimeout > 0 {
+		return c.config.ConnTimeout
+	}
+
+	return defaultRequestTimeout
 }
 
 // GetClusterID gets the ID of the cluster.
@@ -597,7 +605,7 @@ func (c *BrokerAdminClient) AssignPartitions(
 	req := kafka.AlterPartitionReassignmentsRequest{
 		Topic:       topic,
 		Assignments: apiAssignments,
-		Timeout:     defaultTimeout,
+		Timeout:     c.requestTimeout(),
 	}
 	log.Debugf("AlterPartitionReassignments request: %+v", req)
 
@@ -708,7 +716,7 @@ func (c *BrokerAdminClient) RunLeaderElection(
 	req := kafka.ElectLeadersRequest{
 		Topic:      topic,
 		Partitions: partitions,
-		Timeout:    defaultTimeout,
+		Timeout:    c.requestTimeout(),
 	}
 	log.Debugf("ElectLeaders request: %+v", req)
 

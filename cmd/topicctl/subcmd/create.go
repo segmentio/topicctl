@@ -153,6 +153,7 @@ func createACL(
 			aws.Config{},
 			config.AdminClientOpts{
 				ReadOnly:                  createConfig.dryRun,
+				KafkaConnTimeout:          createConfig.shared.connTimeout,
 				UsernameOverride:          createConfig.shared.saslUsername,
 				PasswordOverride:          createConfig.shared.saslPassword,
 				SecretsManagerArnOverride: createConfig.shared.saslSecretsManagerArn,
