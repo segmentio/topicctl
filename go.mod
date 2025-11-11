@@ -1,4 +1,4 @@
-module github.com/yieldlab/topicctl
+module github.com/segmentio/topicctl
 
 go 1.24.4
 
