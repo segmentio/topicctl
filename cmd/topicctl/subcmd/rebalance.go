@@ -160,11 +160,11 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	}
 
 	tmpDir := ""
-	existingConfigFiles := make(map[string]struct{})
+	existingConfigFiles := []string{}
 	if rebalanceConfig.generateConfig {
 		// make set of existing files
 		err := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
-			existingConfigFiles[topicConfig.Meta.Name] = struct{}{}
+			existingConfigFiles = append(existingConfigFiles, topicConfig.Meta.Name)
 			return nil
 		})
 		if err != nil {
@@ -183,14 +183,19 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		}
 		log.Infof("tmp output path: %v", tmpDir)
 
-		// generate (bootstrap) config files
+		topicsToExclude := ".^"
+		if len(existingConfigFiles) > 0 {
+			topicsToExclude = strings.Join(existingConfigFiles, "|")
+		}
+		
+		// generate missing config files
 		cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 		cliRunner.BootstrapTopics(
 			ctx,
 			[]string{},
 			clusterConfig,
 			".*",
-			".^",
+			topicsToExclude,
 			tmpDir,
 			false,
 			false,
@@ -206,12 +211,6 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	// iterate through each topic config and initiate rebalance
 	topicErrorDict := make(map[string]error)
 	processed := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
-		// skip generated config if it already existed
-		if rebalanceConfig.generateConfig && topicConfigExists(topicFile, existingConfigFiles, topicConfig.Meta.Name) {
-			log.Infof("skipping generated config for topic %v", topicConfig.Meta.Name)
-			return nil
-		}
-		
 		// topic config should be consistent with the cluster config
 		if err := config.CheckConsistency(topicConfig.Meta, clusterConfig); err != nil {
 			log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
@@ -443,15 +442,4 @@ func processTopicFiles(topicFiles []string, operation func(topicConfig config.To
 		}
 	}
 	return nil
-}
-
-func topicConfigExists(topicFilepath string, existingFiles map[string]struct{}, name string) bool {
-	configPath, _ := filepath.Split(topicFilepath)
-	if strings.HasSuffix(configPath, "tmp/") {
-		_, found := existingFiles[name]
-		if found {
-			return true
-		}
-	}
-	return false
 }
