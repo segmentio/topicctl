@@ -201,7 +201,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			false,
 		)
 
-		// re-invetory config files to take into account newly generated ones
+		// re-inventory config files to take into account newly generated ones
 		topicFiles, err = getAllFiles(topicConfigDir)
 		if err != nil {
 			return err
