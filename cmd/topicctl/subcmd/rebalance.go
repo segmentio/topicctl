@@ -162,14 +162,16 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	tmpDir := ""
 	existingConfigFiles := make(map[string]struct{})
 	if rebalanceConfig.generateConfig {
-		// 0) Make set of existing topic files
-		for _, topicFile := range topicFiles {
-			_, topicName := filepath.Split(topicFile)
-			existingConfigFiles[topicName] = struct{}{}
-			log.Infof("Topic file: %v", topicName)
+		// make set of existing files
+		err := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
+			existingConfigFiles[topicConfig.Meta.Name] = struct{}{}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 
-		// 1) Create tmp directory for generated config files
+		// create temp dir
 		tmpDir = rebalanceConfig.pathPrefix
 		if rebalanceConfig.pathPrefix[len(rebalanceConfig.pathPrefix) - 1] != '/' {
 			tmpDir += "/"
@@ -177,31 +179,27 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		tmpDir += "tmp/"
 		err = os.Mkdir(tmpDir, 0755)
 		if err != nil {
-			// it will error if tmp dir already exists
 			return err
 		}
 		log.Infof("tmp output path: %v", tmpDir)
 
-		// 2) Bootstrap topics
+		// generate (bootstrap) config files
 		cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 		cliRunner.BootstrapTopics(
 			ctx,
-			[]string{}, // args
+			[]string{},
 			clusterConfig,
-			".*", // match
-			".^", // exclude
-			tmpDir, // output dir
-			false, // overwrite
-			false, // allow internal topics
+			".*",
+			".^",
+			tmpDir,
+			false,
+			false,
 		)
 
-		// 3) Re-invetory config files
+		// re-invetory config files to take into account newly generated ones
 		topicFiles, err = getAllFiles(topicConfigDir)
 		if err != nil {
 			return err
-		}
-		for _, topicFile := range topicFiles {
-			log.Infof("Topic file: %v", topicFile)
 		}
 	}
 
@@ -209,19 +207,6 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	topicConfigs := []config.TopicConfig{}
 	topicErrorDict := make(map[string]error)
 	for _, topicFile := range topicFiles {
-		// skip generated config if it already existed
-		if rebalanceConfig.generateConfig {
-			configPath, configName := filepath.Split(topicFile)
-			if strings.HasSuffix(configPath, "tmp/") {
-				_, found := existingConfigFiles[configName]
-				if found {
-					log.Infof("skipping existing file...")
-					continue
-				}
-			}
-		}
-		log.Infof("processing...")
-
 		// do not consider invalid topic yaml files for rebalance
 		topicConfigs, err = config.LoadTopicsFile(topicFile)
 		if err != nil {
@@ -298,7 +283,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// clean up generated config files
+	// clean up any generated config files
 	if rebalanceConfig.generateConfig {
 		err = os.RemoveAll(tmpDir)
 		if err != nil {
@@ -440,4 +425,34 @@ func getAllFiles(dir string) ([]string, error) {
 	}
 
 	return files, err
+}
+
+func processTopicFiles(topicFiles []string, operation func(topicConfig config.TopicConfig, topicFile string) error) error {
+	for _, topicFile := range topicFiles {
+		// do not consider invalid topic yaml files for rebalance
+		topicConfigs, err := config.LoadTopicsFile(topicFile)
+		if err != nil {
+			log.Errorf("Invalid topic yaml file: %s", topicFile)
+			continue
+		}
+
+		for _, topicConfig := range topicConfigs {
+			err := operation(topicConfig, topicFile)
+			if err != nil {
+				return fmt.Errorf("error during operationg on config %d (%s): %w", 0, topicConfig.Meta.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+func topicConfigExists(topicFilepath string, existingFiles map[string]struct{}, name string) bool {
+	configPath, _ := filepath.Split(topicFilepath)
+	if strings.HasSuffix(configPath, "tmp/") {
+		_, found := existingFiles[name]
+		if found {
+			return true
+		}
+	}
+	return false
 }
