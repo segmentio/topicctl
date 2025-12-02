@@ -204,54 +204,53 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// iterate through each topic config and initiate rebalance
-	topicConfigs := []config.TopicConfig{}
 	topicErrorDict := make(map[string]error)
-	for _, topicFile := range topicFiles {
-		// do not consider invalid topic yaml files for rebalance
-		topicConfigs, err = config.LoadTopicsFile(topicFile)
-		if err != nil {
-			log.Errorf("Invalid topic yaml file: %s", topicFile)
-			continue
+	processed := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
+		// skip generated config if it already existed
+		if rebalanceConfig.generateConfig && topicConfigExists(topicFile, existingConfigFiles, topicConfig.Meta.Name) {
+			log.Infof("skipping generated config for topic %v", topicConfig.Meta.Name)
+			return nil
+		}
+		
+		// topic config should be consistent with the cluster config
+		if err := config.CheckConsistency(topicConfig.Meta, clusterConfig); err != nil {
+			log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
+			return nil
 		}
 
-		for _, topicConfig := range topicConfigs {
-			// topic config should be consistent with the cluster config
-			if err := config.CheckConsistency(topicConfig.Meta, clusterConfig); err != nil {
-				log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
-				continue
-			}
+		log.Infof(
+			"Rebalancing topic %s from config file %s with cluster config %s",
+			topicConfig.Meta.Name,
+			topicFile,
+			clusterConfigPath,
+		)
+		topicErrorDict[topicConfig.Meta.Name] = nil
+		rebalanceTopicProgressConfig := util.RebalanceTopicProgressConfig{
+			TopicName:          topicConfig.Meta.Name,
+			ClusterName:        clusterConfig.Meta.Name,
+			ClusterEnvironment: clusterConfig.Meta.Environment,
+			ToRemove:           rebalanceConfig.brokersToRemove,
+			RebalanceError:     false,
+		}
+		if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
+			topicErrorDict[topicConfig.Meta.Name] = err
+			rebalanceTopicProgressConfig.RebalanceError = true
+			log.Errorf("topic: %s rebalance failed with error: %v", topicConfig.Meta.Name, err)
+		}
 
-			log.Infof(
-				"Rebalancing topic %s from config file %s with cluster config %s",
-				topicConfig.Meta.Name,
-				topicFile,
-				clusterConfigPath,
-			)
-
-			topicErrorDict[topicConfig.Meta.Name] = nil
-			rebalanceTopicProgressConfig := util.RebalanceTopicProgressConfig{
-				TopicName:          topicConfig.Meta.Name,
-				ClusterName:        clusterConfig.Meta.Name,
-				ClusterEnvironment: clusterConfig.Meta.Environment,
-				ToRemove:           rebalanceConfig.brokersToRemove,
-				RebalanceError:     false,
-			}
-			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
-				topicErrorDict[topicConfig.Meta.Name] = err
-				rebalanceTopicProgressConfig.RebalanceError = true
-				log.Errorf("topic: %s rebalance failed with error: %v", topicConfig.Meta.Name, err)
-			}
-
-			// show topic final progress
-			if rebalanceCtxStruct.Enabled {
-				progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
-				if err != nil {
-					log.Errorf("progress struct to string error: %+v", err)
-				} else {
-					log.Infof("Rebalance Progress: %s", progressStr)
-				}
+		// show topic final progress
+		if rebalanceCtxStruct.Enabled {
+			progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
+			if err != nil {
+				log.Errorf("progress struct to string error: %+v", err)
+			} else {
+				log.Infof("Rebalance Progress: %s", progressStr)
 			}
 		}
+		return nil
+	})
+	if processed != nil {
+		return processed
 	}
 
 	// audit at the end of all topic rebalances
