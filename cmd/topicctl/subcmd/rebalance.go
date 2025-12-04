@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -33,7 +32,7 @@ type rebalanceCmdConfig struct {
 	brokersToRemove            []int
 	brokerThrottleMBsOverride  int
 	dryRun                     bool
-	generateConfig             bool
+	bootstrapMissingConfigs    bool
 	partitionBatchSizeOverride int
 	pathPrefix                 string
 	sleepLoopDuration          time.Duration
@@ -88,10 +87,10 @@ func init() {
 		"Interval of time to show progress during rebalance",
 	)
 	rebalanceCmd.Flags().BoolVar(
-		&rebalanceConfig.generateConfig,
-		"generate-config",
+		&rebalanceConfig.bootstrapMissingConfigs,
+		"bootstrap-missing-configs",
 		false,
-		"Generate temporary config file(s) for the rebalance of configless topic(s)",
+		"Bootstrap temporary topic config(s) for the rebalance of configless topic(s)",
 	)
 
 	addSharedConfigOnlyFlags(rebalanceCmd, &rebalanceConfig.shared)
@@ -159,49 +158,32 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tmpDir := ""
-	existingConfigFiles := []string{}
-	if rebalanceConfig.generateConfig {
+	existingConfigFiles := make(map[string]struct{})
+	if rebalanceConfig.bootstrapMissingConfigs {
 		// make set of existing files
 		err := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
-			existingConfigFiles = append(existingConfigFiles, topicConfig.Meta.Name)
+			_, topicFilename := filepath.Split(topicFile)
+			existingConfigFiles[topicFilename] = struct{}{}
 			return nil
 		})
 		if err != nil {
 			return err
 		}
 
-		// create temp dir
-		tmpDir = rebalanceConfig.pathPrefix
-		if rebalanceConfig.pathPrefix[len(rebalanceConfig.pathPrefix) - 1] != '/' {
-			tmpDir += "/"
-		}
-		tmpDir += "tmp/"
-		err = os.Mkdir(tmpDir, 0755)
-		if err != nil {
-			return err
-		}
-		log.Infof("tmp output path: %v", tmpDir)
-
-		topicsToExclude := ".^"
-		if len(existingConfigFiles) > 0 {
-			topicsToExclude = strings.Join(existingConfigFiles, "|")
-		}
-		
-		// generate missing config files
+		// bootstrap missing config files
 		cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
 		cliRunner.BootstrapTopics(
 			ctx,
 			[]string{},
 			clusterConfig,
 			".*",
-			topicsToExclude,
-			tmpDir,
+			".^",
+			rebalanceConfig.pathPrefix,
 			false,
 			false,
 		)
 
-		// re-invetory config files to take into account newly generated ones
+		// re-inventory topic configs to take into account bootstrapped ones
 		topicFiles, err = getAllFiles(topicConfigDir)
 		if err != nil {
 			return err
@@ -281,11 +263,17 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// clean up any generated config files
-	if rebalanceConfig.generateConfig {
-		err = os.RemoveAll(tmpDir)
-		if err != nil {
-			return err
+	// clean up any bootstrapped topic configs
+	if rebalanceConfig.bootstrapMissingConfigs {
+		for _, topicFile := range topicFiles {
+			_, topicFilename := filepath.Split(topicFile)
+			if _, found := existingConfigFiles[topicFilename]; found {
+				continue
+			}
+			err := os.Remove(topicFile)
+			if err != nil {
+				log.Errorf("error deleting temporary file %s: %v", topicFile, err)
+			}
 		}
 	}
 
@@ -437,7 +425,7 @@ func processTopicFiles(topicFiles []string, operation func(topicConfig config.To
 		for _, topicConfig := range topicConfigs {
 			err := operation(topicConfig, topicFile)
 			if err != nil {
-				return fmt.Errorf("error during operationg on config %d (%s): %w", 0, topicConfig.Meta.Name, err)
+				return fmt.Errorf("error during operation on config %d (%s): %w", 0, topicConfig.Meta.Name, err)
 			}
 		}
 	}

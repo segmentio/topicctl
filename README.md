@@ -457,6 +457,8 @@ To rebalance **all** topics in a cluster, use the `rebalance` subcommand, which 
 function on all qualifying topics. It will inventory all topic configs found at  `--path-prefix` for a cluster
 specified by `--cluster-config`.
 
+To rebalance topics in a cluster that's missing any topic configs, use the `rebalance` subcommand with the `--bootstrap-missing-configs` flag. This will temporarily bootstrap any missing topic configs at `--path-prefix`.
+
 This subcommand will not rebalance a topic if:
 
 1. the topic config is inconsistent with the cluster config (name, region, environment etc...)
