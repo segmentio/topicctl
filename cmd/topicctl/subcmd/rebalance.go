@@ -32,6 +32,7 @@ type rebalanceCmdConfig struct {
 	brokersToRemove            []int
 	brokerThrottleMBsOverride  int
 	dryRun                     bool
+	bootstrapMissingConfigs    bool
 	partitionBatchSizeOverride int
 	pathPrefix                 string
 	sleepLoopDuration          time.Duration
@@ -84,6 +85,12 @@ func init() {
 		"show-progress-interval",
 		0*time.Second,
 		"Interval of time to show progress during rebalance",
+	)
+	rebalanceCmd.Flags().BoolVar(
+		&rebalanceConfig.bootstrapMissingConfigs,
+		"bootstrap-missing-configs",
+		false,
+		"Bootstrap temporary topic config(s) for the rebalance of configless topic(s)",
 	)
 
 	addSharedConfigOnlyFlags(rebalanceCmd, &rebalanceConfig.shared)
@@ -151,55 +158,80 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// iterate through each topic config and initiate rebalance
-	topicConfigs := []config.TopicConfig{}
-	topicErrorDict := make(map[string]error)
-	for _, topicFile := range topicFiles {
-		// do not consider invalid topic yaml files for rebalance
-		topicConfigs, err = config.LoadTopicsFile(topicFile)
+	existingConfigFiles := make(map[string]struct{})
+	if rebalanceConfig.bootstrapMissingConfigs {
+		// make set of existing files
+		err := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
+			_, topicFilename := filepath.Split(topicFile)
+			existingConfigFiles[topicFilename] = struct{}{}
+			return nil
+		})
 		if err != nil {
-			log.Errorf("Invalid topic yaml file: %s", topicFile)
-			continue
+			return err
 		}
 
-		for _, topicConfig := range topicConfigs {
-			// topic config should be consistent with the cluster config
-			if err := config.CheckConsistency(topicConfig.Meta, clusterConfig); err != nil {
-				log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
-				continue
-			}
+		// bootstrap missing config files
+		cliRunner := cli.NewCLIRunner(adminClient, log.Infof, false)
+		cliRunner.BootstrapTopics(
+			ctx,
+			[]string{},
+			clusterConfig,
+			".*",
+			".^",
+			rebalanceConfig.pathPrefix,
+			false,
+			false,
+		)
 
-			log.Infof(
-				"Rebalancing topic %s from config file %s with cluster config %s",
-				topicConfig.Meta.Name,
-				topicFile,
-				clusterConfigPath,
-			)
+		// re-inventory topic configs to take into account bootstrapped ones
+		topicFiles, err = getAllFiles(topicConfigDir)
+		if err != nil {
+			return err
+		}
+	}
 
-			topicErrorDict[topicConfig.Meta.Name] = nil
-			rebalanceTopicProgressConfig := util.RebalanceTopicProgressConfig{
-				TopicName:          topicConfig.Meta.Name,
-				ClusterName:        clusterConfig.Meta.Name,
-				ClusterEnvironment: clusterConfig.Meta.Environment,
-				ToRemove:           rebalanceConfig.brokersToRemove,
-				RebalanceError:     false,
-			}
-			if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
-				topicErrorDict[topicConfig.Meta.Name] = err
-				rebalanceTopicProgressConfig.RebalanceError = true
-				log.Errorf("topic: %s rebalance failed with error: %v", topicConfig.Meta.Name, err)
-			}
+	// iterate through each topic config and initiate rebalance
+	topicErrorDict := make(map[string]error)
+	processed := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
+		// topic config should be consistent with the cluster config
+		if err := config.CheckConsistency(topicConfig.Meta, clusterConfig); err != nil {
+			log.Errorf("topic file: %s inconsistent with cluster: %s", topicFile, clusterConfigPath)
+			return nil
+		}
 
-			// show topic final progress
-			if rebalanceCtxStruct.Enabled {
-				progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
-				if err != nil {
-					log.Errorf("progress struct to string error: %+v", err)
-				} else {
-					log.Infof("Rebalance Progress: %s", progressStr)
-				}
+		log.Infof(
+			"Rebalancing topic %s from config file %s with cluster config %s",
+			topicConfig.Meta.Name,
+			topicFile,
+			clusterConfigPath,
+		)
+		topicErrorDict[topicConfig.Meta.Name] = nil
+		rebalanceTopicProgressConfig := util.RebalanceTopicProgressConfig{
+			TopicName:          topicConfig.Meta.Name,
+			ClusterName:        clusterConfig.Meta.Name,
+			ClusterEnvironment: clusterConfig.Meta.Environment,
+			ToRemove:           rebalanceConfig.brokersToRemove,
+			RebalanceError:     false,
+		}
+		if err := rebalanceApplyTopic(ctx, topicConfig, clusterConfig, adminClient); err != nil {
+			topicErrorDict[topicConfig.Meta.Name] = err
+			rebalanceTopicProgressConfig.RebalanceError = true
+			log.Errorf("topic: %s rebalance failed with error: %v", topicConfig.Meta.Name, err)
+		}
+
+		// show topic final progress
+		if rebalanceCtxStruct.Enabled {
+			progressStr, err := util.StructToStr(rebalanceTopicProgressConfig)
+			if err != nil {
+				log.Errorf("progress struct to string error: %+v", err)
+			} else {
+				log.Infof("Rebalance Progress: %s", progressStr)
 			}
 		}
+		return nil
+	})
+	if processed != nil {
+		return processed
 	}
 
 	// audit at the end of all topic rebalances
@@ -228,6 +260,20 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 			log.Errorf("progress struct to string error: %+v", err)
 		} else {
 			log.Infof("Rebalance Progress: %s", progressStr)
+		}
+	}
+
+	// clean up any bootstrapped topic configs
+	if rebalanceConfig.bootstrapMissingConfigs {
+		for _, topicFile := range topicFiles {
+			_, topicFilename := filepath.Split(topicFile)
+			if _, found := existingConfigFiles[topicFilename]; found {
+				continue
+			}
+			err := os.Remove(topicFile)
+			if err != nil {
+				log.Errorf("error deleting temporary file %s: %v", topicFile, err)
+			}
 		}
 	}
 
@@ -365,4 +411,23 @@ func getAllFiles(dir string) ([]string, error) {
 	}
 
 	return files, err
+}
+
+func processTopicFiles(topicFiles []string, operation func(topicConfig config.TopicConfig, topicFile string) error) error {
+	for _, topicFile := range topicFiles {
+		// do not consider invalid topic yaml files for rebalance
+		topicConfigs, err := config.LoadTopicsFile(topicFile)
+		if err != nil {
+			log.Errorf("Invalid topic yaml file: %s", topicFile)
+			continue
+		}
+
+		for _, topicConfig := range topicConfigs {
+			err := operation(topicConfig, topicFile)
+			if err != nil {
+				return fmt.Errorf("error during operation on config %d (%s): %w", 0, topicConfig.Meta.Name, err)
+			}
+		}
+	}
+	return nil
 }
