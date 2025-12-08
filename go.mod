@@ -16,7 +16,7 @@ require (
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/segmentio/kafka-go/sasl/aws_msk_iam_v2 v0.1.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.1
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
