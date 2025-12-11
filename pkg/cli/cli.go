@@ -643,7 +643,7 @@ func (c *CLIRunner) DeleteTopic(ctx context.Context, topic string) error {
 	return nil
 }
 
-// GerUsers fetches the details of each user in the cluster and prints out a table of them.
+// GetUsers fetches the details of each user in the cluster and prints out a table of them.
 func (c *CLIRunner) GetUsers(ctx context.Context, names []string) error {
 	c.startSpinner()
 
