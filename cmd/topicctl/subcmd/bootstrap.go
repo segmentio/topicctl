@@ -21,7 +21,7 @@ type bootstrapCmdConfig struct {
 	excludeRegexp string
 	outputDir     string
 	overwrite     bool
-	placementStrategyOverwrite config.PlacementStrategy
+	placementStrategy config.PlacementStrategy
 
 	allowInternalTopics bool
 
@@ -63,8 +63,8 @@ func init() {
 		"Include topics that start with __ (typically these are internal topics)",
 	)
 	bootstrapCmd.Flags().StringVar(
-		(*string)(&bootstrapConfig.placementStrategyOverwrite),
-		"placement-strategy-overwrite",
+		(*string)(&bootstrapConfig.placementStrategy),
+		"placement-strategy",
 		"cross-rack",
 		"Provide a placementStrategy to overwrite the default value of cross-rack",
 	)
@@ -109,6 +109,6 @@ func bootstrapRun(cmd *cobra.Command, args []string) error {
 		bootstrapConfig.outputDir,
 		bootstrapConfig.overwrite,
 		bootstrapConfig.allowInternalTopics,
-		bootstrapConfig.placementStrategyOverwrite,
+		bootstrapConfig.placementStrategy,
 	)
 }
