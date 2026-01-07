@@ -313,6 +313,7 @@ func (t TopicConfig) ToYAML() (string, error) {
 func TopicConfigFromTopicInfo(
 	clusterConfig ClusterConfig,
 	topicInfo admin.TopicInfo,
+	placementStrategy PlacementStrategy,
 ) TopicConfig {
 	topicConfig := TopicConfig{
 		Meta: ResourceMeta{
@@ -326,7 +327,7 @@ func TopicConfigFromTopicInfo(
 			Partitions:        len(topicInfo.Partitions),
 			ReplicationFactor: len(topicInfo.Partitions[0].Replicas),
 			PlacementConfig: TopicPlacementConfig{
-				Strategy: PlacementStrategyAny,
+				Strategy: placementStrategy,
 			},
 		},
 	}

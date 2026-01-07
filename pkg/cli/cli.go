@@ -210,6 +210,7 @@ func (c *CLIRunner) BootstrapTopics(
 	outputDir string,
 	overwrite bool,
 	allowInternalTopics bool,
+	placementStrategyOverwrite ...config.PlacementStrategy,
 ) error {
 	topicInfoObjs, err := c.adminClient.GetTopics(ctx, topics, false)
 	if err != nil {
@@ -223,6 +224,11 @@ func (c *CLIRunner) BootstrapTopics(
 	excludeRegexp, err := regexp.Compile(excludeRegexpStr)
 	if err != nil {
 		return err
+	}
+
+	placementStrategy := config.PlacementStrategyCrossRack
+	if len(placementStrategyOverwrite) > 0 {
+		placementStrategy = placementStrategyOverwrite[0]
 	}
 
 	topicConfigs := []config.TopicConfig{}
@@ -240,6 +246,7 @@ func (c *CLIRunner) BootstrapTopics(
 		topicConfig := config.TopicConfigFromTopicInfo(
 			clusterConfig,
 			topicInfo,
+			placementStrategy,
 		)
 		topicConfigs = append(topicConfigs, topicConfig)
 	}

@@ -481,6 +481,7 @@ func TestTopicConfigFromTopicInfo(t *testing.T) {
 		topicConfig := TopicConfigFromTopicInfo(
 			testCase.clusterConfig,
 			testCase.topicInfo,
+			"any",
 		)
 		assert.Equal(t, testCase.expTopicConfig, topicConfig)
 	}
