@@ -2,8 +2,9 @@ package util
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Rebalance topic progress Config

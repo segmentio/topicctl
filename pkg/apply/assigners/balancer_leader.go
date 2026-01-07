@@ -18,15 +18,15 @@ import (
 //
 // The algorithm currently used is as follows:
 //
-//   while not balanced:
-//     find racks with fewest and most leaders (i.e., the overrepresented and underrepresented)
-//     improve balance by doing a single leader replacement:
-//       use the picker to rank the partitions that have an overrepresented leader
-//       for each leader:
-//         for each partition with the leader:
-//           swap the leader with one of its followers if possible, then stop
-//       otherwise, use the picker to replace the leader in the top-ranked partition with
-//         a new broker from the target rack
+//	while not balanced:
+//	  find racks with fewest and most leaders (i.e., the overrepresented and underrepresented)
+//	  improve balance by doing a single leader replacement:
+//	    use the picker to rank the partitions that have an overrepresented leader
+//	    for each leader:
+//	      for each partition with the leader:
+//	        swap the leader with one of its followers if possible, then stop
+//	    otherwise, use the picker to replace the leader in the top-ranked partition with
+//	      a new broker from the target rack
 type BalancedLeaderAssigner struct {
 	brokers        []admin.BrokerInfo
 	racks          []string
