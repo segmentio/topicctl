@@ -61,3 +61,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/segmentio/kafka-go => github.com/segmentio/kafka-go v0.4.50-0.20260114220347-658edf33f85f
