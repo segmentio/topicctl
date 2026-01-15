@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
-	github.com/segmentio/kafka-go v0.4.49
+	github.com/segmentio/kafka-go v0.4.50
 	github.com/segmentio/kafka-go/sasl/aws_msk_iam_v2 v0.1.0
 	github.com/sirupsen/logrus v1.9.1
 	github.com/spf13/cobra v1.5.0
