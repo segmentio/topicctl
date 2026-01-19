@@ -13,24 +13,24 @@ import (
 // FrequencyRebalancer is a Rebalancer that rebalances to achieve in-topic balance among
 // all available brokers. The algorithm used is:
 //
-//   for each replica position index:
-//     while true:
-//       get counts for each broker in that position
-//       partition the set of brokers into two sets, a "lower" one and an "upper one", based on
-//         on the sorted frequency counts (with brokers to be removed treated as the highest
-//         frequencies)
-//       for each lower broker, upper broker combination:
-//         try to replace the upper broker with the lower one
-//         if replacement made, continue to next while loop iteration
-//       if no replacement made, break out of while loop, continue to next partition index
+//	for each replica position index:
+//	  while true:
+//	    get counts for each broker in that position
+//	    partition the set of brokers into two sets, a "lower" one and an "upper one", based on
+//	      on the sorted frequency counts (with brokers to be removed treated as the highest
+//	      frequencies)
+//	    for each lower broker, upper broker combination:
+//	      try to replace the upper broker with the lower one
+//	      if replacement made, continue to next while loop iteration
+//	    if no replacement made, break out of while loop, continue to next partition index
 //
 // Replacements are made if:
 //
-//   1. The replacement improves the broker balance for the index OR
-//         the replacement improves the broker balance for the topic as a whole
+//  1. The replacement improves the broker balance for the index OR
+//     the replacement improves the broker balance for the topic as a whole
 //     AND
-//   2. The replacement is consistent with the placement strategy for the topic (e.g., balanced
-//      leaders, in-rack, etc.)
+//  2. The replacement is consistent with the placement strategy for the topic (e.g., balanced
+//     leaders, in-rack, etc.)
 //
 // The picker passed in to the rebalancer is used to sort the partitions for each broker (if it
 // appears more than once for the current index) and also to break ties when sorting and

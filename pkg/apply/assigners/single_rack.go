@@ -11,16 +11,18 @@ import (
 // partition are in the same rack as the leader. The algorithm is:
 //
 // for each partition:
-//   for each non-leader replica:
-//     if replica not in same rack as leader:
-//       change replica to a placeholder (-1)
+//
+//	for each non-leader replica:
+//	  if replica not in same rack as leader:
+//	    change replica to a placeholder (-1)
 //
 // then:
 //
 // for each partition:
-//   for each non-leader replica:
-//     if replica is set to placeholder:
-//       use picker to replace it with a broker in the target rack
+//
+//	for each non-leader replica:
+//	  if replica is set to placeholder:
+//	    use picker to replace it with a broker in the target rack
 //
 // Note that this assigner doesn't make any leader changes. Thus, the assignments
 // need to already be leader balanced before we make the changes with this assigner.

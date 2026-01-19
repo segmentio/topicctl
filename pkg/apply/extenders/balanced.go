@@ -12,12 +12,13 @@ import (
 // algorithm is:
 //
 // for each new partition:
-//   set the leader rack to the next rack in the cycle
-//   choose the leader using the picker
-//   for each follower:
-//     set the rack to either the same one as the leader (if inRack true) or the next one in the
-//       cycle (if inRack false)
-//     pick the follower using the picker
+//
+//	set the leader rack to the next rack in the cycle
+//	choose the leader using the picker
+//	for each follower:
+//	  set the rack to either the same one as the leader (if inRack true) or the next one in the
+//	    cycle (if inRack false)
+//	  pick the follower using the picker
 type BalancedExtender struct {
 	brokers        []admin.BrokerInfo
 	inRack         bool
