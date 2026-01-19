@@ -140,6 +140,7 @@ func checkTopicFile(
 				aws.Config{},
 				config.AdminClientOpts{
 					ReadOnly:                  true,
+					KafkaConnTimeout:          checkConfig.shared.connTimeout,
 					UsernameOverride:          checkConfig.shared.saslUsername,
 					PasswordOverride:          checkConfig.shared.saslPassword,
 					SecretsManagerArnOverride: checkConfig.shared.saslSecretsManagerArn,

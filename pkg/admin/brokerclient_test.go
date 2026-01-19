@@ -44,6 +44,25 @@ func TestBrokerClientControllerID(t *testing.T) {
 	}, fmt.Sprintf("Received %d, Broker Controller ID should be between 1 and 6.", controllerID))
 }
 
+func TestBrokerAdminClientRequestTimeoutDefault(t *testing.T) {
+	client := &BrokerAdminClient{}
+
+	assert.Equal(t, defaultRequestTimeout, client.requestTimeout())
+}
+
+func TestBrokerAdminClientRequestTimeoutOverride(t *testing.T) {
+	customTimeout := 42 * time.Second
+	client := &BrokerAdminClient{
+		config: BrokerAdminClientConfig{
+			ConnectorConfig: ConnectorConfig{
+				ConnTimeout: customTimeout,
+			},
+		},
+	}
+
+	assert.Equal(t, customTimeout, client.requestTimeout())
+}
+
 func TestBrokerClientGetClusterID(t *testing.T) {
 	if !util.CanTestBrokerAdmin() {
 		t.Skip("Skipping because KAFKA_TOPICS_TEST_BROKER_ADMIN is not set")

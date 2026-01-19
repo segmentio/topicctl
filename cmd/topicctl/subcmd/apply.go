@@ -227,6 +227,7 @@ func applyTopic(
 			aws.Config{},
 			config.AdminClientOpts{
 				ReadOnly:                  applyConfig.dryRun,
+				KafkaConnTimeout:          applyConfig.shared.connTimeout,
 				UsernameOverride:          applyConfig.shared.saslUsername,
 				PasswordOverride:          applyConfig.shared.saslPassword,
 				SecretsManagerArnOverride: applyConfig.shared.saslSecretsManagerArn,
