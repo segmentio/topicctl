@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/topicctl/pkg/config"
 	log "github.com/sirupsen/logrus"
@@ -34,31 +35,27 @@ func FormatSettingsDiff(
 ) (string, error) {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-
-	headers := []string{
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(2).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
+	)
+	table.Header(
 		"Key",
 		"Cluster Value (Curr)",
 		"Config Value (New)",
-	}
-
-	table.SetHeader(headers)
-
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
 	)
 
 	for _, diffKey := range diffKeys {
@@ -101,29 +98,25 @@ func FormatMissingKeys(
 ) string {
 	buf := &bytes.Buffer{}
 
-	table := tablewriter.NewWriter(buf)
-
-	headers := []string{
+	table := tablewriter.NewTable(buf,
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				ForColumn(0).WithAlignment(tw.AlignLeft).Build().
+				ForColumn(1).WithAlignment(tw.AlignLeft).Build().
+				Build()),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.Border{
+				Left:   tw.Off,
+				Top:    tw.On,
+				Right:  tw.Off,
+				Bottom: tw.On,
+			},
+		}),
+	)
+	table.Header(
 		"Key",
 		"Cluster Value",
-	}
-
-	table.SetHeader(headers)
-
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment(
-		[]int{
-			tablewriter.ALIGN_LEFT,
-			tablewriter.ALIGN_LEFT,
-		},
-	)
-	table.SetBorders(
-		tablewriter.Border{
-			Left:   false,
-			Top:    true,
-			Right:  false,
-			Bottom: true,
-		},
 	)
 
 	for _, missingKey := range missingKeys {
