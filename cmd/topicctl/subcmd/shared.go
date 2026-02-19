@@ -320,4 +320,10 @@ func addSharedConfigOnlyFlags(cmd *cobra.Command, options *sharedOptions) {
 		os.Getenv("TOPICCTL_SASL_SECRETS_MANAGER_ARN"),
 		"Secrets Manager ARN to use for credentials if using SASL; will override value set in cluster config",
 	)
+	cmd.Flags().DurationVar(
+		&options.connTimeout,
+		"conn-timeout",
+		10*time.Second,
+		"Kafka connection timeout",
+	)
 }

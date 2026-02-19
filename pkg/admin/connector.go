@@ -73,6 +73,11 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		Config: config,
 	}
 
+	connTimeout := config.ConnTimeout
+	if connTimeout == 0 {
+		connTimeout = 10 * time.Second
+	}
+
 	var mechanismClient sasl.Mechanism
 	var tlsConfig *tls.Config
 	var err error
@@ -143,6 +148,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 
 	if !config.TLS.Enabled {
 		connector.Dialer = kafka.DefaultDialer
+		connector.Dialer.Timeout = connTimeout
 		connector.Dialer.SASLMechanism = mechanismClient
 	} else {
 		var certs []tls.Certificate
@@ -184,7 +190,7 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		}
 		connector.Dialer = &kafka.Dialer{
 			SASLMechanism: mechanismClient,
-			Timeout:       10 * time.Second,
+			Timeout:       connTimeout,
 			TLS:           tlsConfig,
 		}
 	}
@@ -194,13 +200,18 @@ func NewConnector(config ConnectorConfig) (*Connector, error) {
 		config.TLS.Enabled,
 		config.SASL.Enabled,
 	)
+	transport := &kafka.Transport{
+		SASL:        mechanismClient,
+		TLS:         tlsConfig,
+		DialTimeout: connTimeout,
+	}
+	if connector.Dialer.DialFunc != nil {
+		transport.Dial = connector.Dialer.DialFunc
+	}
 	connector.KafkaClient = &kafka.Client{
 		Addr: kafka.TCP(config.BrokerAddr),
-		Transport: &kafka.Transport{
-			Dial: connector.Dialer.DialFunc,
-			SASL: mechanismClient,
-			TLS:  tlsConfig,
-		},
+		Timeout:   connTimeout,
+		Transport: transport,
 	}
 
 	return connector, nil

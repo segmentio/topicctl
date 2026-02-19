@@ -135,6 +135,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		aws.Config{},
 		config.AdminClientOpts{
 			ReadOnly:                  rebalanceConfig.dryRun,
+			KafkaConnTimeout:          rebalanceConfig.shared.connTimeout,
 			UsernameOverride:          rebalanceConfig.shared.saslUsername,
 			PasswordOverride:          rebalanceConfig.shared.saslPassword,
 			SecretsManagerArnOverride: rebalanceConfig.shared.saslSecretsManagerArn,
