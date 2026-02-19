@@ -357,9 +357,9 @@ type zkClusterID struct {
 }
 
 type zkControllerInfo struct {
-	Version    int    `json:"version"`
-	BrokerID   int    `json:"brokerid"`
-	Timestamp  string `json:"timestamp"`
+	Version   int    `json:"version"`
+	BrokerID  int    `json:"brokerid"`
+	Timestamp string `json:"timestamp"`
 }
 
 type zkBrokerInfo struct {
