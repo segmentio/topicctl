@@ -36,6 +36,7 @@ type TopicApplierConfig struct {
 	RetentionDropStepDuration  time.Duration
 	SkipConfirm                bool
 	IgnoreFewerPartitionsError bool
+	Destructive                bool
 	SleepLoopDuration          time.Duration
 	TopicConfig                config.TopicConfig
 }
@@ -391,6 +392,8 @@ func (t *TopicApplier) updateSettings(
 		return err
 	}
 
+	configEntries := []kafka.ConfigEntry{}
+
 	if len(diffKeys) > 0 {
 		diffsTable, err := FormatSettingsDiff(topicSettings, topicInfo.Config, diffKeys)
 		if err != nil {
@@ -409,6 +412,23 @@ func (t *TopicApplier) updateSettings(
 			)
 		}
 
+		configEntries, err = topicSettings.ToConfigEntries(diffKeys)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(missingKeys) > 0 && t.config.Destructive {
+		log.Infof(
+			"Found %d key(s) set in cluster but missing from config to be deleted:\n%s",
+			len(missingKeys),
+			FormatMissingKeys(topicInfo.Config, missingKeys),
+		)
+
+		configEntries = append(configEntries, topicSettings.ToEmptyConfigEntries(missingKeys)...)
+	}
+
+	if len(configEntries) > 0 {
 		if t.config.DryRun {
 			log.Infof("Skipping update because dryRun is set to true")
 			return nil
@@ -423,11 +443,6 @@ func (t *TopicApplier) updateSettings(
 		}
 		log.Infof("OK, updating")
 
-		configEntries, err := topicSettings.ToConfigEntries(diffKeys)
-		if err != nil {
-			return err
-		}
-
 		_, err = t.adminClient.UpdateTopicConfig(
 			ctx,
 			t.topicName,
@@ -439,7 +454,7 @@ func (t *TopicApplier) updateSettings(
 		}
 	}
 
-	if len(missingKeys) > 0 {
+	if len(missingKeys) > 0 && !t.config.Destructive {
 		log.Warnf(
 			"Found %d key(s) set in cluster but missing from config:\n%s\nThese will be left as-is.",
 			len(missingKeys),
