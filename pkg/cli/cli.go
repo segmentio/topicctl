@@ -700,9 +700,11 @@ func (c *CLIRunner) Tail(
 	filterRegexp string,
 	raw bool,
 	headers bool,
+	groupID string,
 ) error {
 	var err error
-	if len(partitions) == 0 {
+
+	if groupID == "" && len(partitions) == 0 {
 		topicInfo, err := c.adminClient.GetTopic(ctx, topic, false)
 		if err != nil {
 			return err
@@ -715,6 +717,7 @@ func (c *CLIRunner) Tail(
 	tailer := messages.NewTopicTailer(
 		c.adminClient.GetConnector(),
 		topic,
+		groupID,
 		partitions,
 		offset,
 		10e3,
