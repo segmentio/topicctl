@@ -161,13 +161,9 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	existingConfigFiles := make(map[string]struct{})
 	if rebalanceConfig.bootstrapMissingConfigs {
 		// make set of existing files
-		err := processTopicFiles(topicFiles, func(topicConfig config.TopicConfig, topicFile string) error {
+		for _, topicFile := range topicFiles {
 			_, topicFilename := filepath.Split(topicFile)
 			existingConfigFiles[topicFilename] = struct{}{}
-			return nil
-		})
-		if err != nil {
-			return err
 		}
 
 		// bootstrap missing config files
