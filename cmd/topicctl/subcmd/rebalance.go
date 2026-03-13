@@ -158,9 +158,10 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	existingConfigFiles := make(map[string]struct{})
+	bootstrappedFiles := make(map[string]struct{})
 	if rebalanceConfig.bootstrapMissingConfigs {
-		// make set of existing files
+		// make set of existing files before bootstrapping
+		existingConfigFiles := make(map[string]struct{})
 		for _, topicFile := range topicFiles {
 			_, topicFilename := filepath.Split(topicFile)
 			existingConfigFiles[topicFilename] = struct{}{}
@@ -183,6 +184,14 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		topicFiles, err = getAllFiles(topicConfigDir)
 		if err != nil {
 			return err
+		}
+
+		// make list of bootstrappedFiles	
+		for _, topicFile := range topicFiles {
+			_, topicFilename := filepath.Split(topicFile)
+			if _, found := existingConfigFiles[topicFilename]; !found {
+				bootstrappedFiles[topicFilename] = struct{}{}
+			}
 		}
 	}
 
@@ -260,16 +269,10 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// clean up any bootstrapped topic configs
-	if rebalanceConfig.bootstrapMissingConfigs {
-		for _, topicFile := range topicFiles {
-			_, topicFilename := filepath.Split(topicFile)
-			if _, found := existingConfigFiles[topicFilename]; found {
-				continue
-			}
-			err := os.Remove(topicFile)
-			if err != nil {
-				log.Errorf("error deleting temporary file %s: %v", topicFile, err)
-			}
+	for topicFile := range bootstrappedFiles {
+		err := os.Remove(topicFile)
+		if err != nil {
+			log.Errorf("error deleting temporary file %s: %v", topicFile, err)
 		}
 	}
 
