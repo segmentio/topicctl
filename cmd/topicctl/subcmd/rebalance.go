@@ -190,7 +190,7 @@ func rebalanceRun(cmd *cobra.Command, args []string) error {
 		for _, topicFile := range topicFiles {
 			_, topicFilename := filepath.Split(topicFile)
 			if _, found := existingConfigFiles[topicFilename]; !found {
-				bootstrappedFiles[topicFilename] = struct{}{}
+				bootstrappedFiles[topicFile] = struct{}{}
 			}
 		}
 	}
