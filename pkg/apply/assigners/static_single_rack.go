@@ -14,16 +14,18 @@ import (
 // The following algorithm is used:
 //
 // for each partition:
-//   for each replica:
-//     if replica not in the desired (static) rack:
-//       change the replica to a placeholder (-1)
+//
+//	for each replica:
+//	  if replica not in the desired (static) rack:
+//	    change the replica to a placeholder (-1)
 //
 // then:
 //
 // for each partition:
-//   for each replica:
-//     if replica set to the placeholder:
-//       use picker to pick a broker from the set of all brokers in the target rack
+//
+//	for each replica:
+//	  if replica set to the placeholder:
+//	    use picker to pick a broker from the set of all brokers in the target rack
 //
 // In the case of ties, the lowest indexed broker is picked (if randomize is false) or
 // a repeatably random choice (if randomize is true).

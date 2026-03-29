@@ -16,7 +16,7 @@ import (
 func TestGetAllPartitionBounds(t *testing.T) {
 	ctx := context.Background()
 	connector, err := admin.NewConnector(admin.ConnectorConfig{
-		BrokerAddr: util.TestKafkaAddr(),
+		BrokerAddr:  util.TestKafkaAddr(),
 		ConnTimeout: 10 * time.Second,
 	})
 	require.NoError(t, err)
