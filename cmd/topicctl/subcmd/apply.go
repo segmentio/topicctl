@@ -39,6 +39,7 @@ type applyCmdConfig struct {
 	ignoreFewerPartitionsError   bool
 	sleepLoopDuration            time.Duration
 	failFast                     bool
+	keepThrottle                 bool
 
 	shared sharedOptions
 
@@ -119,6 +120,12 @@ func init() {
 		"fail-fast",
 		true,
 		"Fail upon the first error encountered during apply process",
+	)
+	applyCmd.Flags().BoolVar(
+		&applyConfig.keepThrottle,
+		"keep-throttle",
+		false,
+		"Keep replication throttle settings instead of removing them",
 	)
 
 	addSharedConfigOnlyFlags(applyCmd, &applyConfig.shared)
@@ -263,6 +270,7 @@ func applyTopic(
 			IgnoreFewerPartitionsError: applyConfig.ignoreFewerPartitionsError,
 			SleepLoopDuration:          applyConfig.sleepLoopDuration,
 			TopicConfig:                topicConfig,
+			KeepThrottle:               applyConfig.keepThrottle,
 		}
 
 		if err := cliRunner.ApplyTopic(ctx, applierConfig); err != nil {

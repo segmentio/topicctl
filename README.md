@@ -124,7 +124,7 @@ docker-compose down
 #### apply
 
 ```
-topicctl apply [path(s) to topic config(s)]
+topicctl apply [flags] [path(s) to topic config(s)]
 ```
 
 The `apply` subcommand ensures that the actual state of a topic in the cluster
@@ -134,6 +134,28 @@ then the tool will initiate the necessary changes to bring it into compliance.
 
 See the [Config formats](#config-formats) section below for more information on the
 expected file formats.
+
+##### apply flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--skip-confirm` | bool | false | Skip confirmation prompts |
+| `--keep-throttle` | bool | false | Keep replication throttle settings instead of removing them after apply |
+| `--no-spinner` | bool | false | Disable progress spinner |
+| `--conn-timeout` | duration | 10s | Connection timeout |
+| `--rebalance` | bool | false | Rebalance topic replicas after apply |
+
+##### Apply Examples
+
+Apply while preserving replication throttle settings with skip confirm:
+```bash
+topicctl apply --skip-confirm --keep-throttle \
+  --cluster-config examples/local-cluster/cluster.yaml examples/local-cluster/topics/my-topic.yaml
+```
+
+This is useful for topics where throttle settings (e.g., `leader.replication.throttled.replicas`,
+`follower.replication.throttled.replicas`) are intentionally configured and should be maintained
+across applies.
 
 #### bootstrap
 

@@ -901,6 +901,79 @@ func TestApplyOverrides(t *testing.T) {
 	assert.Equal(t, applier.maxBatchSize, 8)
 }
 
+func TestApplyKeepThrottle(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	topicName := util.RandomString("apply-keep-throttle-", 6)
+	topicConfig := config.TopicConfig{
+		Meta: config.ResourceMeta{
+			Name:        topicName,
+			Cluster:     "test-cluster",
+			Region:      "test-region",
+			Environment: "test-environment",
+		},
+		Spec: config.TopicSpec{
+			Partitions:        3,
+			ReplicationFactor: 2,
+			RetentionMinutes:  500,
+			PlacementConfig: config.TopicPlacementConfig{
+				Strategy: config.PlacementStrategyStatic,
+				Picker:   config.PickerMethodLowestIndex,
+				StaticAssignments: [][]int{
+					{1, 2},
+					{2, 3},
+					{1, 3},
+				},
+			},
+			MigrationConfig: &config.TopicMigrationConfig{
+				ThrottleMB:         2,
+				PartitionBatchSize: 3,
+			},
+		},
+	}
+	// Create topic
+	applier := testApplier(ctx, t, topicConfig)
+	defer applier.adminClient.Close()
+	err := applier.Apply(ctx)
+	require.NoError(t, err)
+
+	topicInfo, err := applier.adminClient.GetTopic(ctx, topicName, true)
+	require.NoError(t, err)
+	// Topic should not be throttled initially
+	assert.False(t, topicInfo.IsThrottled())
+
+	supported := applier.adminClient.GetSupportedFeatures()
+	if !(supported.Locks && supported.DynamicBrokerConfigs) {
+		// This test only works on zk-based clients for now
+		return
+	}
+
+	// Manually add throttles to the topic
+	_, err = applier.adminClient.UpdateTopicConfig(
+		ctx,
+		topicName,
+		[]kafka.ConfigEntry{
+			{
+				ConfigName:  admin.LeaderReplicasThrottledKey,
+				ConfigValue: "0:1,1:2,2:3",
+			},
+			{
+				ConfigName:  admin.FollowerReplicasThrottledKey,
+				ConfigValue: "0:2,1:3,2:1",
+			},
+		},
+		true,
+	)
+	require.NoError(t, err)
+
+	topicInfo, err = applier.adminClient.GetTopic(ctx, topicName, true)
+	require.NoError(t, err)
+	// Topic should now be throttled
+	assert.True(t, topicInfo.IsThrottled())
+
+	// Test 1: keepThrottle = false (default behavior - should remove throttles)
+}
+
 func testTopicName(name string) string {
 	return util.RandomString(fmt.Sprintf("topic-%s-", name), 6)
 }

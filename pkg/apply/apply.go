@@ -38,6 +38,7 @@ type TopicApplierConfig struct {
 	IgnoreFewerPartitionsError bool
 	SleepLoopDuration          time.Duration
 	TopicConfig                config.TopicConfig
+	KeepThrottle               bool
 }
 
 // TopicApplier executes an "apply" run on a topic by comparing the actual
@@ -281,7 +282,7 @@ func (t *TopicApplier) checkExistingState(
 			return nil
 		}
 
-		if topicInfo.IsThrottled() {
+		if topicInfo.IsThrottled() && !t.config.KeepThrottle {
 			log.Infof(
 				"It looks there are still throttles on the topic (config: %+v)",
 				topicInfo.Config,
