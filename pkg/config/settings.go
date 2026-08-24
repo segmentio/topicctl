@@ -155,6 +155,20 @@ var keyValidators = map[string]configValidator{
 			"2.6-IV0",
 		)
 	},
+	"message.timestamp.after.max.ms": func(v string) bool {
+		intVal, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return false
+		}
+		return intVal >= 0
+	},
+	"message.timestamp.before.max.ms": func(v string) bool {
+		intVal, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return false
+		}
+		return intVal >= 0
+	},
 	"message.timestamp.difference.max.ms": func(v string) bool {
 		intVal, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {

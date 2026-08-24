@@ -73,6 +73,14 @@ func TestValidateSettings(t *testing.T) {
 			expError: true,
 		},
 		{
+			description: "message timestamp bounds",
+			settings: TopicSettings{
+				"message.timestamp.after.max.ms":  9223372036854775807,
+				"message.timestamp.before.max.ms": "86400000",
+			},
+			expError: false,
+		},
+		{
 			description: "non-matching string",
 			settings: TopicSettings{
 				"cleanup.policy": "non-matching",
